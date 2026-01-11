@@ -15,9 +15,14 @@ final class APIKeyManager {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let envFilePath = homeDir.appendingPathComponent(".typetalk.env")
 
+        print("APIKeyManager: Looking for config file at \(envFilePath.path)")
+
         guard FileManager.default.fileExists(atPath: envFilePath.path) else {
+            print("APIKeyManager: Config file not found")
             return
         }
+
+        print("APIKeyManager: Config file found, loading...")
 
         do {
             let content = try String(contentsOf: envFilePath, encoding: .utf8)
@@ -49,8 +54,9 @@ final class APIKeyManager {
             }
 
             envFileCache = envVars
+            print("APIKeyManager: Loaded \(envVars.count) keys from config file: \(envVars.keys.joined(separator: ", "))")
         } catch {
-            print("Failed to load .env file: \(error)")
+            print("APIKeyManager: Failed to load config file: \(error)")
         }
     }
 

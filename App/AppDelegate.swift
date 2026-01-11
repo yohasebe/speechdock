@@ -70,12 +70,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         let accessibilityGranted = AXIsProcessTrusted()
 
+        print("Permission check: Microphone=\(microphoneStatus.rawValue), Accessibility=\(accessibilityGranted)")
+
         // If both permissions are missing, show combined alert
         if (microphoneStatus == .denied || microphoneStatus == .restricted || microphoneStatus == .notDetermined) && !accessibilityGranted {
+            print("Permission check: Both permissions missing, showing combined alert")
             showCombinedPermissionAlert(microphoneStatus: microphoneStatus)
         } else {
             // Check individually
             if microphoneStatus == .notDetermined {
+                print("Permission check: Requesting microphone access")
                 AVCaptureDevice.requestAccess(for: .audio) { granted in
                     if !granted {
                         DispatchQueue.main.async {
@@ -84,17 +88,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
             } else if microphoneStatus == .denied || microphoneStatus == .restricted {
+                print("Permission check: Microphone denied/restricted, showing alert")
                 showMicrophonePermissionAlert()
+            } else {
+                print("Permission check: Microphone already authorized")
             }
 
             if !accessibilityGranted {
+                print("Permission check: Accessibility not granted, showing alert")
                 showAccessibilityPermissionAlert()
+            } else {
+                print("Permission check: Accessibility already granted")
             }
         }
     }
 
     /// Show combined permission alert when both are needed
     private func showCombinedPermissionAlert(microphoneStatus: AVAuthorizationStatus) {
+        // Activate app to ensure alert is visible (needed for accessory apps)
+        NSApp.activate(ignoringOtherApps: true)
+
         let alert = NSAlert()
         alert.messageText = "Permissions Required"
         alert.informativeText = """
@@ -134,6 +147,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showMicrophonePermissionAlert() {
+        // Activate app to ensure alert is visible (needed for accessory apps)
+        NSApp.activate(ignoringOtherApps: true)
+
         let alert = NSAlert()
         alert.messageText = "Microphone Access Required"
         alert.informativeText = "TypeTalk needs microphone access to record audio for transcription. Please enable it in System Settings > Privacy & Security > Microphone."
@@ -149,6 +165,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showAccessibilityPermissionAlert() {
+        // Activate app to ensure alert is visible (needed for accessory apps)
+        NSApp.activate(ignoringOtherApps: true)
+
         let alert = NSAlert()
         alert.messageText = "Accessibility Access Required"
         alert.informativeText = "TypeTalk needs Accessibility access to use global keyboard shortcuts and insert transcribed text. Please enable it in System Settings > Privacy & Security > Accessibility."

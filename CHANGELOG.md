@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-01-12
+
+### Fixed
+- Permission alerts now properly appear for accessory apps (no dock icon)
+- Added debug logging for API key loading and permission checks
+
 ## [0.1.1] - 2026-01-12
 
 ### Added
