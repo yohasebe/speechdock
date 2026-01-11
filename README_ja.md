@@ -106,13 +106,27 @@ API キーは macOS キーチェーンに安全に保存されます。
 
 ### 環境変数
 
-環境変数で API キーを設定することもできます:
+環境変数または設定ファイルで API キーを設定することもできます:
+
+**方法1: シェル環境変数** (ターミナルから起動する場合)
 
 ```bash
 export OPENAI_API_KEY="your-openai-key"
 export GEMINI_API_KEY="your-gemini-key"
 export ELEVENLABS_API_KEY="your-elevenlabs-key"
 ```
+
+**方法2: 設定ファイル** (Finder から起動する場合に推奨)
+
+ホームディレクトリに `~/.typetalk.env` ファイルを作成:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+GEMINI_API_KEY=your-gemini-key
+ELEVENLABS_API_KEY=your-elevenlabs-key
+```
+
+注意: Finder から起動したアプリはシェル環境変数を継承しません。通常の使用には設定ファイルまたはキーチェーンをご利用ください。
 
 ### 設定項目
 

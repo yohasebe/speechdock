@@ -280,15 +280,15 @@ struct MenuBarView: View {
         case .openAI:
             let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
             if model == "gpt-4o-mini-tts" {
-                return "GPT-4o Mini TTSは速度制御非対応です。TTS-1またはTTS-1 HDを選択してください。"
+                return "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD."
             }
-            return "再生速度を調整 (0.25x〜4.0x)"
+            return "Adjust playback speed (0.25x–4.0x)"
         case .gemini:
-            return "Geminiはプロンプトでペースを制御します（おおよその調整）"
+            return "Gemini uses prompt-based pacing (approximate adjustment)"
         case .elevenLabs:
-            return "再生速度を調整 (実際の範囲: 0.7x〜1.2x)"
+            return "Adjust playback speed (actual range: 0.7x–1.2x)"
         case .macOS:
-            return "再生速度を調整"
+            return "Adjust playback speed"
         }
     }
 

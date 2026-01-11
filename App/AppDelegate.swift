@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import ApplicationServices
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var hotKeyService: HotKeyService?
@@ -23,8 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppState.shared.setupHotKey(self.hotKeyService!)
         }
 
-        // Request microphone permission
-        requestMicrophonePermission()
+        // Check permissions on first launch
+        checkRequiredPermissions()
     }
 
     /// Check if another instance of TypeTalk is already running
@@ -64,22 +65,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeyService?.unregisterAllHotKeys()
     }
 
-    private func requestMicrophonePermission() {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .audio) { granted in
-                if !granted {
-                    DispatchQueue.main.async {
-                        self.showMicrophonePermissionAlert()
+    /// Check all required permissions at startup
+    private func checkRequiredPermissions() {
+        let microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        let accessibilityGranted = AXIsProcessTrusted()
+
+        // If both permissions are missing, show combined alert
+        if (microphoneStatus == .denied || microphoneStatus == .restricted || microphoneStatus == .notDetermined) && !accessibilityGranted {
+            showCombinedPermissionAlert(microphoneStatus: microphoneStatus)
+        } else {
+            // Check individually
+            if microphoneStatus == .notDetermined {
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    if !granted {
+                        DispatchQueue.main.async {
+                            self.showMicrophonePermissionAlert()
+                        }
                     }
                 }
+            } else if microphoneStatus == .denied || microphoneStatus == .restricted {
+                showMicrophonePermissionAlert()
             }
-        case .denied, .restricted:
-            showMicrophonePermissionAlert()
-        case .authorized:
-            break
-        @unknown default:
-            break
+
+            if !accessibilityGranted {
+                showAccessibilityPermissionAlert()
+            }
+        }
+    }
+
+    /// Show combined permission alert when both are needed
+    private func showCombinedPermissionAlert(microphoneStatus: AVAuthorizationStatus) {
+        let alert = NSAlert()
+        alert.messageText = "Permissions Required"
+        alert.informativeText = """
+        TypeTalk needs the following permissions to work properly:
+
+        • Microphone: For speech recognition
+        • Accessibility: For global keyboard shortcuts and text insertion
+
+        Please grant these permissions in System Settings > Privacy & Security.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open Accessibility Settings")
+        alert.addButton(withTitle: "Open Microphone Settings")
+        alert.addButton(withTitle: "Later")
+
+        let response = alert.runModal()
+
+        if response == .alertFirstButtonReturn {
+            // Open Accessibility settings
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+            // Also request microphone permission if not determined
+            if microphoneStatus == .notDetermined {
+                AVCaptureDevice.requestAccess(for: .audio) { _ in }
+            }
+        } else if response == .alertSecondButtonReturn {
+            // Open Microphone settings
+            if microphoneStatus == .notDetermined {
+                AVCaptureDevice.requestAccess(for: .audio) { _ in }
+            } else {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
         }
     }
 
@@ -89,10 +139,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.informativeText = "TypeTalk needs microphone access to record audio for transcription. Please enable it in System Settings > Privacy & Security > Microphone."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Later")
 
         if alert.runModal() == .alertFirstButtonReturn {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
+    private func showAccessibilityPermissionAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Accessibility Access Required"
+        alert.informativeText = "TypeTalk needs Accessibility access to use global keyboard shortcuts and insert transcribed text. Please enable it in System Settings > Privacy & Security > Accessibility."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Later")
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                 NSWorkspace.shared.open(url)
             }
         }

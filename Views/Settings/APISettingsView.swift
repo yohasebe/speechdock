@@ -85,6 +85,10 @@ struct APIKeySection: View {
             Label("From Environment", systemImage: "terminal")
                 .font(.caption)
                 .foregroundColor(.blue)
+        case .envFile:
+            Label("From ~/.typetalk.env", systemImage: "doc.text")
+                .font(.caption)
+                .foregroundColor(.blue)
         case .keychain:
             Label("From Keychain", systemImage: "key.fill")
                 .font(.caption)

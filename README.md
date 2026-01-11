@@ -104,13 +104,27 @@ API keys are securely stored in macOS Keychain.
 
 ### Environment Variables
 
-Alternatively, you can set API keys as environment variables:
+Alternatively, you can set API keys using environment variables or a config file:
+
+**Option 1: Shell environment variables** (when launching from Terminal)
 
 ```bash
 export OPENAI_API_KEY="your-openai-key"
 export GEMINI_API_KEY="your-gemini-key"
 export ELEVENLABS_API_KEY="your-elevenlabs-key"
 ```
+
+**Option 2: Config file** (recommended for Finder launch)
+
+Create a `~/.typetalk.env` file in your home directory:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+GEMINI_API_KEY=your-gemini-key
+ELEVENLABS_API_KEY=your-elevenlabs-key
+```
+
+Note: Apps launched from Finder don't inherit shell environment variables. Use the config file or Keychain for normal usage.
 
 ### Settings
 

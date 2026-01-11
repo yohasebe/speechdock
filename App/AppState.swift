@@ -456,6 +456,48 @@ final class AppState {
         if let ttsLanguage = UserDefaults.standard.string(forKey: "selectedTTSLanguage") {
             selectedTTSLanguage = ttsLanguage
         }
+
+        // Validate providers: fall back to macOS if selected provider requires API key but it's not available
+        validateSelectedProviders()
+    }
+
+    /// Validate that selected providers are available (have API keys if required)
+    private func validateSelectedProviders() {
+        // Validate STT provider
+        if selectedRealtimeProvider.requiresAPIKey && !hasAPIKeyForSTT(selectedRealtimeProvider) {
+            selectedRealtimeProvider = .macOS
+        }
+
+        // Validate TTS provider
+        if selectedTTSProvider.requiresAPIKey && !hasAPIKeyForTTS(selectedTTSProvider) {
+            selectedTTSProvider = .macOS
+        }
+    }
+
+    private func hasAPIKeyForSTT(_ provider: RealtimeSTTProvider) -> Bool {
+        switch provider {
+        case .openAI:
+            return apiKeyManager.hasAPIKey(for: .openAI)
+        case .gemini:
+            return apiKeyManager.hasAPIKey(for: .gemini)
+        case .elevenLabs:
+            return apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .macOS:
+            return true
+        }
+    }
+
+    private func hasAPIKeyForTTS(_ provider: TTSProvider) -> Bool {
+        switch provider {
+        case .openAI:
+            return apiKeyManager.hasAPIKey(for: .openAI)
+        case .gemini:
+            return apiKeyManager.hasAPIKey(for: .gemini)
+        case .elevenLabs:
+            return apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .macOS:
+            return true
+        }
     }
 
     private func savePreferences() {

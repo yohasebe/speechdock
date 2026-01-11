@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-12
+
+### Added
+- Support for `~/.typetalk.env` config file for API keys (recommended for Finder launch)
+- Automatic permission prompts for Microphone and Accessibility on first launch
+
+### Fixed
+- API keys from environment variables now work when app is launched from Finder
+- TTS provider selector now correctly defaults to macOS when no API keys are available
+- UI text now consistently uses English (removed Japanese text from tooltips)
+
 ## [0.1.0] - 2026-01-11
 
 ### Added
