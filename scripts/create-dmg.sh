@@ -64,6 +64,43 @@ create-dmg \
 if [ -f "$PROJECT_DIR/$DMG_NAME" ]; then
     echo "DMG created successfully: $PROJECT_DIR/$DMG_NAME"
 
+    # Set custom icon on the DMG file itself
+    if [ -f "$ICON_PATH" ]; then
+        echo "Setting custom icon on DMG file..."
+
+        ICON_SET=false
+
+        # Method 1: Use fileicon if available (most reliable)
+        if command -v fileicon &> /dev/null; then
+            fileicon set "$PROJECT_DIR/$DMG_NAME" "$ICON_PATH" 2>/dev/null && ICON_SET=true
+        fi
+
+        # Method 2: Fallback to DeRez/Rez method
+        if [ "$ICON_SET" = false ] && command -v DeRez &> /dev/null; then
+            ICON_TEMP_DIR=$(mktemp -d)
+            ICON_RSRC="$ICON_TEMP_DIR/icon.rsrc"
+
+            cp "$ICON_PATH" "$ICON_TEMP_DIR/icon.icns"
+            sips -i "$ICON_TEMP_DIR/icon.icns" &> /dev/null || true
+            DeRez -only icns "$ICON_TEMP_DIR/icon.icns" > "$ICON_RSRC" 2>/dev/null || true
+
+            if [ -s "$ICON_RSRC" ]; then
+                Rez -append "$ICON_RSRC" -o "$PROJECT_DIR/$DMG_NAME" 2>/dev/null || true
+                SetFile -a C "$PROJECT_DIR/$DMG_NAME" 2>/dev/null || true
+                ICON_SET=true
+            fi
+
+            rm -rf "$ICON_TEMP_DIR"
+        fi
+
+        if [ "$ICON_SET" = true ]; then
+            echo "Custom icon set on DMG file"
+        else
+            echo "Note: Could not set custom icon on DMG file"
+            echo "      Install fileicon with: brew install fileicon"
+        fi
+    fi
+
     # Show file size
     SIZE=$(du -h "$PROJECT_DIR/$DMG_NAME" | cut -f1)
     echo "Size: $SIZE"

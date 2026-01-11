@@ -27,8 +27,8 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Install create-dmg
-        run: brew install create-dmg
+      - name: Install create-dmg and fileicon
+        run: brew install create-dmg fileicon
 
       - name: Import signing certificate
         env:
