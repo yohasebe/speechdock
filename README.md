@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="TypeTalk Logo" width="128" height="128">
+</p>
+
 # TypeTalk
 
 A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) with support for multiple providers.

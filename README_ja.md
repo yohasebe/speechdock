@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="TypeTalk Logo" width="128" height="128">
+</p>
+
 # TypeTalk
 
 複数のプロバイダに対応した、音声認識 (STT) と音声合成 (TTS) のための macOS メニューバーアプリケーションです。
