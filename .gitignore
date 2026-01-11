@@ -31,6 +31,7 @@ Package.resolved
 *.dSYM
 
 # Secrets and signing
+secrets/
 *.p12
 *.cer
 *.provisionprofile
