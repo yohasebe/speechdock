@@ -1,12 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "menubar_icon.png",
+      "filename" : "menubar.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "menubar_icon@2x.png",
+      "filename" : "menubar@2x.png",
       "idiom" : "mac",
       "scale" : "2x"
     }

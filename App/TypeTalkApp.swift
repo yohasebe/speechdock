@@ -10,8 +10,9 @@ struct TypeTalkApp: App {
                 .environment(AppState.shared)
         } label: {
             if AppState.shared.isRecording {
-                Image(systemName: "mic.fill")
-                    .symbolRenderingMode(.hierarchical)
+                Image(systemName: "mic.circle.fill")
+                    .resizable()
+                    .frame(width: 18, height: 18)
             } else {
                 Image("MenuBarIcon")
             }

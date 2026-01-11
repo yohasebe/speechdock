@@ -11,7 +11,7 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 10) {
             // App title and status
             HStack {
-                Image(systemName: appState.isRecording ? "mic.fill" : "waveform.circle.fill")
+                Image(systemName: appState.isRecording ? "mic.fill" : "waveform.badge.microphone")
                     .foregroundColor(appState.isRecording ? .red : .accentColor)
                     .font(.title2)
 
