@@ -32,16 +32,30 @@ rm -f "$PROJECT_DIR/$DMG_NAME"
 
 # Create DMG
 echo "Creating DMG..."
+
+# Build create-dmg arguments
+DMG_ARGS=(
+    --volname "$APP_NAME"
+    --window-pos 200 120
+    --window-size 600 400
+    --icon-size 100
+    --icon "$APP_NAME.app" 150 190
+    --hide-extension "$APP_NAME.app"
+    --app-drop-link 450 185
+    --no-internet-enable
+)
+
+# Add volume icon if it exists
+ICON_PATH="$BUILD_DIR/$APP_NAME.app/Contents/Resources/AppIcon.icns"
+if [ -f "$ICON_PATH" ]; then
+    DMG_ARGS+=(--volicon "$ICON_PATH")
+    echo "Using app icon for volume icon"
+else
+    echo "Note: AppIcon.icns not found, creating DMG without volume icon"
+fi
+
 create-dmg \
-    --volname "$APP_NAME" \
-    --volicon "$BUILD_DIR/$APP_NAME.app/Contents/Resources/AppIcon.icns" \
-    --window-pos 200 120 \
-    --window-size 600 400 \
-    --icon-size 100 \
-    --icon "$APP_NAME.app" 150 190 \
-    --hide-extension "$APP_NAME.app" \
-    --app-drop-link 450 185 \
-    --no-internet-enable \
+    "${DMG_ARGS[@]}" \
     "$PROJECT_DIR/$DMG_NAME" \
     "$BUILD_DIR/$APP_NAME.app" \
     || true  # create-dmg returns non-zero on some warnings
