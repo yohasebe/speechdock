@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.typetalk
   deploymentTarget:
     macOS: "14.0"
-  xcodeVersion: "15.0"
+  xcodeVersion: "16.2"
 
 packages:
   HotKey:
