@@ -41,27 +41,22 @@ if [ ! -f "$DMG_FILE" ]; then
     exit 1
 fi
 
-# Submit for notarization
+# Submit for notarization and wait for result
 echo "Submitting for notarization..."
-xcrun notarytool submit "$DMG_FILE" \
+SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG_FILE" \
     --apple-id "$APPLE_ID" \
     --team-id "$TEAM_ID" \
     --password "$APP_PASSWORD" \
-    --wait
+    --wait 2>&1)
 
-# Check notarization status
-echo "Checking notarization status..."
-SUBMISSION_ID=$(xcrun notarytool history \
-    --apple-id "$APPLE_ID" \
-    --team-id "$TEAM_ID" \
-    --password "$APP_PASSWORD" \
-    2>/dev/null | head -n 4 | tail -n 1 | awk '{print $1}')
+echo "$SUBMIT_OUTPUT"
 
-if [ -n "$SUBMISSION_ID" ]; then
-    xcrun notarytool log "$SUBMISSION_ID" \
-        --apple-id "$APPLE_ID" \
-        --team-id "$TEAM_ID" \
-        --password "$APP_PASSWORD"
+# Check if notarization was accepted
+if echo "$SUBMIT_OUTPUT" | grep -q "status: Accepted"; then
+    echo "Notarization accepted!"
+else
+    echo "Error: Notarization failed"
+    exit 1
 fi
 
 # Staple the notarization ticket
