@@ -31,6 +31,7 @@ targets:
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/TypeTalk.entitlements
         SWIFT_VERSION: "5.9"
+        SWIFT_STRICT_CONCURRENCY: minimal
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
         ENABLE_HARDENED_RUNTIME: YES
