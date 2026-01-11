@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     @Environment(AppState.self) var appState
     @Environment(\.openSettings) private var openSettingsAction
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var appState = appState
@@ -10,7 +11,7 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 10) {
             // App title and status
             HStack {
-                Image(systemName: appState.isRecording ? "mic.fill" : "mic")
+                Image(systemName: appState.isRecording ? "mic.fill" : "waveform.circle.fill")
                     .foregroundColor(appState.isRecording ? .red : .accentColor)
                     .font(.title2)
 
@@ -167,6 +168,20 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
 
+                // About
+                Button(action: {
+                    openAbout()
+                }) {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .frame(width: 20)
+                        Text("About TypeTalk")
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
                 // Settings
                 Button(action: {
                     openSettings()
@@ -286,6 +301,18 @@ struct MenuBarView: View {
             .padding(.vertical, 3)
             .background(Color.secondary.opacity(0.15))
             .cornerRadius(4)
+    }
+
+    // Open About window
+    private func openAbout() {
+        // Close the menu bar popover first
+        NSApp.keyWindow?.close()
+
+        // Activate the app to bring it to front
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Open the About window
+        openWindow(id: "about")
     }
 
     // Open help documentation (GitHub)

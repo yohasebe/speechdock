@@ -9,8 +9,12 @@ struct TypeTalkApp: App {
             MenuBarView()
                 .environment(AppState.shared)
         } label: {
-            Image(systemName: AppState.shared.isRecording ? "mic.fill" : "mic")
-                .symbolRenderingMode(.hierarchical)
+            if AppState.shared.isRecording {
+                Image(systemName: "mic.fill")
+                    .symbolRenderingMode(.hierarchical)
+            } else {
+                Image("MenuBarIcon")
+            }
         }
         .menuBarExtraStyle(.window)
 
@@ -18,5 +22,11 @@ struct TypeTalkApp: App {
             SettingsWindow()
                 .environment(AppState.shared)
         }
+
+        Window("About TypeTalk", id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
     }
 }
