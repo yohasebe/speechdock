@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>TypeTalk</string>
+    <key>CFBundleDisplayName</key>
+    <string>TypeTalk</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.typetalk.app</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>TypeTalk</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>TypeTalk needs microphone access to record your voice for transcription.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>TypeTalk uses speech recognition for real-time transcription.</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
