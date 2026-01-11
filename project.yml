@@ -34,8 +34,8 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
         ENABLE_HARDENED_RUNTIME: YES
-        CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "Developer ID Application"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Developer ID Application: Yoichiro Hasebe (25ME8D76FY)"
         DEVELOPMENT_TEAM: 25ME8D76FY
     dependencies:
       - package: HotKey
