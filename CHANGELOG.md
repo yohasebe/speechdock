@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2025-01-11
+## [0.1.0] - 2026-01-11
 
 ### Added
 - Initial release of TypeTalk
@@ -15,17 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - macOS native (Speech Recognition)
   - OpenAI (Whisper, GPT-4o Transcribe)
   - Google Gemini (2.5 Flash)
-  - ElevenLabs (Scribe v1)
+  - ElevenLabs (Scribe v2, Scribe v1)
 - **Text-to-Speech (TTS)** support with multiple providers:
   - macOS native (AVSpeechSynthesizer)
-  - OpenAI (TTS-1, TTS-1 HD, GPT-4o Mini TTS)
-  - Google Gemini (2.5 Flash TTS)
-  - ElevenLabs (Flash v2.5, Multilingual v2)
+  - OpenAI (GPT-4o Mini TTS, TTS-1, TTS-1 HD)
+  - Google Gemini (2.5 Flash TTS, 2.5 Flash Lite TTS)
+  - ElevenLabs (Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5)
 - Global keyboard shortcuts for STT and TTS
 - Menu bar interface with quick access to all features
 - Floating window for real-time transcription display
-- Floating window for TTS with text editing
+- Floating window for TTS with text editing and word highlighting
 - API key management via macOS Keychain
+- Language selection for STT and TTS (Auto-detect or manual selection)
 - Speed control for TTS playback
 - Voice and model selection per provider
 - Launch at login option

@@ -17,6 +17,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     var selectedModel: String = ""  // macOS uses system default
     @MainActor
     var selectedSpeed: Double = 1.0  // Speed multiplier (1.0 = normal, default ~175 wpm)
+    @MainActor
+    var selectedLanguage: String = ""  // "" = Auto (macOS uses voice-dependent language)
 
     var supportsSpeedControl: Bool { true }
 
@@ -270,15 +272,15 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         return ranges
     }
 
-    /// Calculate relative weights for each word based on character count and complexity
-    /// Longer words take more time to speak
+    /// Calculate relative weights for each word based on character count, complexity, and following punctuation
+    /// Longer words and punctuation pauses take more time
     private func calculateWordWeights(for text: String, ranges: [NSRange], language: String) -> [Double] {
         guard !ranges.isEmpty else { return [] }
 
         let nsString = text as NSString
         var weights: [Double] = []
 
-        for range in ranges {
+        for (index, range) in ranges.enumerated() {
             let word = nsString.substring(with: range)
             var weight: Double
 
@@ -305,6 +307,28 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
                 weight = max(1.0, Double(syllables))
             }
 
+            // Add extra weight for punctuation pauses after the word
+            let endLocation = range.location + range.length
+            if endLocation < nsString.length {
+                // Check characters following this word for punctuation
+                let remainingLength = min(3, nsString.length - endLocation)
+                let followingChars = nsString.substring(with: NSRange(location: endLocation, length: remainingLength))
+
+                // Long pause punctuation (period, question mark, exclamation, paragraph)
+                if followingChars.contains(where: { ".!?。！？\n".contains($0) }) {
+                    weight += language == "ja" ? 1.5 : 2.0
+                }
+                // Medium pause punctuation (comma, semicolon, colon)
+                else if followingChars.contains(where: { ",;:、；：".contains($0) }) {
+                    weight += language == "ja" ? 0.8 : 1.0
+                }
+            }
+
+            // Add small pause weight for the last word (end of utterance)
+            if index == ranges.count - 1 {
+                weight += 0.5
+            }
+
             weights.append(weight)
         }
 
@@ -321,7 +345,11 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         guard !wordRanges.isEmpty, actualDuration > 0 else { return }
 
         // Use a frequent timer to update highlighting smoothly
-        let updateInterval: TimeInterval = 0.05  // 50ms updates
+        let updateInterval: TimeInterval = 0.03  // 30ms updates for smoother tracking
+
+        // Look-ahead offset: highlight slightly before audio (visual perception is faster)
+        // This value represents what fraction of duration to look ahead
+        let lookAheadFraction: Double = 0.015  // ~1.5% look-ahead
 
         highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
@@ -336,7 +364,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
                 }
 
                 let currentTime = player.currentTime
-                let progress = currentTime / self.actualDuration
+                // Add look-ahead offset to show highlight slightly before the word is spoken
+                let adjustedProgress = min(1.0, (currentTime / self.actualDuration) + lookAheadFraction)
 
                 // Find the word index based on weighted progress
                 var cumulativeWeight: Double = 0
@@ -344,7 +373,7 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
                 for (index, weight) in self.wordWeights.enumerated() {
                     cumulativeWeight += weight
-                    if progress <= cumulativeWeight {
+                    if adjustedProgress <= cumulativeWeight {
                         wordIndex = index
                         break
                     }

@@ -51,6 +51,9 @@ struct GeneralSettingsView: View {
 
                 // STT Model selection
                 STTModelPicker(appState: appState)
+
+                // STT Language selection
+                STTLanguagePicker(appState: appState)
             } header: {
                 Text("Speech-to-Text")
             }
@@ -83,6 +86,12 @@ struct GeneralSettingsView: View {
 
                 // Speed control
                 TTSSpeedSlider(appState: appState)
+
+                // Word highlight toggle
+                TTSWordHighlightToggle(appState: appState)
+
+                // TTS Language selection (ElevenLabs only)
+                TTSLanguagePicker(appState: appState)
             } header: {
                 Text("Text-to-Speech")
             }
@@ -487,6 +496,74 @@ struct LaunchAtLoginToggle: View {
         .onAppear {
             // Sync state on appear
             isEnabled = LaunchAtLoginService.shared.isEnabled
+        }
+    }
+}
+
+/// Toggle for TTS word highlighting
+struct TTSWordHighlightToggle: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle("Word Highlighting", isOn: $appState.enableWordHighlight)
+
+            Text("Highlight the current word being spoken during TTS playback")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+/// Language picker for STT provider
+struct STTLanguagePicker: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Picker("Language", selection: $appState.selectedSTTLanguage) {
+                ForEach(LanguageCode.allCases) { lang in
+                    Text(lang.displayName).tag(lang.rawValue)
+                }
+            }
+
+            Text(languageHelpText)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var languageHelpText: String {
+        switch appState.selectedRealtimeProvider {
+        case .macOS:
+            return "Specifies the expected language for speech recognition."
+        case .openAI:
+            return "Helps improve accuracy. Auto uses automatic detection."
+        case .gemini:
+            return "Gemini auto-detects language (setting ignored)."
+        case .elevenLabs:
+            return "Specifies the input language for transcription."
+        }
+    }
+}
+
+/// Language picker for TTS provider (only shown for ElevenLabs)
+struct TTSLanguagePicker: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        if appState.selectedTTSProvider == .elevenLabs {
+            VStack(alignment: .leading, spacing: 4) {
+                Picker("Language", selection: $appState.selectedTTSLanguage) {
+                    ForEach(LanguageCode.allCases) { lang in
+                        Text(lang.displayName).tag(lang.rawValue)
+                    }
+                }
+
+                Text("Specifies the output language for speech synthesis.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 }

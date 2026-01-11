@@ -8,6 +8,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
     var selectedModel: String = ""  // macOS uses system default
+    var selectedLanguage: String = ""  // "" = Auto (uses system locale)
 
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -21,6 +22,16 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         speechRecognizer = SFSpeechRecognizer(locale: Locale.current)
     }
 
+    /// Create speech recognizer with the appropriate locale
+    private func createRecognizer() -> SFSpeechRecognizer? {
+        if !selectedLanguage.isEmpty,
+           let langCode = LanguageCode(rawValue: selectedLanguage),
+           let localeId = langCode.toLocaleIdentifier() {
+            return SFSpeechRecognizer(locale: Locale(identifier: localeId))
+        }
+        return SFSpeechRecognizer(locale: Locale.current)
+    }
+
     func startListening() async throws {
         // Check authorization
         let authStatus = await withCheckedContinuation { continuation in
@@ -32,6 +43,9 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         guard authStatus == .authorized else {
             throw RealtimeSTTError.permissionDenied("Speech recognition permission denied")
         }
+
+        // Create recognizer with selected language
+        speechRecognizer = createRecognizer()
 
         guard let recognizer = speechRecognizer, recognizer.isAvailable else {
             throw RealtimeSTTError.serviceUnavailable("Speech recognizer not available")

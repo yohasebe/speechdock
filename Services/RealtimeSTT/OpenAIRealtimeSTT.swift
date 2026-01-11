@@ -7,6 +7,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
     var selectedModel: String = "whisper-1"
+    var selectedLanguage: String = ""  // "" = Auto (OpenAI auto-detects)
 
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
@@ -188,6 +189,13 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
         body.append("\(model)\r\n".data(using: .utf8)!)
+
+        // Add language if specified (ISO 639-1 format)
+        if !selectedLanguage.isEmpty {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(selectedLanguage)\r\n".data(using: .utf8)!)
+        }
 
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 

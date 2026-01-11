@@ -13,24 +13,25 @@
 - **macOS ネイティブ** - 内蔵の音声認識機能 (APIキー不要)
 - **OpenAI** - Whisper および GPT-4o Transcribe モデル
 - **Google Gemini** - Gemini 2.5 Flash
-- **ElevenLabs** - Scribe v1
+- **ElevenLabs** - Scribe v2, Scribe v1
 
 ### 音声合成 (Text-to-Speech)
 
 以下のプロバイダを使用してテキストを音声に変換:
 
 - **macOS ネイティブ** - AVSpeechSynthesizer (APIキー不要)
-- **OpenAI** - TTS-1, TTS-1 HD, GPT-4o Mini TTS
-- **Google Gemini** - Gemini 2.5 Flash TTS
-- **ElevenLabs** - Flash v2.5, Multilingual v2
+- **OpenAI** - GPT-4o Mini TTS, TTS-1, TTS-1 HD
+- **Google Gemini** - Gemini 2.5 Flash TTS, Gemini 2.5 Flash Lite TTS
+- **ElevenLabs** - Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5
 
 ### その他の機能
 
 - STT/TTS 用のグローバルキーボードショートカット
 - メニューバーからすべての機能にクイックアクセス
 - リアルタイム文字起こし表示用のフローティングウィンドウ
-- テキスト編集機能付きの TTS フローティングウィンドウ
+- テキスト編集・単語ハイライト機能付きの TTS フローティングウィンドウ
 - macOS キーチェーンによる API キー管理
+- STT/TTS の言語選択（自動検出または手動選択）
 - TTS 再生速度の調整
 - プロバイダごとの音声・モデル選択
 - ログイン時の自動起動オプション
@@ -111,9 +112,18 @@ export ELEVENLABS_API_KEY="your-elevenlabs-key"
 
 ### 設定項目
 
-- **General**: STT/TTS プロバイダ、モデル、音声、再生速度の選択
+- **General**: STT/TTS プロバイダ、モデル、音声、言語、再生速度の選択
 - **Shortcuts**: グローバルキーボードショートカットのカスタマイズ
 - **API Keys**: クラウドプロバイダの API キー管理
+
+### 言語選択
+
+STT と TTS の両方で言語選択が可能です:
+
+- **Auto (デフォルト)**: 言語を自動検出
+- **手動選択**: 英語、日本語、中国語、韓国語、スペイン語、フランス語、ドイツ語、イタリア語、ポルトガル語、ロシア語、アラビア語、ヒンディー語の12言語から選択
+
+STT では言語を指定することで認識精度が向上する場合があります。TTS の言語選択は ElevenLabs プロバイダ使用時に利用可能です。
 
 ### ログイン時の自動起動
 

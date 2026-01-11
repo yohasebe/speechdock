@@ -1,12 +1,33 @@
 import SwiftUI
 
+/// Button label with smaller keyboard shortcut text
+struct ButtonLabelWithShortcut: View {
+    let title: String
+    let shortcut: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(title)
+            Text(shortcut)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
 struct TranscriptionFloatingView: View {
     var appState: AppState
     let onConfirm: (String) -> Void
     let onCancel: () -> Void
 
     @State private var editedText: String = ""
+    @State private var borderOpacity: Double = 1.0
+    @State private var baseText: String = ""  // Text to preserve when resuming recording
     @FocusState private var isTextEditorFocused: Bool
+
+    private var isRecording: Bool {
+        appState.transcriptionState == .recording
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -30,6 +51,8 @@ struct TranscriptionFloatingView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(".", modifiers: .command)
+                .help("Cancel (⌘.)")
             }
 
             // Always show text area
@@ -60,11 +83,14 @@ struct TranscriptionFloatingView: View {
                     }
                 )
                 .overlay(
-                    // Recording indicator border when text is present
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.red, lineWidth: appState.transcriptionState == .recording ? 2 : 0)
-                        .opacity(appState.transcriptionState == .recording ? 1 : 0)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: appState.transcriptionState == .recording)
+                    // Recording indicator border - only exists while recording
+                    Group {
+                        if isRecording {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.red, lineWidth: 2)
+                                .opacity(borderOpacity)
+                        }
+                    }
                 )
 
             // Error message if any
@@ -79,11 +105,32 @@ struct TranscriptionFloatingView: View {
             actionButtons
         }
         .padding(16)
-        .frame(width: 450)
+        .frame(minWidth: 380, idealWidth: 450, maxWidth: 800)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onChange(of: appState.currentTranscription) { _, newValue in
-            editedText = newValue
+            // Append new transcription to base text
+            if baseText.isEmpty {
+                editedText = newValue
+            } else if newValue.isEmpty {
+                // Keep existing text when transcription is cleared
+                editedText = baseText
+            } else {
+                // Append with space separator
+                editedText = baseText + " " + newValue
+            }
+        }
+        .onChange(of: isRecording) { _, newValue in
+            if newValue {
+                // Save current text as base when recording starts
+                baseText = editedText.trimmingCharacters(in: .whitespaces)
+                // Start pulsing animation when recording starts
+                startBorderAnimation()
+            } else {
+                // Update base text with current content when recording stops
+                // Animation stops automatically when the overlay view is removed
+                baseText = editedText.trimmingCharacters(in: .whitespaces)
+            }
         }
         .onAppear {
             editedText = appState.currentTranscription
@@ -91,6 +138,17 @@ struct TranscriptionFloatingView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isTextEditorFocused = true
             }
+            // Start animation if already recording
+            if isRecording {
+                startBorderAnimation()
+            }
+        }
+    }
+
+    private func startBorderAnimation() {
+        borderOpacity = 1.0
+        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+            borderOpacity = 0.3
         }
     }
 
@@ -134,36 +192,52 @@ struct TranscriptionFloatingView: View {
         }
     }
 
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Button("Cancel (⌘.)") {
-                onCancel()
-            }
-            .keyboardShortcut(".", modifiers: .command)
+    private func startRecordingWithAppend() {
+        // Save current text BEFORE starting recording
+        baseText = editedText.trimmingCharacters(in: .whitespaces)
+        AppState.shared.toggleRecording()
+    }
 
+    private var actionButtons: some View {
+        HStack(spacing: 8) {
             Spacer()
 
             if case .recording = appState.transcriptionState {
-                Button("Stop (⌘S)") {
+                // Recording state: Stop and Insert buttons
+                Button {
                     AppState.shared.toggleRecording()
+                } label: {
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(⌘S)")
                 }
                 .keyboardShortcut("s", modifiers: .command)
 
                 if !editedText.isEmpty {
-                    Button("Insert (⌘↩)") {
+                    Button {
                         AppState.shared.stopRecordingAndInsert(editedText)
+                    } label: {
+                        ButtonLabelWithShortcut(title: "Insert", shortcut: "(⌘↩)")
                     }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                Button("Copy All") {
+                // Not recording: Record, Copy, Insert buttons
+                Button {
+                    startRecordingWithAppend()
+                } label: {
+                    ButtonLabelWithShortcut(title: "Record", shortcut: "(⌘R)")
+                }
+                .keyboardShortcut("r", modifiers: .command)
+
+                Button("Copy") {
                     ClipboardService.shared.copyToClipboard(editedText)
                 }
                 .disabled(editedText.isEmpty)
 
-                Button("Insert (⌘↩)") {
+                Button {
                     onConfirm(editedText)
+                } label: {
+                    ButtonLabelWithShortcut(title: "Insert", shortcut: "(⌘↩)")
                 }
                 .keyboardShortcut(.return, modifiers: .command)
                 .buttonStyle(.borderedProminent)

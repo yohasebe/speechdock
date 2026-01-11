@@ -6,7 +6,8 @@ import Foundation
 final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "scribe_v1"
+    var selectedModel: String = "scribe_v2"
+    var selectedLanguage: String = ""  // "" = Auto (ElevenLabs auto-detects)
 
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
@@ -183,10 +184,17 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         body.append("\r\n".data(using: .utf8)!)
 
         // Add model_id (required)
-        let model = selectedModel.isEmpty ? "scribe_v1" : selectedModel
+        let model = selectedModel.isEmpty ? "scribe_v2" : selectedModel
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model_id\"\r\n\r\n".data(using: .utf8)!)
         body.append("\(model)\r\n".data(using: .utf8)!)
+
+        // Add language_code if specified (ISO 639-1 format)
+        if !selectedLanguage.isEmpty {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"language_code\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(selectedLanguage)\r\n".data(using: .utf8)!)
+        }
 
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
@@ -217,8 +225,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "scribe_v1", name: "Scribe v1", description: "Standard transcription", isDefault: true),
-            RealtimeSTTModelInfo(id: "scribe_v1_experimental", name: "Scribe v1 Experimental", description: "Experimental features")
+            RealtimeSTTModelInfo(id: "scribe_v2", name: "Scribe v2", description: "Latest, improved accuracy", isDefault: true),
+            RealtimeSTTModelInfo(id: "scribe_v1", name: "Scribe v1", description: "Standard transcription")
         ]
     }
 }

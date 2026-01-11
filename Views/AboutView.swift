@@ -39,7 +39,7 @@ struct AboutView: View {
             }
 
             // Copyright
-            Text("\u{00A9} 2025 Yoichiro Hasebe. All rights reserved.")
+            Text("\u{00A9} 2026 Yoichiro Hasebe. All rights reserved.")
                 .font(.caption2)
                 .foregroundColor(.secondary)
 

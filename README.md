@@ -11,24 +11,25 @@ Convert speech to text using:
 - **macOS Native** - Built-in Speech Recognition (no API key required)
 - **OpenAI** - Whisper and GPT-4o Transcribe models
 - **Google Gemini** - Gemini 2.5 Flash
-- **ElevenLabs** - Scribe v1
+- **ElevenLabs** - Scribe v2, Scribe v1
 
 ### Text-to-Speech (TTS)
 
 Convert text to speech using:
 
 - **macOS Native** - AVSpeechSynthesizer (no API key required)
-- **OpenAI** - TTS-1, TTS-1 HD, GPT-4o Mini TTS
-- **Google Gemini** - Gemini 2.5 Flash TTS
-- **ElevenLabs** - Flash v2.5, Multilingual v2
+- **OpenAI** - GPT-4o Mini TTS, TTS-1, TTS-1 HD
+- **Google Gemini** - Gemini 2.5 Flash TTS, Gemini 2.5 Flash Lite TTS
+- **ElevenLabs** - Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5
 
 ### Additional Features
 
 - Global keyboard shortcuts for STT and TTS
 - Menu bar interface with quick access to all features
 - Floating window for real-time transcription display
-- Floating window for TTS with text editing
+- Floating window for TTS with text editing and word highlighting
 - API key management via macOS Keychain
+- Language selection for STT and TTS (Auto-detect or manual selection)
 - Speed control for TTS playback
 - Voice and model selection per provider
 - Launch at login option
@@ -109,9 +110,18 @@ export ELEVENLABS_API_KEY="your-elevenlabs-key"
 
 ### Settings
 
-- **General**: Select STT/TTS providers, models, voices, and playback speed
+- **General**: Select STT/TTS providers, models, voices, languages, and playback speed
 - **Shortcuts**: Customize global keyboard shortcuts
 - **API Keys**: Manage API keys for cloud providers
+
+### Language Selection
+
+Both STT and TTS support language selection:
+
+- **Auto (default)**: Automatically detects the language
+- **Manual selection**: Choose from 12 languages including English, Japanese, Chinese, Korean, Spanish, French, German, Italian, Portuguese, Russian, Arabic, and Hindi
+
+For STT, specifying a language can improve recognition accuracy. For TTS, language selection is available when using ElevenLabs provider.
 
 ### Launch at Login
 

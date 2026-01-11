@@ -7,6 +7,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
     var selectedModel: String = "gemini-2.0-flash"
+    var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects, no language param)
 
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?

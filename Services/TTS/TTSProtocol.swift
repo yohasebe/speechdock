@@ -27,6 +27,7 @@ protocol TTSService: AnyObject {
     var selectedVoice: String { get set }
     var selectedModel: String { get set }
     var selectedSpeed: Double { get set }  // Speed multiplier (1.0 = normal)
+    var selectedLanguage: String { get set }  // "" = Auto (only used by ElevenLabs)
 
     func speak(text: String) async throws
     func pause()

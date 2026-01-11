@@ -10,6 +10,7 @@ final class GeminiTTS: NSObject, TTSService {
     var selectedVoice: String = "Zephyr"  // Default voice
     var selectedModel: String = "gemini-2.5-flash-preview-tts"
     var selectedSpeed: Double = 1.0  // Speed multiplier (uses prompt-based control)
+    var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects from text)
 
     var supportsSpeedControl: Bool { true }
 
@@ -17,6 +18,7 @@ final class GeminiTTS: NSObject, TTSService {
     private var audioPlayer: AVAudioPlayer?
     private var currentText = ""
     private var wordRanges: [NSRange] = []
+    private var wordWeights: [Double] = []
     private var highlightTimer: Timer?
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models"
 
@@ -33,6 +35,7 @@ final class GeminiTTS: NSObject, TTSService {
 
         currentText = text
         wordRanges = calculateWordRanges(for: text)
+        wordWeights = calculateWordWeights(for: text, ranges: wordRanges)
 
         // Request TTS from Gemini
         let modelId = selectedModel.isEmpty ? "gemini-2.5-flash-preview-tts" : selectedModel
@@ -156,6 +159,7 @@ final class GeminiTTS: NSObject, TTSService {
         isPaused = false
         currentText = ""
         wordRanges = []
+        wordWeights = []
     }
 
     private func createWAVFromPCM(_ pcmData: Data, mimeType: String) -> Data {
@@ -237,6 +241,64 @@ final class GeminiTTS: NSObject, TTSService {
         return ranges
     }
 
+    private func calculateWordWeights(for text: String, ranges: [NSRange]) -> [Double] {
+        guard !ranges.isEmpty else { return [] }
+
+        let nsString = text as NSString
+        var weights: [Double] = []
+
+        let japaneseRange = text.range(of: "\\p{Script=Han}|\\p{Script=Hiragana}|\\p{Script=Katakana}", options: .regularExpression)
+        let isJapanese = japaneseRange != nil
+
+        for (index, range) in ranges.enumerated() {
+            let word = nsString.substring(with: range)
+            var weight: Double
+
+            if isJapanese {
+                let kanjiCount = word.unicodeScalars.filter { $0.value >= 0x4E00 && $0.value <= 0x9FFF }.count
+                weight = Double(word.count) + Double(kanjiCount) * 0.2
+            } else {
+                let vowels = CharacterSet(charactersIn: "aeiouAEIOU")
+                var syllables = 0
+                var previousWasVowel = false
+
+                for char in word.unicodeScalars {
+                    let isVowel = vowels.contains(char)
+                    if isVowel && !previousWasVowel {
+                        syllables += 1
+                    }
+                    previousWasVowel = isVowel
+                }
+                weight = max(1.0, Double(syllables))
+            }
+
+            let endLocation = range.location + range.length
+            if endLocation < nsString.length {
+                let remainingLength = min(3, nsString.length - endLocation)
+                let followingChars = nsString.substring(with: NSRange(location: endLocation, length: remainingLength))
+
+                if followingChars.contains(where: { ".!?。！？\n".contains($0) }) {
+                    weight += isJapanese ? 1.5 : 2.0
+                } else if followingChars.contains(where: { ",;:、；：".contains($0) }) {
+                    weight += isJapanese ? 0.8 : 1.0
+                }
+            }
+
+            if index == ranges.count - 1 {
+                weight += 0.5
+            }
+
+            weights.append(weight)
+        }
+
+        let totalWeight = weights.reduce(0, +)
+        if totalWeight > 0 {
+            weights = weights.map { $0 / totalWeight }
+        }
+
+        return weights
+    }
+
     /// Valid Gemini voice IDs (lowercase)
     private static let validVoiceIds: Set<String> = [
         "zephyr", "puck", "charon", "kore", "fenrir", "aoede", "orus",
@@ -285,6 +347,7 @@ final class GeminiTTS: NSObject, TTSService {
     func availableModels() -> [TTSModelInfo] {
         [
             TTSModelInfo(id: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash TTS", description: "Fast, multilingual", isDefault: true),
+            TTSModelInfo(id: "gemini-2.5-flash-lite-preview-tts", name: "Gemini 2.5 Flash Lite TTS", description: "Lightweight, faster"),
             TTSModelInfo(id: "gemini-2.0-flash-preview-tts", name: "Gemini 2.0 Flash TTS", description: "Previous generation")
         ]
     }
@@ -322,11 +385,12 @@ final class GeminiTTS: NSObject, TTSService {
     }
 
     private func startHighlightTimer() {
-        guard let player = audioPlayer, player.duration > 0, !wordRanges.isEmpty else { return }
+        guard let player = audioPlayer, player.duration > 0, !wordRanges.isEmpty, !wordWeights.isEmpty else { return }
 
-        let interval = player.duration / Double(wordRanges.count)
+        let updateInterval: TimeInterval = 0.03
+        let lookAheadFraction: Double = 0.015
 
-        highlightTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
+        highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
                 guard let self = self else {
                     timer.invalidate()
@@ -334,12 +398,23 @@ final class GeminiTTS: NSObject, TTSService {
                 }
 
                 guard let player = self.audioPlayer, self.isSpeaking, !self.isPaused else {
-                    timer.invalidate()
                     return
                 }
 
                 let progress = player.currentTime / player.duration
-                let wordIndex = min(Int(progress * Double(self.wordRanges.count)), self.wordRanges.count - 1)
+                let adjustedProgress = min(1.0, progress + lookAheadFraction)
+
+                var cumulativeWeight: Double = 0
+                var wordIndex = 0
+
+                for (index, weight) in self.wordWeights.enumerated() {
+                    cumulativeWeight += weight
+                    if adjustedProgress <= cumulativeWeight {
+                        wordIndex = index
+                        break
+                    }
+                    wordIndex = index
+                }
 
                 if wordIndex >= 0 && wordIndex < self.wordRanges.count {
                     self.delegate?.tts(self, willSpeakRange: self.wordRanges[wordIndex], of: self.currentText)

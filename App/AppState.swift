@@ -118,7 +118,27 @@ final class AppState {
             savePreferences()
         }
     }
+    var enableWordHighlight: Bool = true {  // Enable word highlighting during TTS playback
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
     var showTTSWindow = false
+
+    // MARK: - Language Settings
+    var selectedSTTLanguage: String = "" {  // "" = Auto
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+    var selectedTTSLanguage: String = "" {  // "" = Auto (only used by ElevenLabs)
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
 
     // MARK: - Common State
     var isProcessing = false
@@ -173,7 +193,12 @@ final class AppState {
         errorMessage = nil
         transcriptionState = .recording
         currentTranscription = ""
-        showFloatingWindowWithState()
+
+        // Only show floating window if not already visible
+        // This prevents resetting @State variables when resuming recording
+        if !showFloatingWindow {
+            showFloatingWindowWithState()
+        }
 
         // Start realtime STT
         Task {
@@ -189,6 +214,11 @@ final class AppState {
         // Apply selected model if set
         if !selectedRealtimeSTTModel.isEmpty {
             realtimeSTTService?.selectedModel = selectedRealtimeSTTModel
+        }
+
+        // Apply selected language if set
+        if !selectedSTTLanguage.isEmpty {
+            realtimeSTTService?.selectedLanguage = selectedSTTLanguage
         }
 
         do {
@@ -319,6 +349,9 @@ final class AppState {
             ttsService?.selectedModel = selectedTTSModel
         }
         ttsService?.selectedSpeed = selectedTTSSpeed
+        if !selectedTTSLanguage.isEmpty {
+            ttsService?.selectedLanguage = selectedTTSLanguage
+        }
         print("TTS: Service created, delegate set, voice: \(selectedTTSVoice), model: \(selectedTTSModel), speed: \(selectedTTSSpeed)")
 
         Task {
@@ -411,6 +444,18 @@ final class AppState {
         if UserDefaults.standard.object(forKey: "selectedTTSSpeed") != nil {
             selectedTTSSpeed = UserDefaults.standard.double(forKey: "selectedTTSSpeed")
         }
+
+        if UserDefaults.standard.object(forKey: "enableWordHighlight") != nil {
+            enableWordHighlight = UserDefaults.standard.bool(forKey: "enableWordHighlight")
+        }
+
+        if let sttLanguage = UserDefaults.standard.string(forKey: "selectedSTTLanguage") {
+            selectedSTTLanguage = sttLanguage
+        }
+
+        if let ttsLanguage = UserDefaults.standard.string(forKey: "selectedTTSLanguage") {
+            selectedTTSLanguage = ttsLanguage
+        }
     }
 
     private func savePreferences() {
@@ -422,6 +467,9 @@ final class AppState {
         UserDefaults.standard.set(selectedTTSVoice, forKey: "selectedTTSVoice")
         UserDefaults.standard.set(selectedTTSModel, forKey: "selectedTTSModel")
         UserDefaults.standard.set(selectedTTSSpeed, forKey: "selectedTTSSpeed")
+        UserDefaults.standard.set(enableWordHighlight, forKey: "enableWordHighlight")
+        UserDefaults.standard.set(selectedSTTLanguage, forKey: "selectedSTTLanguage")
+        UserDefaults.standard.set(selectedTTSLanguage, forKey: "selectedTTSLanguage")
     }
 }
 

@@ -40,7 +40,7 @@ final class FloatingWindowManager: ObservableObject {
     }
 
     private func createFloatingWindow() {
-        floatingWindow = NSWindow(
+        floatingWindow = KeyableWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 220),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
@@ -55,6 +55,11 @@ final class FloatingWindowManager: ObservableObject {
         floatingWindow?.isOpaque = false
         floatingWindow?.hasShadow = true
         floatingWindow?.isMovableByWindowBackground = true
+
+        // Hide standard window buttons (traffic lights)
+        floatingWindow?.standardWindowButton(.closeButton)?.isHidden = true
+        floatingWindow?.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        floatingWindow?.standardWindowButton(.zoomButton)?.isHidden = true
     }
 
     private func positionNearMouse() {
@@ -83,20 +88,30 @@ final class FloatingWindowManager: ObservableObject {
         floatingWindow?.orderOut(nil)
         floatingWindow = nil
 
-        // Create borderless window for TTS that can accept keyboard input
+        // Create resizable window for TTS that can accept keyboard input
         let window = KeyableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 250),
-            styleMask: [.borderless],
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 280),
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
         window.level = .floating
         window.isReleasedWhenClosed = false
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = true
         window.isMovableByWindowBackground = true
+        window.minSize = NSSize(width: 400, height: 200)
+        window.maxSize = NSSize(width: 900, height: 600)
+
+        // Hide standard window buttons (traffic lights)
+        window.standardWindowButton(.closeButton)?.isHidden = true
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
+
         floatingWindow = window
 
         let contentView = TTSFloatingView(

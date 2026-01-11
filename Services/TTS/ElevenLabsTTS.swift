@@ -8,8 +8,9 @@ final class ElevenLabsTTS: NSObject, TTSService {
     private(set) var isSpeaking = false
     private(set) var isPaused = false
     var selectedVoice: String = "21m00Tcm4TlvDq8ikWAM"  // Default: Rachel
-    var selectedModel: String = "eleven_flash_v2_5"
+    var selectedModel: String = "eleven_v3"
     var selectedSpeed: Double = 1.0  // Speed multiplier (ElevenLabs range: 0.5-2.0)
+    var selectedLanguage: String = ""  // "" = Auto (ElevenLabs uses language_code for Turbo/Flash v2.5)
 
     var supportsSpeedControl: Bool { true }
 
@@ -17,6 +18,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
     private var audioPlayer: AVAudioPlayer?
     private var currentText = ""
     private var wordRanges: [NSRange] = []
+    private var wordWeights: [Double] = []
     private var highlightTimer: Timer?
 
     private let endpoint = "https://api.elevenlabs.io/v1/text-to-speech"
@@ -34,6 +36,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
         currentText = text
         wordRanges = calculateWordRanges(for: text)
+        wordWeights = calculateWordWeights(for: text, ranges: wordRanges)
 
         // Request TTS from ElevenLabs
         let voiceId = selectedVoice.isEmpty ? "21m00Tcm4TlvDq8ikWAM" : selectedVoice
@@ -44,7 +47,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 60
 
-        let modelId = selectedModel.isEmpty ? "eleven_flash_v2_5" : selectedModel
+        let modelId = selectedModel.isEmpty ? "eleven_v3" : selectedModel
 
         // Convert normalized speed (0.5-2.0) to ElevenLabs range (0.7-1.2)
         // 0.5 -> 0.7, 1.0 -> 1.0, 2.0 -> 1.2
@@ -58,7 +61,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
         }
         let clampedSpeed = max(0.7, min(1.2, normalizedSpeed))
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "text": text,
             "model_id": modelId,
             "voice_settings": [
@@ -67,6 +70,13 @@ final class ElevenLabsTTS: NSObject, TTSService {
                 "speed": clampedSpeed
             ]
         ]
+
+        // Add language_code if specified (for Turbo/Flash v2.5 models)
+        if !selectedLanguage.isEmpty,
+           let langCode = LanguageCode(rawValue: selectedLanguage),
+           let elevenLabsCode = langCode.toElevenLabsTTSCode() {
+            body["language_code"] = elevenLabsCode
+        }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -128,6 +138,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
         isPaused = false
         currentText = ""
         wordRanges = []
+        wordWeights = []
     }
 
     private func calculateWordRanges(for text: String) -> [NSRange] {
@@ -163,6 +174,64 @@ final class ElevenLabsTTS: NSObject, TTSService {
         return ranges
     }
 
+    private func calculateWordWeights(for text: String, ranges: [NSRange]) -> [Double] {
+        guard !ranges.isEmpty else { return [] }
+
+        let nsString = text as NSString
+        var weights: [Double] = []
+
+        let japaneseRange = text.range(of: "\\p{Script=Han}|\\p{Script=Hiragana}|\\p{Script=Katakana}", options: .regularExpression)
+        let isJapanese = japaneseRange != nil
+
+        for (index, range) in ranges.enumerated() {
+            let word = nsString.substring(with: range)
+            var weight: Double
+
+            if isJapanese {
+                let kanjiCount = word.unicodeScalars.filter { $0.value >= 0x4E00 && $0.value <= 0x9FFF }.count
+                weight = Double(word.count) + Double(kanjiCount) * 0.2
+            } else {
+                let vowels = CharacterSet(charactersIn: "aeiouAEIOU")
+                var syllables = 0
+                var previousWasVowel = false
+
+                for char in word.unicodeScalars {
+                    let isVowel = vowels.contains(char)
+                    if isVowel && !previousWasVowel {
+                        syllables += 1
+                    }
+                    previousWasVowel = isVowel
+                }
+                weight = max(1.0, Double(syllables))
+            }
+
+            let endLocation = range.location + range.length
+            if endLocation < nsString.length {
+                let remainingLength = min(3, nsString.length - endLocation)
+                let followingChars = nsString.substring(with: NSRange(location: endLocation, length: remainingLength))
+
+                if followingChars.contains(where: { ".!?。！？\n".contains($0) }) {
+                    weight += isJapanese ? 1.5 : 2.0
+                } else if followingChars.contains(where: { ",;:、；：".contains($0) }) {
+                    weight += isJapanese ? 0.8 : 1.0
+                }
+            }
+
+            if index == ranges.count - 1 {
+                weight += 0.5
+            }
+
+            weights.append(weight)
+        }
+
+        let totalWeight = weights.reduce(0, +)
+        if totalWeight > 0 {
+            weights = weights.map { $0 / totalWeight }
+        }
+
+        return weights
+    }
+
     func availableVoices() -> [TTSVoice] {
         // Return cached voices if available, otherwise return defaults
         if let cached = TTSVoiceCache.shared.getCachedVoices(for: .elevenLabs), !cached.isEmpty {
@@ -173,7 +242,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
     func availableModels() -> [TTSModelInfo] {
         [
-            TTSModelInfo(id: "eleven_flash_v2_5", name: "Eleven Flash v2.5", description: "Fast, low latency", isDefault: true),
+            TTSModelInfo(id: "eleven_v3", name: "Eleven v3", description: "Latest, highest quality", isDefault: true),
+            TTSModelInfo(id: "eleven_flash_v2_5", name: "Eleven Flash v2.5", description: "Fast, low latency"),
             TTSModelInfo(id: "eleven_multilingual_v2", name: "Eleven Multilingual v2", description: "High quality, multilingual"),
             TTSModelInfo(id: "eleven_turbo_v2_5", name: "Eleven Turbo v2.5", description: "Fastest, optimized"),
             TTSModelInfo(id: "eleven_monolingual_v1", name: "Eleven Monolingual v1", description: "English only")
@@ -261,11 +331,12 @@ final class ElevenLabsTTS: NSObject, TTSService {
     ]
 
     private func startHighlightTimer() {
-        guard let player = audioPlayer, player.duration > 0, !wordRanges.isEmpty else { return }
+        guard let player = audioPlayer, player.duration > 0, !wordRanges.isEmpty, !wordWeights.isEmpty else { return }
 
-        let interval = player.duration / Double(wordRanges.count)
+        let updateInterval: TimeInterval = 0.03
+        let lookAheadFraction: Double = 0.015
 
-        highlightTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
+        highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
                 guard let self = self else {
                     timer.invalidate()
@@ -273,12 +344,23 @@ final class ElevenLabsTTS: NSObject, TTSService {
                 }
 
                 guard let player = self.audioPlayer, self.isSpeaking, !self.isPaused else {
-                    timer.invalidate()
                     return
                 }
 
                 let progress = player.currentTime / player.duration
-                let wordIndex = min(Int(progress * Double(self.wordRanges.count)), self.wordRanges.count - 1)
+                let adjustedProgress = min(1.0, progress + lookAheadFraction)
+
+                var cumulativeWeight: Double = 0
+                var wordIndex = 0
+
+                for (index, weight) in self.wordWeights.enumerated() {
+                    cumulativeWeight += weight
+                    if adjustedProgress <= cumulativeWeight {
+                        wordIndex = index
+                        break
+                    }
+                    wordIndex = index
+                }
 
                 if wordIndex >= 0 && wordIndex < self.wordRanges.count {
                     self.delegate?.tts(self, willSpeakRange: self.wordRanges[wordIndex], of: self.currentText)

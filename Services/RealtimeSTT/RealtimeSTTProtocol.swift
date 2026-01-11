@@ -7,6 +7,7 @@ protocol RealtimeSTTService: AnyObject {
     var delegate: RealtimeSTTDelegate? { get set }
     var isListening: Bool { get }
     var selectedModel: String { get set }
+    var selectedLanguage: String { get set }  // "" = Auto
 
     func startListening() async throws
     func stopListening()
