@@ -26,6 +26,8 @@
     <string>TypeTalk needs microphone access to record your voice for transcription.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>TypeTalk uses speech recognition for real-time transcription.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>TypeTalk needs screen recording access to show window thumbnails when selecting a paste target.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

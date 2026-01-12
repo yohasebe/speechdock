@@ -1,5 +1,7 @@
 import SwiftUI
 import Combine
+import AVFoundation
+import ApplicationServices
 
 enum TranscriptionState: Equatable {
     case idle
@@ -97,6 +99,10 @@ final class AppState {
                 selectedTTSModel = ""
             }
 
+            // Clear audio cache when provider changes
+            lastSynthesizedText = ""
+            ttsService = nil
+
             savePreferences()
         }
     }
@@ -125,6 +131,8 @@ final class AppState {
         }
     }
     var showTTSWindow = false
+    var lastSynthesizedText = ""  // Track last synthesized text for cache
+    var isSavingAudio = false  // Loading state for audio save
 
     // MARK: - Language Settings
     var selectedSTTLanguage: String = "" {  // "" = Auto
@@ -138,6 +146,62 @@ final class AppState {
             guard !isLoadingPreferences else { return }
             savePreferences()
         }
+    }
+
+    // MARK: - Audio Input Settings
+    var selectedAudioInputDeviceUID: String = "" {  // "" = System Default
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Audio input source type (microphone, system audio, or app audio)
+    var selectedAudioInputSourceType: AudioInputSourceType = .microphone {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Bundle ID of the selected app for app-specific audio capture
+    var selectedAudioAppBundleID: String = "" {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Current audio input source configuration
+    var currentAudioInputSource: AudioInputSource {
+        switch selectedAudioInputSourceType {
+        case .microphone:
+            return .microphone
+        case .systemAudio:
+            return .systemAudio
+        case .applicationAudio:
+            let appName = SystemAudioCaptureService.shared.availableApps
+                .first { $0.bundleID == selectedAudioAppBundleID }?.name ?? "App"
+            return .app(bundleID: selectedAudioAppBundleID, name: appName)
+        }
+    }
+
+    let audioInputManager = AudioInputManager.shared
+    let systemAudioCaptureService = SystemAudioCaptureService.shared
+
+    // MARK: - Permission Status
+    var hasMicrophonePermission: Bool = false
+    var hasAccessibilityPermission: Bool = false
+
+    /// Update permission status (call periodically or after permission changes)
+    func updatePermissionStatus() {
+        hasMicrophonePermission = checkMicrophonePermission()
+        hasAccessibilityPermission = AXIsProcessTrusted()
+    }
+
+    private func checkMicrophonePermission() -> Bool {
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        return status == .authorized
     }
 
     // MARK: - Common State
@@ -157,6 +221,7 @@ final class AppState {
     private init() {
         loadPreferences()
         refreshVoiceCachesInBackground()
+        updatePermissionStatus()
     }
 
     /// Refresh voice caches in background (non-blocking)
@@ -221,8 +286,25 @@ final class AppState {
             realtimeSTTService?.selectedLanguage = selectedSTTLanguage
         }
 
+        // Configure audio source based on settings
+        switch selectedAudioInputSourceType {
+        case .microphone:
+            realtimeSTTService?.audioSource = .microphone
+            realtimeSTTService?.audioInputDeviceUID = selectedAudioInputDeviceUID
+        case .systemAudio, .applicationAudio:
+            realtimeSTTService?.audioSource = .external
+            systemAudioCaptureService.delegate = self
+        }
+
         do {
             try await realtimeSTTService?.startListening()
+
+            // Start system audio capture if needed
+            if selectedAudioInputSourceType == .systemAudio {
+                try await systemAudioCaptureService.startCapturingSystemAudio()
+            } else if selectedAudioInputSourceType == .applicationAudio, !selectedAudioAppBundleID.isEmpty {
+                try await systemAudioCaptureService.startCapturingAppAudio(bundleID: selectedAudioAppBundleID)
+            }
         } catch {
             errorMessage = error.localizedDescription
             transcriptionState = .error(error.localizedDescription)
@@ -233,6 +315,13 @@ final class AppState {
         isRecording = false
         realtimeSTTService?.stopListening()
         realtimeSTTService = nil
+
+        // Stop system audio capture if active
+        if systemAudioCaptureService.isCapturing {
+            Task {
+                await systemAudioCaptureService.stopCapturing()
+            }
+        }
 
         // If we have transcription, show result state
         if !currentTranscription.isEmpty {
@@ -249,6 +338,13 @@ final class AppState {
         realtimeSTTService?.stopListening()
         realtimeSTTService = nil
         transcriptionState = .idle
+
+        // Stop system audio capture if active
+        if systemAudioCaptureService.isCapturing {
+            Task {
+                await systemAudioCaptureService.stopCapturing()
+            }
+        }
 
         // Then hide window and paste
         hideWindowAndPaste(text)
@@ -272,6 +368,13 @@ final class AppState {
             realtimeSTTService?.stopListening()
             realtimeSTTService = nil
             isRecording = false
+
+            // Stop system audio capture if active
+            if systemAudioCaptureService.isCapturing {
+                Task {
+                    await systemAudioCaptureService.stopCapturing()
+                }
+            }
         }
         transcriptionState = .idle
         currentTranscription = ""
@@ -280,12 +383,35 @@ final class AppState {
     }
 
     private func hideWindowAndPaste(_ text: String) {
-        floatingWindowManager.hideFloatingWindow()
+        // Check if clipboard-only mode
+        if floatingWindowManager.clipboardOnly {
+            // Just copy to clipboard, no paste
+            ClipboardService.shared.copyToClipboard(text)
+            floatingWindowManager.hideFloatingWindow(skipActivation: false)
+            showFloatingWindow = false
+            transcriptionState = .idle
+            return
+        }
+
+        // Validate paste destination before proceeding
+        let status = floatingWindowManager.validatePasteDestination()
+        if status != .valid {
+            // Destination is invalid - alert is shown by validatePasteDestination
+            // Don't close the window, let user select a new destination
+            return
+        }
+
+        // Activate the selected window before hiding
+        let activated = floatingWindowManager.activateSelectedWindow()
+
+        // Skip activation in hideFloatingWindow since we already activated the target window
+        floatingWindowManager.hideFloatingWindow(skipActivation: activated)
         showFloatingWindow = false
         transcriptionState = .idle
 
-        // Delay paste to allow window to close and focus to return
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // Delay paste to allow window to close and focus to switch
+        let delay = activated ? 0.4 : 0.3  // Slightly longer delay when switching windows
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             ClipboardService.shared.copyAndPaste(text)
         }
     }
@@ -301,17 +427,23 @@ final class AppState {
     }
 
     func startTTS() {
+        #if DEBUG
         print("TTS: startTTS called")
+        #endif
 
         // Get selected text from frontmost app
         // Note: This runs on main thread synchronously
         let selectedText = TextSelectionService.shared.getSelectedText()
 
         if let selectedText = selectedText, !selectedText.isEmpty {
+            #if DEBUG
             print("TTS: Got selected text, length: \(selectedText.count)")
+            #endif
             startTTSWithText(selectedText)
         } else {
+            #if DEBUG
             print("TTS: No selected text, showing manual input window")
+            #endif
             // Show TTS window for manual input
             ttsText = ""
             ttsState = .idle
@@ -321,11 +453,15 @@ final class AppState {
 
     func startTTSWithText(_ text: String) {
         guard !text.isEmpty else {
+            #if DEBUG
             print("TTS: Empty text, aborting")
+            #endif
             return
         }
 
+        #if DEBUG
         print("TTS: Starting with text length: \(text.count), provider: \(selectedTTSProvider.rawValue)")
+        #endif
 
         // Stop any existing TTS but don't reset everything
         ttsService?.stop()
@@ -341,7 +477,6 @@ final class AppState {
         }
 
         // Create TTS service and start speaking
-        print("TTS: Creating service...")
         ttsService = TTSFactory.makeService(for: selectedTTSProvider)
         ttsService?.delegate = self
         ttsService?.selectedVoice = selectedTTSVoice
@@ -352,16 +487,17 @@ final class AppState {
         if !selectedTTSLanguage.isEmpty {
             ttsService?.selectedLanguage = selectedTTSLanguage
         }
-        print("TTS: Service created, delegate set, voice: \(selectedTTSVoice), model: \(selectedTTSModel), speed: \(selectedTTSSpeed)")
 
         Task {
             do {
-                print("TTS: Calling speak()...")
                 try await ttsService?.speak(text: text)
-                print("TTS: speak() returned, setting state to speaking")
                 ttsState = .speaking
+                // Record synthesized text for cache
+                lastSynthesizedText = text
             } catch {
+                #if DEBUG
                 print("TTS: Error occurred: \(error)")
+                #endif
                 ttsState = .error(error.localizedDescription)
             }
         }
@@ -384,6 +520,88 @@ final class AppState {
         ttsService = nil
         ttsState = .idle
         currentSpeakingRange = nil
+    }
+
+    /// Check if TTS audio save is available (text >= 5 chars)
+    func canSaveTTSAudio(for text: String) -> Bool {
+        text.count >= 5
+    }
+
+    /// Get the file extension for TTS audio
+    var ttsAudioFileExtension: String {
+        ttsService?.audioFileExtension ?? "mp3"
+    }
+
+    /// Synthesize and save TTS audio
+    /// - Reuses existing audio data if text matches lastSynthesizedText
+    /// - Otherwise synthesizes new audio before saving
+    func synthesizeAndSaveTTSAudio(_ text: String) {
+        guard text.count >= 5 else { return }
+
+        // Check if we can reuse existing audio data
+        if text == lastSynthesizedText, let audioData = ttsService?.lastAudioData {
+            // Reuse existing audio
+            showSavePanel(with: audioData)
+            return
+        }
+
+        // Need to synthesize new audio
+        isSavingAudio = true
+
+        // Create a new TTS service for synthesis (don't disturb current playback state)
+        let saveService = TTSFactory.makeService(for: selectedTTSProvider)
+        saveService.selectedVoice = selectedTTSVoice
+        if !selectedTTSModel.isEmpty {
+            saveService.selectedModel = selectedTTSModel
+        }
+        saveService.selectedSpeed = selectedTTSSpeed
+        if !selectedTTSLanguage.isEmpty {
+            saveService.selectedLanguage = selectedTTSLanguage
+        }
+
+        Task {
+            do {
+                try await saveService.speak(text: text)
+                // Stop playback immediately (we only wanted the audio data)
+                saveService.stop()
+
+                if let audioData = saveService.lastAudioData {
+                    // Update cache
+                    lastSynthesizedText = text
+                    // Store audio data in main service for future reuse
+                    ttsService = saveService
+                    showSavePanel(with: audioData)
+                } else {
+                    ttsState = .error("Failed to generate audio")
+                }
+            } catch {
+                ttsState = .error(error.localizedDescription)
+            }
+            isSavingAudio = false
+        }
+    }
+
+    /// Show save panel with the given audio data
+    private func showSavePanel(with audioData: Data) {
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.audio]
+        savePanel.nameFieldStringValue = "tts_audio.\(ttsAudioFileExtension)"
+        savePanel.title = "Save Audio"
+        savePanel.message = "Choose a location to save the audio file"
+        savePanel.level = .floating  // Ensure panel appears above floating window
+
+        // Activate app and bring panel to front
+        NSApp.activate(ignoringOtherApps: true)
+
+        savePanel.begin { [audioData] response in
+            if response == .OK, let url = savePanel.url {
+                do {
+                    try audioData.write(to: url)
+                } catch {
+                    print("Failed to save audio: \(error)")
+                }
+            }
+        }
     }
 
     private func showTTSFloatingWindow() {
@@ -457,6 +675,19 @@ final class AppState {
             selectedTTSLanguage = ttsLanguage
         }
 
+        if let audioInputUID = UserDefaults.standard.string(forKey: "selectedAudioInputDeviceUID") {
+            selectedAudioInputDeviceUID = audioInputUID
+        }
+
+        if let audioSourceTypeRaw = UserDefaults.standard.string(forKey: "selectedAudioInputSourceType"),
+           let audioSourceType = AudioInputSourceType(rawValue: audioSourceTypeRaw) {
+            selectedAudioInputSourceType = audioSourceType
+        }
+
+        if let audioAppBundleID = UserDefaults.standard.string(forKey: "selectedAudioAppBundleID") {
+            selectedAudioAppBundleID = audioAppBundleID
+        }
+
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
     }
@@ -512,6 +743,9 @@ final class AppState {
         UserDefaults.standard.set(enableWordHighlight, forKey: "enableWordHighlight")
         UserDefaults.standard.set(selectedSTTLanguage, forKey: "selectedSTTLanguage")
         UserDefaults.standard.set(selectedTTSLanguage, forKey: "selectedTTSLanguage")
+        UserDefaults.standard.set(selectedAudioInputDeviceUID, forKey: "selectedAudioInputDeviceUID")
+        UserDefaults.standard.set(selectedAudioInputSourceType.rawValue, forKey: "selectedAudioInputSourceType")
+        UserDefaults.standard.set(selectedAudioAppBundleID, forKey: "selectedAudioAppBundleID")
     }
 }
 
@@ -569,5 +803,19 @@ extension AppState: TTSDelegate {
     func tts(_ service: TTSService, didFailWithError error: Error) {
         ttsState = .error(error.localizedDescription)
         currentSpeakingRange = nil
+    }
+}
+
+// MARK: - SystemAudioCaptureDelegate
+
+extension AppState: SystemAudioCaptureDelegate {
+    func systemAudioCapture(_ capture: SystemAudioCaptureService, didCaptureAudioBuffer buffer: AVAudioPCMBuffer) {
+        // Forward audio buffer to STT service
+        realtimeSTTService?.processAudioBuffer(buffer)
+    }
+
+    func systemAudioCapture(_ capture: SystemAudioCaptureService, didFailWithError error: Error) {
+        errorMessage = error.localizedDescription
+        transcriptionState = .error(error.localizedDescription)
     }
 }

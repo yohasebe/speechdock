@@ -4,50 +4,71 @@ import AppKit
 final class TextSelectionService {
     static let shared = TextSelectionService()
 
+    /// Lock to prevent concurrent selection operations
+    private let selectionLock = NSLock()
+
+    /// Maximum time to wait for copy operation (seconds)
+    private let maxCopyWaitTime: TimeInterval = 0.3
+
+    /// Polling interval for clipboard change detection
+    private let pollInterval: TimeInterval = 0.02
+
     private init() {}
 
     /// Gets the currently selected text from the frontmost application
     /// Tries accessibility API first, then falls back to clipboard-based approach
     func getSelectedText() -> String? {
-        print("TextSelectionService: Attempting to get selected text...")
-
         // Try accessibility API first (more reliable, less intrusive)
         if let text = getSelectedTextViaAccessibility() {
-            print("TextSelectionService: Got text via accessibility: \(text.prefix(50))...")
             return text
         }
 
-        print("TextSelectionService: Accessibility failed, trying clipboard method...")
+        // Fall back to clipboard-based approach with proper synchronization
+        return getSelectedTextViaClipboard()
+    }
 
-        // Fall back to clipboard-based approach
+    /// Get selected text using clipboard-based approach with race condition protection
+    private func getSelectedTextViaClipboard() -> String? {
+        selectionLock.lock()
+        defer { selectionLock.unlock() }
+
+        let clipboardService = ClipboardService.shared
         let pasteboard = NSPasteboard.general
-        let savedContents = pasteboard.string(forType: .string)
-        let savedChangeCount = pasteboard.changeCount
 
-        // Clear clipboard
+        // Save current clipboard state (preserves all content types)
+        let savedState = clipboardService.saveClipboardState()
+        let initialChangeCount = pasteboard.changeCount
+
+        // Clear clipboard to detect if copy succeeds
         pasteboard.clearContents()
+        let clearedChangeCount = pasteboard.changeCount
 
         // Simulate Cmd+C to copy selection
         copySelectionWithAppleScript()
 
-        // Longer delay to allow copy to complete
-        Thread.sleep(forTimeInterval: 0.15)
-
-        // Check if clipboard was updated
-        let newChangeCount = pasteboard.changeCount
+        // Poll for clipboard change with timeout
         var selectedText: String? = nil
+        let startTime = Date()
 
-        if newChangeCount != savedChangeCount {
-            selectedText = pasteboard.string(forType: .string)
-            print("TextSelectionService: Got text via clipboard: \(selectedText?.prefix(50) ?? "nil")...")
-        } else {
-            print("TextSelectionService: Clipboard was not updated")
+        while Date().timeIntervalSince(startTime) < maxCopyWaitTime {
+            if pasteboard.changeCount != clearedChangeCount {
+                // Clipboard was updated, get the text
+                selectedText = pasteboard.string(forType: .string)
+                break
+            }
+            Thread.sleep(forTimeInterval: pollInterval)
         }
 
-        // Restore original clipboard contents
-        pasteboard.clearContents()
-        if let savedContents = savedContents {
-            pasteboard.setString(savedContents, forType: .string)
+        // Restore original clipboard contents if not modified by another app
+        // We check if the clipboard was modified more than expected
+        // (our clear + potential copy = 2 changes max)
+        let totalChanges = pasteboard.changeCount - initialChangeCount
+        if totalChanges <= 2 {
+            clipboardService.restoreClipboardState(savedState)
+        } else {
+            #if DEBUG
+            print("TextSelectionService: Clipboard modified externally, not restoring (changes: \(totalChanges))")
+            #endif
         }
 
         return selectedText
@@ -63,9 +84,11 @@ final class TextSelectionService {
         var error: NSDictionary?
         if let scriptObject = NSAppleScript(source: script) {
             scriptObject.executeAndReturnError(&error)
+            #if DEBUG
             if let error = error {
                 print("AppleScript error: \(error)")
             }
+            #endif
         }
     }
 

@@ -52,7 +52,10 @@ final class ElevenLabsSTTClient: STTAPIClient {
 
         body.append("--\(boundary)--\r\n")
 
-        var request = URLRequest(url: URL(string: endpoint)!)
+        guard let url = URL(string: endpoint) else {
+            throw STTError.apiError("Invalid API endpoint URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")

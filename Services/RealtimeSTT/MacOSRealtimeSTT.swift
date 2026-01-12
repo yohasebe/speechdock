@@ -9,6 +9,8 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     private(set) var isListening = false
     var selectedModel: String = ""  // macOS uses system default
     var selectedLanguage: String = ""  // "" = Auto (uses system locale)
+    var audioInputDeviceUID: String = ""  // "" = System Default
+    var audioSource: STTAudioSource = .microphone
 
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -54,12 +56,6 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         // Stop any existing session
         stopListening()
 
-        // Create and configure the audio engine
-        audioEngine = AVAudioEngine()
-        guard let audioEngine = audioEngine else {
-            throw RealtimeSTTError.audioError("Failed to create audio engine")
-        }
-
         // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let recognitionRequest = recognitionRequest else {
@@ -69,13 +65,32 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         recognitionRequest.shouldReportPartialResults = true
         recognitionRequest.addsPunctuation = true
 
-        // Configure input node
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        // Setup audio engine only for microphone mode
+        if audioSource == .microphone {
+            audioEngine = AVAudioEngine()
+            guard let audioEngine = audioEngine else {
+                throw RealtimeSTTError.audioError("Failed to create audio engine")
+            }
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
+            // Set audio input device if specified
+            if !audioInputDeviceUID.isEmpty,
+               let device = AudioInputManager.shared.device(withUID: audioInputDeviceUID) {
+                try AudioInputManager.shared.setInputDevice(device, for: audioEngine)
+            }
+
+            // Configure input node
+            let inputNode = audioEngine.inputNode
+            let recordingFormat = inputNode.outputFormat(forBus: 0)
+
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                self?.recognitionRequest?.append(buffer)
+            }
+
+            // Start audio engine
+            audioEngine.prepare()
+            try audioEngine.start()
         }
+        // For external source, audio will be fed via processAudioBuffer()
 
         // Start recognition task
         lastTranscription = ""
@@ -110,12 +125,14 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
             }
         }
 
-        // Start audio engine
-        audioEngine.prepare()
-        try audioEngine.start()
-
         isListening = true
         delegate?.realtimeSTT(self, didChangeListeningState: true)
+    }
+
+    /// Process audio buffer from external source
+    func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard audioSource == .external, isListening else { return }
+        recognitionRequest?.append(buffer)
     }
 
     func stopListening() {

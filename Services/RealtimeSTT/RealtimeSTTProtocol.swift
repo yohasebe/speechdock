@@ -1,6 +1,12 @@
 import Foundation
 import AVFoundation
 
+/// Audio input source for STT services
+enum STTAudioSource {
+    case microphone           // Use built-in microphone capture
+    case external             // Receive audio from external source via processAudioBuffer
+}
+
 /// Protocol for realtime speech-to-text services
 @MainActor
 protocol RealtimeSTTService: AnyObject {
@@ -8,10 +14,16 @@ protocol RealtimeSTTService: AnyObject {
     var isListening: Bool { get }
     var selectedModel: String { get set }
     var selectedLanguage: String { get set }  // "" = Auto
+    var audioInputDeviceUID: String { get set }  // "" = System Default
+    var audioSource: STTAudioSource { get set }  // Audio input source
 
     func startListening() async throws
     func stopListening()
     func availableModels() -> [RealtimeSTTModelInfo]
+
+    /// Process audio buffer from external source (system audio, app audio)
+    /// Only used when audioSource == .external
+    func processAudioBuffer(_ buffer: AVAudioPCMBuffer)
 }
 
 /// Represents an STT model option

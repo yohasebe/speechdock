@@ -1,4 +1,5 @@
 import SwiftUI
+import Carbon.HIToolbox
 
 struct SettingsWindow: View {
     var body: some View {
@@ -44,7 +45,7 @@ struct GeneralSettingsView: View {
                     .foregroundColor(.secondary)
 
                 if availableSTTProviders.count < RealtimeSTTProvider.allCases.count {
-                    Text("API Keysタブでキーを設定すると他のプロバイダも選択可能になります")
+                    Text("Set API keys in the API Keys tab to enable more providers")
                         .font(.caption2)
                         .foregroundColor(.orange)
                 }
@@ -54,6 +55,12 @@ struct GeneralSettingsView: View {
 
                 // STT Language selection
                 STTLanguagePicker(appState: appState)
+
+                // Audio Input Source selection
+                AudioInputSourcePicker(appState: appState)
+
+                // Audio Input Device selection (only shown for microphone)
+                AudioInputDevicePicker(appState: appState)
             } header: {
                 Text("Speech-to-Text")
             }
@@ -73,7 +80,7 @@ struct GeneralSettingsView: View {
                     .foregroundColor(.secondary)
 
                 if availableTTSProviders.count < TTSProvider.allCases.count {
-                    Text("API Keysタブでキーを設定すると他のプロバイダも選択可能になります")
+                    Text("Set API keys in the API Keys tab to enable more providers")
                         .font(.caption2)
                         .foregroundColor(.orange)
                 }
@@ -154,38 +161,71 @@ struct ShortcutSettingsView: View {
     @Environment(AppState.self) var appState
     @State private var sttKeyCombo: KeyCombo = .sttDefault
     @State private var ttsKeyCombo: KeyCombo = .ttsDefault
+    @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     var body: some View {
-        Form {
-            Section {
-                ShortcutRecorderView(title: "Start/Stop Recording (STT)", keyCombo: $sttKeyCombo)
-                    .onChange(of: sttKeyCombo) { _, newValue in
-                        appState.hotKeyService?.sttKeyCombo = newValue
+        ScrollView {
+            Form {
+                Section {
+                    ShortcutRecorderView(title: "Start/Stop Recording (STT)", keyCombo: $sttKeyCombo)
+                        .onChange(of: sttKeyCombo) { _, newValue in
+                            appState.hotKeyService?.sttKeyCombo = newValue
+                        }
+
+                    ShortcutRecorderView(title: "Read Selected Text (TTS)", keyCombo: $ttsKeyCombo)
+                        .onChange(of: ttsKeyCombo) { _, newValue in
+                            appState.hotKeyService?.ttsKeyCombo = newValue
+                        }
+                } header: {
+                    Text("Global Hotkeys")
+                } footer: {
+                    Text("Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (⌘, ⌥, ⌃, or ⇧).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // STT Panel Shortcuts
+                Section {
+                    ForEach(ShortcutAction.allCases.filter { $0.category == "STT Panel" }, id: \.self) { action in
+                        PanelShortcutRow(action: action, manager: shortcutManager)
+                    }
+                } header: {
+                    Text("STT Panel Shortcuts")
+                } footer: {
+                    Text("Shortcuts available when the STT transcription panel is open.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // TTS Panel Shortcuts
+                Section {
+                    ForEach(ShortcutAction.allCases.filter { $0.category == "TTS Panel" }, id: \.self) { action in
+                        PanelShortcutRow(action: action, manager: shortcutManager)
+                    }
+                } header: {
+                    Text("TTS Panel Shortcuts")
+                } footer: {
+                    Text("Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Section {
+                    Button("Reset Global Hotkeys") {
+                        sttKeyCombo = .sttDefault
+                        ttsKeyCombo = .ttsDefault
+                        appState.hotKeyService?.sttKeyCombo = .sttDefault
+                        appState.hotKeyService?.ttsKeyCombo = .ttsDefault
                     }
 
-                ShortcutRecorderView(title: "Read Selected Text (TTS)", keyCombo: $ttsKeyCombo)
-                    .onChange(of: ttsKeyCombo) { _, newValue in
-                        appState.hotKeyService?.ttsKeyCombo = newValue
+                    Button("Reset Panel Shortcuts") {
+                        shortcutManager.resetAllShortcuts()
                     }
-            } header: {
-                Text("Keyboard Shortcuts")
-            } footer: {
-                Text("Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (⌘, ⌥, ⌃, or ⇧).")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Section {
-                Button("Reset to Defaults") {
-                    sttKeyCombo = .sttDefault
-                    ttsKeyCombo = .ttsDefault
-                    appState.hotKeyService?.sttKeyCombo = .sttDefault
-                    appState.hotKeyService?.ttsKeyCombo = .ttsDefault
                 }
             }
+            .formStyle(.grouped)
+            .padding()
         }
-        .formStyle(.grouped)
-        .padding()
         .onAppear {
             // Load current shortcuts from hotKeyService
             if let service = appState.hotKeyService {
@@ -193,6 +233,163 @@ struct ShortcutSettingsView: View {
                 ttsKeyCombo = service.ttsKeyCombo
             }
         }
+    }
+}
+
+/// Row for editing a panel shortcut
+struct PanelShortcutRow: View {
+    let action: ShortcutAction
+    @ObservedObject var manager: ShortcutSettingsManager
+    @State private var isRecording = false
+
+    private var currentShortcut: CustomShortcut {
+        manager.shortcut(for: action)
+    }
+
+    var body: some View {
+        HStack {
+            Text(action.displayName)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            PanelShortcutRecorder(
+                shortcut: currentShortcut,
+                isRecording: $isRecording,
+                onRecord: { newShortcut in
+                    manager.setShortcut(newShortcut, for: action)
+                }
+            )
+            .frame(width: 120)
+
+            Button(action: {
+                manager.resetShortcut(for: action)
+            }) {
+                Image(systemName: "arrow.counterclockwise")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Reset to default")
+        }
+    }
+}
+
+/// Shortcut recorder for panel shortcuts (captures key + modifiers)
+struct PanelShortcutRecorder: View {
+    let shortcut: CustomShortcut
+    @Binding var isRecording: Bool
+    let onRecord: (CustomShortcut) -> Void
+
+    var body: some View {
+        Button(action: {
+            isRecording = true
+        }) {
+            Text(isRecording ? "Press keys..." : shortcut.displayString)
+                .font(.system(.body, design: .monospaced))
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(isRecording ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
+                .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .focusable()
+        .onKeyPress { keyPress in
+            guard isRecording else { return .ignored }
+
+            // Get modifier flags
+            var modifiers: UInt = 0
+            if keyPress.modifiers.contains(.command) {
+                modifiers |= UInt(NSEvent.ModifierFlags.command.rawValue)
+            }
+            if keyPress.modifiers.contains(.shift) {
+                modifiers |= UInt(NSEvent.ModifierFlags.shift.rawValue)
+            }
+            if keyPress.modifiers.contains(.option) {
+                modifiers |= UInt(NSEvent.ModifierFlags.option.rawValue)
+            }
+            if keyPress.modifiers.contains(.control) {
+                modifiers |= UInt(NSEvent.ModifierFlags.control.rawValue)
+            }
+
+            // Get key code from the key
+            let keyCode = keyCodeFromKeyEquivalent(keyPress.key)
+
+            // Only accept if we have at least one modifier (or it's a special key)
+            if modifiers != 0 || isSpecialKey(keyCode) {
+                let newShortcut = CustomShortcut(keyCode: keyCode, modifiers: modifiers)
+                if newShortcut.isValid {
+                    onRecord(newShortcut)
+                }
+            }
+
+            isRecording = false
+            return .handled
+        }
+        .onExitCommand {
+            isRecording = false
+        }
+    }
+
+    private func keyCodeFromKeyEquivalent(_ key: KeyEquivalent) -> Int {
+        let char = String(key.character).lowercased()
+
+        switch char {
+        case "a": return kVK_ANSI_A
+        case "b": return kVK_ANSI_B
+        case "c": return kVK_ANSI_C
+        case "d": return kVK_ANSI_D
+        case "e": return kVK_ANSI_E
+        case "f": return kVK_ANSI_F
+        case "g": return kVK_ANSI_G
+        case "h": return kVK_ANSI_H
+        case "i": return kVK_ANSI_I
+        case "j": return kVK_ANSI_J
+        case "k": return kVK_ANSI_K
+        case "l": return kVK_ANSI_L
+        case "m": return kVK_ANSI_M
+        case "n": return kVK_ANSI_N
+        case "o": return kVK_ANSI_O
+        case "p": return kVK_ANSI_P
+        case "q": return kVK_ANSI_Q
+        case "r": return kVK_ANSI_R
+        case "s": return kVK_ANSI_S
+        case "t": return kVK_ANSI_T
+        case "u": return kVK_ANSI_U
+        case "v": return kVK_ANSI_V
+        case "w": return kVK_ANSI_W
+        case "x": return kVK_ANSI_X
+        case "y": return kVK_ANSI_Y
+        case "z": return kVK_ANSI_Z
+        case "0": return kVK_ANSI_0
+        case "1": return kVK_ANSI_1
+        case "2": return kVK_ANSI_2
+        case "3": return kVK_ANSI_3
+        case "4": return kVK_ANSI_4
+        case "5": return kVK_ANSI_5
+        case "6": return kVK_ANSI_6
+        case "7": return kVK_ANSI_7
+        case "8": return kVK_ANSI_8
+        case "9": return kVK_ANSI_9
+        case ".": return kVK_ANSI_Period
+        case ",": return kVK_ANSI_Comma
+        case "/": return kVK_ANSI_Slash
+        case ";": return kVK_ANSI_Semicolon
+        case "=": return kVK_ANSI_Equal
+        case "-": return kVK_ANSI_Minus
+        case "\r", "\n": return kVK_Return
+        case "\u{1B}": return kVK_Escape
+        case "\u{7F}": return kVK_Delete
+        case "\t": return kVK_Tab
+        case " ": return kVK_Space
+        default: return 0
+        }
+    }
+
+    private func isSpecialKey(_ keyCode: Int) -> Bool {
+        return keyCode == kVK_Return ||
+               keyCode == kVK_Escape ||
+               keyCode == kVK_Delete ||
+               keyCode == kVK_Tab ||
+               keyCode == kVK_Space
     }
 }
 
@@ -564,6 +761,128 @@ struct TTSLanguagePicker: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+        }
+    }
+}
+
+/// Audio input source picker for STT (Microphone, System Audio, App Audio)
+struct AudioInputSourcePicker: View {
+    @Bindable var appState: AppState
+    @State private var availableApps: [CapturableApplication] = []
+    @State private var isLoadingApps = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Audio Source", selection: $appState.selectedAudioInputSourceType) {
+                ForEach(AudioInputSourceType.allCases) { sourceType in
+                    Label(sourceType.rawValue, systemImage: sourceType.icon)
+                        .tag(sourceType)
+                }
+            }
+
+            Text(appState.selectedAudioInputSourceType.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            // Show app picker when App Audio is selected
+            if appState.selectedAudioInputSourceType == .applicationAudio {
+                HStack {
+                    Picker("Application", selection: $appState.selectedAudioAppBundleID) {
+                        Text("Select an app...").tag("")
+                        ForEach(availableApps) { app in
+                            HStack {
+                                if let icon = app.icon {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .frame(width: 16, height: 16)
+                                }
+                                Text(app.name)
+                            }
+                            .tag(app.bundleID)
+                        }
+                    }
+
+                    Button(action: refreshApps) {
+                        if isLoadingApps {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                                .frame(width: 16, height: 16)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isLoadingApps)
+                    .help("Refresh app list")
+                }
+
+                if availableApps.isEmpty && !isLoadingApps {
+                    Text("No apps with audio output detected. Make sure an app is playing audio.")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            // Note about system audio permission
+            if appState.selectedAudioInputSourceType != .microphone {
+                Text("System Audio and App Audio require Screen Recording permission.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .onAppear {
+            if appState.selectedAudioInputSourceType == .applicationAudio {
+                refreshApps()
+            }
+        }
+        .onChange(of: appState.selectedAudioInputSourceType) { _, newValue in
+            if newValue == .applicationAudio {
+                refreshApps()
+            }
+        }
+    }
+
+    private func refreshApps() {
+        isLoadingApps = true
+        Task {
+            await appState.systemAudioCaptureService.refreshAvailableApps()
+            availableApps = appState.systemAudioCaptureService.availableApps
+            isLoadingApps = false
+        }
+    }
+}
+
+/// Audio input device picker for STT (microphone selection)
+struct AudioInputDevicePicker: View {
+    @Bindable var appState: AppState
+    @State private var availableDevices: [AudioInputDevice] = []
+
+    var body: some View {
+        // Only show microphone picker when microphone is selected as source
+        if appState.selectedAudioInputSourceType == .microphone {
+            VStack(alignment: .leading, spacing: 4) {
+                Picker("Microphone", selection: $appState.selectedAudioInputDeviceUID) {
+                    ForEach(availableDevices) { device in
+                        Text(device.name).tag(device.uid)
+                    }
+                }
+
+                Text("Select the microphone device for speech recognition.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .onAppear {
+                loadDevices()
+            }
+        }
+    }
+
+    private func loadDevices() {
+        availableDevices = appState.audioInputManager.availableInputDevices()
+
+        // If selected device is not in the list, reset to system default
+        if !availableDevices.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
+            appState.selectedAudioInputDeviceUID = ""
         }
     }
 }

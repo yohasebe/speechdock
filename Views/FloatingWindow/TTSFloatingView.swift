@@ -1,4 +1,10 @@
 import SwiftUI
+import Carbon.HIToolbox
+
+/// Custom NSTextView subclass for TTS input
+class FocusableTextView: NSTextView {
+    // Focus is handled by FloatingWindowManager via didBecomeKeyNotification
+}
 
 /// TTS state for the floating view
 enum TTSState: Equatable {
@@ -21,7 +27,7 @@ struct ScrollableTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
-        let textView = NSTextView()
+        let textView = FocusableTextView()
 
         textView.isEditable = isEditable
         textView.isSelectable = true
@@ -49,11 +55,13 @@ struct ScrollableTextView: NSViewRepresentable {
         scrollView.borderType = .noBorder
         scrollView.backgroundColor = NSColor.textBackgroundColor
 
+        context.coordinator.textView = textView
+
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
+        guard let textView = scrollView.documentView as? FocusableTextView else { return }
 
         // Update editable state
         textView.isEditable = isEditable
@@ -204,6 +212,7 @@ struct ScrollableTextView: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: ScrollableTextView
+        weak var textView: NSTextView?
 
         init(_ parent: ScrollableTextView) {
             self.parent = parent
@@ -221,13 +230,19 @@ struct TTSFloatingView: View {
     let onClose: () -> Void
 
     @State private var editableText: String = ""
-    @FocusState private var isTextEditorFocused: Bool
+    @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     init(appState: AppState, onClose: @escaping () -> Void) {
         self.appState = appState
         self.onClose = onClose
         self._editableText = State(initialValue: appState.ttsText)
     }
+
+    // Shortcut helpers
+    private var speakShortcut: CustomShortcut { shortcutManager.shortcut(for: .ttsSpeak) }
+    private var stopShortcut: CustomShortcut { shortcutManager.shortcut(for: .ttsStop) }
+    private var saveShortcut: CustomShortcut { shortcutManager.shortcut(for: .ttsSave) }
+    private var closeShortcut: CustomShortcut { shortcutManager.shortcut(for: .ttsClose) }
 
     // Whether the text editor should be disabled (read-only but still scrollable)
     private var isEditorDisabled: Bool {
@@ -249,12 +264,17 @@ struct TTSFloatingView: View {
                 Spacer()
 
                 // Provider badge
-                Text(appState.selectedTTSProvider.rawValue)
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.2))
-                    .cornerRadius(4)
+                HStack(spacing: 4) {
+                    Text("Provider:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text(appState.selectedTTSProvider.rawValue)
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.accentColor.opacity(0.2))
+                .cornerRadius(4)
 
                 Button(action: {
                     appState.stopTTS()
@@ -264,6 +284,7 @@ struct TTSFloatingView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .help("Close (\(closeShortcut.displayString))")
             }
 
             // Content area - always editable TextEditor
@@ -278,10 +299,6 @@ struct TTSFloatingView: View {
         .cornerRadius(12)
         .onAppear {
             editableText = appState.ttsText
-            // Focus the text editor
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isTextEditorFocused = true
-            }
         }
         .onChange(of: appState.ttsText) { _, newValue in
             // Sync when appState.ttsText changes externally
@@ -396,58 +413,65 @@ struct TTSFloatingView: View {
                         appState.startTTSWithText(editableText)
                     }
                 } label: {
-                    ButtonLabelWithShortcut(title: "Speak", shortcut: "(⌘↩)")
+                    ButtonLabelWithShortcut(title: "Speak", shortcut: "(\(speakShortcut.displayString))")
                 }
-                .keyboardShortcut(.return, modifiers: .command)
+                .applyCustomShortcut(speakShortcut)
                 .buttonStyle(.borderedProminent)
-                .disabled(editableText.isEmpty)
+                .disabled(editableText.isEmpty || appState.isSavingAudio)
 
-                Button {
-                    onClose()
-                } label: {
-                    ButtonLabelWithShortcut(title: "Close", shortcut: "(⌘W)")
+                if appState.isSavingAudio {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 60)
+                } else {
+                    Button {
+                        appState.synthesizeAndSaveTTSAudio(editableText)
+                    } label: {
+                        ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))")
+                    }
+                    .applyCustomShortcut(saveShortcut)
+                    .disabled(!appState.canSaveTTSAudio(for: editableText))
                 }
-                .keyboardShortcut("w", modifiers: .command)
 
             case .speaking:
                 Button {
                     appState.pauseResumeTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Pause", shortcut: "(⌘P)")
+                    ButtonLabelWithShortcut(title: "Pause", shortcut: "(\(speakShortcut.displayString))")
                 }
-                .keyboardShortcut("p", modifiers: .command)
+                .applyCustomShortcut(speakShortcut)
 
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(⌘.)")
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))")
                 }
-                .keyboardShortcut(".", modifiers: .command)
+                .applyCustomShortcut(stopShortcut)
                 .buttonStyle(.borderedProminent)
 
             case .paused:
                 Button {
                     appState.pauseResumeTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Resume", shortcut: "(⌘P)")
+                    ButtonLabelWithShortcut(title: "Resume", shortcut: "(\(speakShortcut.displayString))")
                 }
-                .keyboardShortcut("p", modifiers: .command)
+                .applyCustomShortcut(speakShortcut)
                 .buttonStyle(.borderedProminent)
 
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(⌘.)")
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))")
                 }
-                .keyboardShortcut(".", modifiers: .command)
+                .applyCustomShortcut(stopShortcut)
 
             case .loading:
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(⌘.)")
+                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(\(stopShortcut.displayString))")
                 }
-                .keyboardShortcut(".", modifiers: .command)
+                .applyCustomShortcut(stopShortcut)
             }
         }
     }

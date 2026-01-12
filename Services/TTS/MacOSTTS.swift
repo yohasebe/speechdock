@@ -20,6 +20,10 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     @MainActor
     var selectedLanguage: String = ""  // "" = Auto (macOS uses voice-dependent language)
 
+    /// Audio data from the last synthesis (M4A/AAC format)
+    private(set) var lastAudioData: Data?
+    var audioFileExtension: String { "m4a" }
+
     var supportsSpeedControl: Bool { true }
 
     private var audioPlayer: AVAudioPlayer?
@@ -100,6 +104,18 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
         guard generateProcess.terminationStatus == 0 else {
             throw TTSError.audioError("Failed to generate audio file")
+        }
+
+        // Convert AIFF to M4A (AAC) for smaller file size
+        if let aiffData = try? Data(contentsOf: audioFile) {
+            // Convert in background, don't block playback
+            Task {
+                if let m4aData = await AudioConverter.convertToAAC(inputData: aiffData, inputExtension: "aiff") {
+                    await MainActor.run {
+                        self.lastAudioData = m4aData
+                    }
+                }
+            }
         }
 
         // Load and play the audio file
@@ -391,6 +407,22 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
     @MainActor
     func availableVoices() -> [TTSVoice] {
+        // Return cached voices if available and not expired
+        if let cached = TTSVoiceCache.shared.getCachedVoices(for: .macOS),
+           !cached.isEmpty,
+           !TTSVoiceCache.shared.isCacheExpired(for: .macOS) {
+            return cached
+        }
+
+        // Fetch and cache voices
+        let voices = fetchVoicesFromSystem()
+        TTSVoiceCache.shared.cacheVoices(voices, for: .macOS)
+        return voices
+    }
+
+    /// Fetch voices from system (slow operation)
+    @MainActor
+    private func fetchVoicesFromSystem() -> [TTSVoice] {
         var voices: [TTSVoice] = []
 
         // Add auto-detect option

@@ -29,9 +29,11 @@ struct APIKeySection: View {
                     if showKey {
                         TextField("API Key", text: $apiKey)
                             .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.leading)
                     } else {
                         SecureField("API Key", text: $apiKey)
                             .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.leading)
                     }
 
                     Button(action: { showKey.toggle() }) {
@@ -67,9 +69,12 @@ struct APIKeySection: View {
         } header: {
             Text(provider.rawValue)
         } footer: {
-            Text("Environment variable: \(provider.envKeyName)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            HStack {
+                Text("Environment variable: \(provider.envKeyName)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
         }
         .onAppear {
             loadAPIKey()
@@ -83,10 +88,6 @@ struct APIKeySection: View {
         switch source {
         case .environment:
             Label("From Environment", systemImage: "terminal")
-                .font(.caption)
-                .foregroundColor(.blue)
-        case .envFile:
-            Label("From ~/.typetalk.env", systemImage: "doc.text")
                 .font(.caption)
                 .foregroundColor(.blue)
         case .keychain:

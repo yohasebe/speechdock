@@ -31,9 +31,14 @@ final class TTSVoiceCache {
 
         let cached = voices.map { CachedVoice(id: $0.id, name: $0.name, language: $0.language, isDefault: $0.isDefault) }
 
-        if let data = try? JSONEncoder().encode(cached) {
+        do {
+            let data = try JSONEncoder().encode(cached)
             defaults.set(data, forKey: key)
             defaults.set(Date().timeIntervalSince1970, forKey: timestampKey)
+        } catch {
+            #if DEBUG
+            print("TTSVoiceCache: Failed to cache voices for \(provider.rawValue): \(error)")
+            #endif
         }
     }
 

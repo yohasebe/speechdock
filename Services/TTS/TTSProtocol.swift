@@ -29,6 +29,12 @@ protocol TTSService: AnyObject {
     var selectedSpeed: Double { get set }  // Speed multiplier (1.0 = normal)
     var selectedLanguage: String { get set }  // "" = Auto (only used by ElevenLabs)
 
+    /// Last generated audio data (nil for providers that don't support saving, e.g., macOS)
+    var lastAudioData: Data? { get }
+
+    /// File extension for the audio format (e.g., "mp3", "wav")
+    var audioFileExtension: String { get }
+
     func speak(text: String) async throws
     func pause()
     func resume()

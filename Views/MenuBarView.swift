@@ -51,22 +51,32 @@ struct MenuBarView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
+            // Microphone permission warning
+            if !appState.hasMicrophonePermission {
+                permissionWarning(
+                    icon: "mic.slash",
+                    text: "Microphone access required",
+                    action: openMicrophoneSettings
+                )
+            }
+
             // STT Action button with shortcut
             Button(action: {
                 appState.toggleRecording()
             }) {
                 HStack {
                     Image(systemName: appState.isRecording ? "stop.fill" : "record.circle")
-                        .foregroundColor(appState.isRecording ? .red : .primary)
+                        .foregroundColor(appState.isRecording ? .red : (appState.hasMicrophonePermission ? .primary : .secondary))
                         .frame(width: 20)
                     Text(appState.isRecording ? "Stop Recording" : "Start Recording")
+                        .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.sttKeyCombo.displayString ?? "⌘⇧Space")
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(appState.isProcessing)
+            .disabled(appState.isProcessing || !appState.hasMicrophonePermission)
 
             // STT Provider picker (compact)
             HStack {
@@ -82,6 +92,27 @@ struct MenuBarView: View {
                 .labelsHidden()
                 .scaleEffect(0.9, anchor: .leading)
             }
+            .disabled(!appState.hasMicrophonePermission)
+
+            // Audio Input Source display
+            HStack {
+                Text("Input:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: appState.selectedAudioInputSourceType.icon)
+                        .font(.caption)
+                    Text(audioInputDisplayName)
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(audioInputBackgroundColor)
+                .cornerRadius(4)
+                Spacer()
+            }
+            .disabled(!appState.hasMicrophonePermission)
 
             Divider()
                 .padding(.vertical, 2)
@@ -90,6 +121,15 @@ struct MenuBarView: View {
             Text("Text-to-Speech")
                 .font(.caption)
                 .foregroundColor(.secondary)
+
+            // Accessibility permission warning
+            if !appState.hasAccessibilityPermission {
+                permissionWarning(
+                    icon: "hand.raised.slash",
+                    text: "Accessibility access required",
+                    action: openAccessibilitySettings
+                )
+            }
 
             // TTS Action button with shortcut
             Button(action: {
@@ -100,15 +140,17 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: "speaker.wave.2")
+                        .foregroundColor(appState.hasAccessibilityPermission ? .primary : .secondary)
                         .frame(width: 20)
                     Text("Read Selected Text")
+                        .foregroundColor(appState.hasAccessibilityPermission ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.ttsKeyCombo.displayString ?? "⌃⌥T")
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
+            .disabled(appState.ttsState == .speaking || appState.ttsState == .loading || !appState.hasAccessibilityPermission)
 
             // TTS Provider picker (compact)
             HStack {
@@ -216,6 +258,10 @@ struct MenuBarView: View {
         }
         .padding()
         .frame(width: 300)
+        .onAppear {
+            // Update permission status each time menu appears
+            appState.updatePermissionStatus()
+        }
     }
 
     // Get speed range for current TTS provider
@@ -292,6 +338,32 @@ struct MenuBarView: View {
         }
     }
 
+    // Audio input source display name
+    private var audioInputDisplayName: String {
+        switch appState.selectedAudioInputSourceType {
+        case .microphone:
+            return "Microphone"
+        case .systemAudio:
+            return "System Audio"
+        case .applicationAudio:
+            let appName = appState.systemAudioCaptureService.availableApps
+                .first { $0.bundleID == appState.selectedAudioAppBundleID }?.name
+            return appName ?? "App"
+        }
+    }
+
+    // Audio input source background color
+    private var audioInputBackgroundColor: Color {
+        switch appState.selectedAudioInputSourceType {
+        case .microphone:
+            return Color.blue.opacity(0.2)
+        case .systemAudio:
+            return Color.green.opacity(0.2)
+        case .applicationAudio:
+            return Color.orange.opacity(0.2)
+        }
+    }
+
     // Shortcut badge view
     private func shortcutBadge(_ text: String) -> some View {
         Text(text)
@@ -303,16 +375,78 @@ struct MenuBarView: View {
             .cornerRadius(4)
     }
 
+    // Permission warning view
+    private func permissionWarning(icon: String, text: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                Text(text)
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                Spacer()
+                Image(systemName: "arrow.right.circle")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Open Microphone settings
+    private func openMicrophoneSettings() {
+        NSApp.keyWindow?.close()
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    // Open Accessibility settings
+    private func openAccessibilitySettings() {
+        NSApp.keyWindow?.close()
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     // Open About window
     private func openAbout() {
         // Close the menu bar popover first
         NSApp.keyWindow?.close()
+
+        // Show in Dock while About window is open
+        NSApp.setActivationPolicy(.regular)
 
         // Activate the app to bring it to front
         NSApp.activate(ignoringOtherApps: true)
 
         // Open the About window
         openWindow(id: "about")
+
+        // Set up observer to hide from Dock when About window closes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            for window in NSApp.windows {
+                if window.identifier?.rawValue == "about" {
+                    NotificationCenter.default.addObserver(
+                        forName: NSWindow.willCloseNotification,
+                        object: window,
+                        queue: .main
+                    ) { _ in
+                        // Hide from Dock when About closes (only if Settings is not open)
+                        let settingsOpen = NSApp.windows.contains { $0.title == "Settings" && $0.isVisible }
+                        if !settingsOpen {
+                            NSApp.setActivationPolicy(.accessory)
+                        }
+                    }
+                    break
+                }
+            }
+        }
     }
 
     // Open help documentation (GitHub)
@@ -320,8 +454,7 @@ struct MenuBarView: View {
         // Close the menu bar popover first
         NSApp.keyWindow?.close()
 
-        // TODO: Replace with actual GitHub repository URL
-        if let url = URL(string: "https://github.com/yohasebe/TypeTalk") {
+        if let url = URL(string: "https://github.com/yohasebe/typetalk") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -330,6 +463,9 @@ struct MenuBarView: View {
     private func openSettings() {
         // Close the menu bar popover first
         NSApp.keyWindow?.close()
+
+        // Show in Dock while settings is open
+        NSApp.setActivationPolicy(.regular)
 
         // Activate the app to bring it to front
         NSApp.activate(ignoringOtherApps: true)
@@ -341,11 +477,19 @@ struct MenuBarView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             for window in NSApp.windows {
                 if window.title == "Settings" || window.identifier?.rawValue.contains("Settings") == true {
-                    window.level = .floating
                     window.makeKeyAndOrderFront(nil)
-                    // Reset to normal level after bringing to front
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        window.level = .normal
+
+                    // Set up observer to hide from Dock when settings window closes
+                    NotificationCenter.default.addObserver(
+                        forName: NSWindow.willCloseNotification,
+                        object: window,
+                        queue: .main
+                    ) { _ in
+                        // Hide from Dock when settings closes (only if About is not open)
+                        let aboutOpen = NSApp.windows.contains { $0.identifier?.rawValue == "about" && $0.isVisible }
+                        if !aboutOpen {
+                            NSApp.setActivationPolicy(.accessory)
+                        }
                     }
                     break
                 }

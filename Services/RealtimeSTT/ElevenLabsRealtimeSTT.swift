@@ -8,6 +8,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     private(set) var isListening = false
     var selectedModel: String = "scribe_v2"
     var selectedLanguage: String = ""  // "" = Auto (ElevenLabs auto-detects)
+    var audioInputDeviceUID: String = ""  // "" = System Default
+    var audioSource: STTAudioSource = .microphone
 
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
@@ -27,12 +29,28 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         // Stop any existing session
         stopListening()
 
-        // Create temp file for audio
+        // Create temp file for audio (WAV format)
         tempFileURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("stt_\(UUID().uuidString).mp3")
+            .appendingPathComponent("stt_\(UUID().uuidString).wav")
 
-        // Start audio capture
-        try await startAudioCapture()
+        if audioSource == .microphone {
+            // Start audio capture from microphone
+            try await startAudioCapture()
+        } else {
+            // For external source, create audio file with 16kHz mono format
+            guard let tempURL = tempFileURL else {
+                throw RealtimeSTTError.audioError("Failed to create temp file")
+            }
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatLinearPCM),
+                AVSampleRateKey: 16000.0,
+                AVNumberOfChannelsKey: 1,
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMIsBigEndianKey: false
+            ]
+            audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
+        }
 
         // Start periodic transcription
         startTranscriptionTimer()
@@ -64,10 +82,26 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         }
     }
 
+    /// Process audio buffer from external source
+    func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard audioSource == .external, isListening, let audioFile = audioFile else { return }
+        do {
+            try audioFile.write(from: buffer)
+        } catch {
+            print("Failed to write external audio: \(error)")
+        }
+    }
+
     private func startAudioCapture() async throws {
         audioEngine = AVAudioEngine()
         guard let audioEngine = audioEngine, let tempURL = tempFileURL else {
             throw RealtimeSTTError.audioError("Failed to create audio engine")
+        }
+
+        // Set audio input device if specified
+        if !audioInputDeviceUID.isEmpty,
+           let device = AudioInputManager.shared.device(withUID: audioInputDeviceUID) {
+            try AudioInputManager.shared.setInputDevice(device, for: audioEngine)
         }
 
         let inputNode = audioEngine.inputNode
@@ -168,7 +202,10 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         // Build multipart request to ElevenLabs Speech-to-Text API
         let boundary = UUID().uuidString
-        var request = URLRequest(url: URL(string: "https://api.elevenlabs.io/v1/speech-to-text")!)
+        guard let url = URL(string: "https://api.elevenlabs.io/v1/speech-to-text") else {
+            throw RealtimeSTTError.apiError("Invalid API endpoint URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")

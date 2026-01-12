@@ -8,11 +8,30 @@ class KeyableWindow: NSWindow {
     override var canBecomeMain: Bool { true }
 }
 
+/// Result of validating paste destination
+enum PasteDestinationStatus {
+    case valid
+    case appTerminated
+    case windowClosed
+}
+
 @MainActor
 final class FloatingWindowManager: ObservableObject {
     private var floatingWindow: NSWindow?
     private var previousApp: NSRunningApplication?
     @Published var isVisible = false
+    private var windowBecameKeyObserver: NSObjectProtocol?
+
+    /// List of available windows for insertion target
+    @Published var availableWindows: [WindowInfo] = []
+    /// Currently selected window for text insertion
+    @Published var selectedWindow: WindowInfo?
+    /// When true, only copy to clipboard without pasting to a window
+    @Published var clipboardOnly: Bool = false
+
+    /// Alert state for invalid paste destination
+    @Published var showDestinationAlert: Bool = false
+    @Published var destinationAlertMessage: String = ""
 
     func showFloatingWindow(
         appState: AppState,
@@ -32,11 +51,110 @@ final class FloatingWindowManager: ObservableObject {
         // Remember the currently active app before showing our window
         previousApp = NSWorkspace.shared.frontmostApplication
 
+        // Get available windows and select the frontmost one by default
+        refreshAvailableWindows()
+
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
         positionNearMouse()
         floatingWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         isVisible = true
+    }
+
+    /// Refresh the list of available windows
+    func refreshAvailableWindows() {
+        var windows = WindowService.shared.getAvailableWindows()
+
+        // Sort so that the previous app's windows are at the top
+        if let previousApp = previousApp {
+            let previousPID = previousApp.processIdentifier
+            windows.sort { w1, w2 in
+                let w1IsPrevious = w1.ownerPID == previousPID
+                let w2IsPrevious = w2.ownerPID == previousPID
+                if w1IsPrevious && !w2IsPrevious {
+                    return true
+                } else if !w1IsPrevious && w2IsPrevious {
+                    return false
+                } else {
+                    // Both same priority, sort by app name then window title
+                    return (w1.ownerName, w1.windowTitle) < (w2.ownerName, w2.windowTitle)
+                }
+            }
+        }
+
+        availableWindows = windows
+
+        // Select the first window (which is from the previous app if available)
+        if !clipboardOnly {
+            selectedWindow = availableWindows.first
+        }
+    }
+
+    /// Select a specific window for text insertion
+    func selectWindow(_ window: WindowInfo) {
+        selectedWindow = window
+        clipboardOnly = false
+    }
+
+    /// Select clipboard-only mode (no window paste)
+    func selectClipboardOnly() {
+        selectedWindow = nil
+        clipboardOnly = true
+    }
+
+    /// Validate that the paste destination still exists
+    /// Returns the status and shows alert if invalid
+    func validatePasteDestination() -> PasteDestinationStatus {
+        // Clipboard-only mode is always valid
+        if clipboardOnly {
+            return .valid
+        }
+
+        guard let window = selectedWindow else {
+            return .valid
+        }
+
+        let (appExists, windowExists) = WindowService.shared.checkWindowExists(window)
+
+        if !appExists {
+            showDestinationUnavailableAlert(
+                message: "The application \"\(window.ownerName)\" has been terminated. Please select another destination."
+            )
+            refreshAvailableWindows()
+            return .appTerminated
+        }
+
+        if !windowExists {
+            showDestinationUnavailableAlert(
+                message: "The window \"\(window.displayName)\" has been closed. Please select another destination."
+            )
+            refreshAvailableWindows()
+            return .windowClosed
+        }
+
+        return .valid
+    }
+
+    /// Show alert using NSAlert for immediate display
+    private func showDestinationUnavailableAlert(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Paste Destination Unavailable"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+
+        // Show alert attached to floating window if available
+        if let window = floatingWindow {
+            alert.beginSheetModal(for: window) { _ in }
+        } else {
+            alert.runModal()
+        }
+    }
+
+    /// Dismiss the destination alert (kept for compatibility)
+    func dismissDestinationAlert() {
+        showDestinationAlert = false
+        destinationAlertMessage = ""
     }
 
     private func createFloatingWindow() {
@@ -124,19 +242,140 @@ final class FloatingWindowManager: ObservableObject {
 
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
         positionNearMouse()
-        floatingWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+
+        // Become regular app to ensure proper window activation
+        // This is essential for accessory apps to receive keyboard focus
+        NSApp.setActivationPolicy(.regular)
+
+        // Show window first
+        floatingWindow?.orderFrontRegardless()
         isVisible = true
+
+        // Set up observer to focus text view when window becomes key
+        setupTextViewFocusObserver()
+
+        // Activate window with retry (needed for apps launched via `open` command)
+        activateWindowWithRetry()
     }
 
-    func hideFloatingWindow() {
+    /// Retry activation until window becomes key
+    /// Apps launched via LaunchServices (`open` command) may need multiple attempts
+    private func activateWindowWithRetry(attempt: Int = 0) {
+        guard let window = floatingWindow, attempt < 20 else { return }
+
+        if window.isKeyWindow { return }
+
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.activateWindowWithRetry(attempt: attempt + 1)
+        }
+    }
+
+    /// Set up observer to focus text view when window becomes key
+    private func setupTextViewFocusObserver() {
+        // Remove any existing observer
+        if let observer = windowBecameKeyObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowBecameKeyObserver = nil
+        }
+
+        guard let window = floatingWindow else { return }
+
+        // Observe when window becomes key - this is when it can accept keyboard input
+        windowBecameKeyObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: window,
+            queue: .main
+        ) { [weak self, weak window] _ in
+            guard let self = self, let window = window else { return }
+
+            // Remove observer after first trigger
+            if let observer = self.windowBecameKeyObserver {
+                NotificationCenter.default.removeObserver(observer)
+                self.windowBecameKeyObserver = nil
+            }
+
+            // Find and focus the text view
+            self.focusTextViewInWindow(window)
+        }
+
+        // If window is already key, focus immediately
+        if window.isKeyWindow {
+            if let observer = windowBecameKeyObserver {
+                NotificationCenter.default.removeObserver(observer)
+                windowBecameKeyObserver = nil
+            }
+            focusTextViewInWindow(window)
+        }
+    }
+
+    /// Find NSTextView in window and make it first responder
+    private func focusTextViewInWindow(_ window: NSWindow, attempt: Int = 0) {
+        guard let contentView = window.contentView else { return }
+
+        // Recursively find NSTextView
+        func findTextView(in view: NSView) -> NSTextView? {
+            if let textView = view as? NSTextView {
+                return textView
+            }
+            for subview in view.subviews {
+                if let found = findTextView(in: subview) {
+                    return found
+                }
+            }
+            return nil
+        }
+
+        if let textView = findTextView(in: contentView) {
+            window.makeFirstResponder(textView)
+        } else if attempt < 10 {
+            // Retry if text view not found yet (SwiftUI might still be setting up)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self, weak window] in
+                guard let window = window else { return }
+                self?.focusTextViewInWindow(window, attempt: attempt + 1)
+            }
+        }
+    }
+
+    func hideFloatingWindow(skipActivation: Bool = false) {
+        // Clean up observer
+        if let observer = windowBecameKeyObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowBecameKeyObserver = nil
+        }
+
         floatingWindow?.orderOut(nil)
         isVisible = false
 
-        // Restore focus to the previous app
-        if let previousApp = previousApp {
+        // Restore focus to the previous app (unless we already activated a selected window)
+        if !skipActivation, let previousApp = previousApp {
             previousApp.activate(options: [])
         }
         self.previousApp = nil
+        self.availableWindows = []
+        self.selectedWindow = nil
+        self.clipboardOnly = false
+
+        // Return to accessory mode if no other windows are open
+        let hasOtherWindows = NSApp.windows.contains {
+            ($0.title == "Settings" || $0.identifier?.rawValue == "about") && $0.isVisible
+        }
+        if !hasOtherWindows {
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    /// Activate the selected window and return success status
+    func activateSelectedWindow() -> Bool {
+        guard let window = selectedWindow else {
+            // Fall back to previous app
+            if let previousApp = previousApp {
+                return previousApp.activate(options: [.activateIgnoringOtherApps])
+            }
+            return false
+        }
+        return WindowService.shared.activateWindow(window)
     }
 }

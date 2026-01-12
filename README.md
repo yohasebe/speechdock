@@ -29,9 +29,11 @@ Convert text to speech using:
 ### Additional Features
 
 - Global keyboard shortcuts for STT and TTS
+- Customizable panel shortcuts with modifier key support
 - Menu bar interface with quick access to all features
-- Floating window for real-time transcription display
+- Floating window for real-time transcription display with window/app target selection
 - Floating window for TTS with text editing and word highlighting
+- Save synthesized audio to file (M4A/MP3 format)
 - API key management via macOS Keychain
 - Language selection for STT and TTS (Auto-detect or manual selection)
 - Speed control for TTS playback
@@ -50,7 +52,7 @@ Convert text to speech using:
 2. Open the DMG file
 3. Drag TypeTalk to your Applications folder
 4. Launch TypeTalk from Applications
-5. Grant necessary permissions when prompted (Microphone, Accessibility)
+5. Grant necessary permissions when prompted (Microphone, Accessibility, Screen Recording)
 
 ## Usage
 
@@ -65,21 +67,23 @@ Shortcuts can be customized in Settings > Shortcuts.
 
 ### STT Panel Controls
 
-| Action | Shortcut |
-|--------|----------|
+| Action | Default Shortcut |
+|--------|------------------|
+| Record | `Cmd + R` |
 | Stop Recording | `Cmd + S` |
-| Insert Text | `Cmd + Return` |
-| Copy All | (click button) |
+| Paste Text | `Cmd + Return` |
+| Select Target | `Cmd + Shift + Return` |
 | Cancel | `Cmd + .` |
 
 ### TTS Panel Controls
 
-| Action | Shortcut |
-|--------|----------|
+| Action | Default Shortcut |
+|--------|------------------|
 | Speak | `Cmd + Return` |
-| Pause/Resume | `Cmd + P` |
 | Stop | `Cmd + .` |
-| Close | `Cmd + W` |
+| Save Audio | `Cmd + S` |
+
+All panel shortcuts can be customized in Settings > Shortcuts.
 
 ### Menu Bar
 
@@ -114,22 +118,16 @@ export GEMINI_API_KEY="your-gemini-key"
 export ELEVENLABS_API_KEY="your-elevenlabs-key"
 ```
 
-**Option 2: Config file** (recommended for Finder launch)
+**Option 2: Settings UI** (recommended)
 
-Create a `~/.typetalk.env` file in your home directory:
+Open Settings > API Keys and enter your API keys. Keys are securely stored in macOS Keychain.
 
-```bash
-OPENAI_API_KEY=your-openai-key
-GEMINI_API_KEY=your-gemini-key
-ELEVENLABS_API_KEY=your-elevenlabs-key
-```
-
-Note: Apps launched from Finder don't inherit shell environment variables. Use the config file or Keychain for normal usage.
+Note: Environment variables are primarily for development. For normal usage, configure API keys through the Settings UI.
 
 ### Settings
 
 - **General**: Select STT/TTS providers, models, voices, languages, and playback speed
-- **Shortcuts**: Customize global keyboard shortcuts
+- **Shortcuts**: Customize global hotkeys and panel-specific shortcuts (with modifier key support)
 - **API Keys**: Manage API keys for cloud providers
 
 ### Language Selection
@@ -190,9 +188,10 @@ Enable "Launch at Login" in Settings > General to automatically start TypeTalk w
 TypeTalk requires the following permissions:
 
 - **Microphone**: For speech recognition
-- **Accessibility**: For global keyboard shortcuts and text selection
+- **Accessibility**: For global keyboard shortcuts and text insertion
+- **Screen Recording**: For window thumbnails in paste target selection
 
-Grant these permissions in System Settings > Privacy & Security.
+Grant these permissions in System Settings > Privacy & Security. TypeTalk will prompt you on first launch if permissions are not yet granted.
 
 ## Troubleshooting
 

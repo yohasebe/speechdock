@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- System audio capture support (capture audio from system or specific apps)
+- Audio input source selector in STT panel header
+- Paste destination validation with warning when target window is no longer available
+
+### Changed
+- Removed `~/.typetalk.env` config file support for security reasons
+- API keys should now be stored via Settings UI (stored securely in macOS Keychain)
+- Environment variables still supported for development use
+
+### Security
+- Debug logging now wrapped in `#if DEBUG` to prevent information leakage in production
+- Removed plaintext API key storage option
+- Fixed URL force unwraps in all API clients with proper guard statements
+- Added temporary file cleanup on app startup and termination
+- Improved clipboard operations with thread-safe locking and race condition protection
+- Added clipboard state preservation with external modification detection
+- Added retry logic for clipboard paste operations
+
 ## [0.1.2] - 2026-01-12
 
 ### Fixed

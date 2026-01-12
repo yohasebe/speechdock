@@ -55,7 +55,10 @@ final class OpenAISTTClient: STTAPIClient {
 
         body.append("--\(boundary)--\r\n")
 
-        var request = URLRequest(url: URL(string: endpoint)!)
+        guard let url = URL(string: endpoint) else {
+            throw STTError.apiError("Invalid API endpoint URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
