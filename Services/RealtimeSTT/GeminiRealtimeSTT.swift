@@ -14,13 +14,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
     private var tempFileURL: URL?
-    private var transcriptionTimer: Timer?
 
     private let apiKeyManager = APIKeyManager.shared
-    private let transcriptionInterval: TimeInterval = 2.0
-
-    private var isTranscribing = false
-    private var lastTranscription = ""
 
     func startListening() async throws {
         guard let _ = apiKeyManager.getAPIKey(for: .gemini) else {
@@ -53,33 +48,28 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
         }
 
-        // Start periodic transcription
-        startTranscriptionTimer()
-
         isListening = true
         delegate?.realtimeSTT(self, didChangeListeningState: true)
     }
 
     func stopListening() {
-        transcriptionTimer?.invalidate()
-        transcriptionTimer = nil
-
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
 
         audioFile = nil
 
-        // Final transcription
-        if let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
-            Task {
-                await performFinalTranscription()
-            }
-        }
-
+        let wasListening = isListening
         if isListening {
             isListening = false
             delegate?.realtimeSTT(self, didChangeListeningState: false)
+        }
+
+        // Transcribe only when stopped after listening
+        if wasListening, let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
+            Task {
+                await performFinalTranscription()
+            }
         }
     }
 
@@ -134,17 +124,15 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         try audioEngine.start()
     }
 
-    private func startTranscriptionTimer() {
-        transcriptionTimer = Timer.scheduledTimer(withTimeInterval: transcriptionInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.performPeriodicTranscription()
-            }
+    private func performFinalTranscription() async {
+        guard let tempURL = tempFileURL else { return }
+
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+            tempFileURL = nil
         }
-    }
 
-    private func performPeriodicTranscription() async {
-        guard isListening, !isTranscribing, let tempURL = tempFileURL else { return }
-
+        // Check if file has content
         guard FileManager.default.fileExists(atPath: tempURL.path),
               let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
               let fileSize = attrs[.size] as? Int,
@@ -152,53 +140,33 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             return
         }
 
-        isTranscribing = true
-        defer { isTranscribing = false }
-
         do {
             let transcription = try await transcribeAudio(at: tempURL)
             if !transcription.isEmpty {
-                lastTranscription = transcription
-                delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
+                delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
             }
         } catch {
-            print("Transcription error: \(error)")
+            delegate?.realtimeSTT(self, didFailWithError: error)
         }
     }
 
-    private func performFinalTranscription() async {
-        guard let tempURL = tempFileURL else { return }
-
-        defer {
-            try? FileManager.default.removeItem(at: tempURL)
-            tempFileURL = nil
-            lastTranscription = ""
-        }
-
-        // For Gemini, we don't send final transcription because:
-        // 1. Periodic transcriptions already capture the full audio
-        // 2. Gemini sometimes returns slightly different formatting (e.g., spaced characters)
-        //    which causes duplicate display issues in the UI
-        // Just cleanup the temp file without additional API call
-    }
-
-    private func transcribeAudio(at url: URL) async throws -> String {
+    private func transcribeAudio(at audioFileURL: URL) async throws -> String {
         guard let apiKey = apiKeyManager.getAPIKey(for: .gemini) else {
             throw RealtimeSTTError.apiError("Gemini API key not found")
         }
 
         // Read audio file and convert to base64
-        let audioData = try Data(contentsOf: url)
+        let audioData = try Data(contentsOf: audioFileURL)
         let base64Audio = audioData.base64EncodedString()
 
         // Build request to Gemini API
         let model = selectedModel.isEmpty ? "gemini-2.5-flash" : selectedModel
         let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
 
-        guard let url = URL(string: endpoint) else {
+        guard let apiURL = URL(string: endpoint) else {
             throw RealtimeSTTError.apiError("Invalid API endpoint URL")
         }
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
@@ -253,8 +221,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Fast, multimodal", isDefault: true),
-            RealtimeSTTModelInfo(id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", description: "Balanced speed/quality"),
+            RealtimeSTTModelInfo(id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Fast, multimodal", isDefault: true),
+            RealtimeSTTModelInfo(id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous generation"),
             RealtimeSTTModelInfo(id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "High quality")
         ]
     }

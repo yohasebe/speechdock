@@ -29,6 +29,18 @@ struct MenuBarView: View {
                         .padding(.vertical, 2)
                         .background(Color.red)
                         .cornerRadius(4)
+                } else if appState.transcriptionState == .processing {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                        Text("Processing")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange)
+                    .cornerRadius(4)
                 } else if appState.ttsState == .speaking {
                     Text("Speaking")
                         .font(.caption)

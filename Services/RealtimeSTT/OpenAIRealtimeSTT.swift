@@ -14,15 +14,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
     private var tempFileURL: URL?
-    private var transcriptionTimer: Timer?
-    private var lastTranscriptionTime: Date?
 
     private let apiKeyManager = APIKeyManager.shared
-    private let transcriptionInterval: TimeInterval = 2.0
-
-    private var accumulatedTranscription = ""
-    private var isTranscribing = false
-    private var externalAudioFormat: AVAudioFormat?
 
     func startListening() async throws {
         guard let _ = apiKeyManager.getAPIKey(for: .openAI) else {
@@ -53,37 +46,30 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
                 AVLinearPCMIsBigEndianKey: false
             ]
             audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
-            externalAudioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)
         }
-
-        // Start periodic transcription
-        startTranscriptionTimer()
 
         isListening = true
         delegate?.realtimeSTT(self, didChangeListeningState: true)
     }
 
     func stopListening() {
-        transcriptionTimer?.invalidate()
-        transcriptionTimer = nil
-
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
 
         audioFile = nil
-        externalAudioFormat = nil
 
-        // Final transcription
-        if let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
-            Task {
-                await performFinalTranscription()
-            }
-        }
-
+        let wasListening = isListening
         if isListening {
             isListening = false
             delegate?.realtimeSTT(self, didChangeListeningState: false)
+        }
+
+        // Transcribe only when stopped after listening
+        if wasListening, let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
+            Task {
+                await performFinalTranscription()
+            }
         }
     }
 
@@ -136,39 +122,6 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
         audioEngine.prepare()
         try audioEngine.start()
-    }
-
-    private func startTranscriptionTimer() {
-        lastTranscriptionTime = Date()
-        transcriptionTimer = Timer.scheduledTimer(withTimeInterval: transcriptionInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.performPeriodicTranscription()
-            }
-        }
-    }
-
-    private func performPeriodicTranscription() async {
-        guard isListening, !isTranscribing, let tempURL = tempFileURL else { return }
-
-        // Check if file has content
-        guard FileManager.default.fileExists(atPath: tempURL.path),
-              let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
-              let fileSize = attrs[.size] as? Int,
-              fileSize > 1000 else {  // Minimum file size
-            return
-        }
-
-        isTranscribing = true
-        defer { isTranscribing = false }
-
-        do {
-            let transcription = try await transcribeAudio(at: tempURL)
-            if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
-            }
-        } catch {
-            print("Transcription error: \(error)")
-        }
     }
 
     private func performFinalTranscription() async {

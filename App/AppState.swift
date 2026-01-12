@@ -313,6 +313,13 @@ final class AppState {
 
     private func stopRecording() {
         isRecording = false
+
+        // For batch providers (OpenAI, Gemini), show processing state while waiting for transcription
+        let isBatchProvider = selectedRealtimeProvider == .openAI || selectedRealtimeProvider == .gemini
+        if isBatchProvider {
+            transcriptionState = .processing
+        }
+
         realtimeSTTService?.stopListening()
         realtimeSTTService = nil
 
@@ -323,11 +330,13 @@ final class AppState {
             }
         }
 
-        // If we have transcription, show result state
-        if !currentTranscription.isEmpty {
-            transcriptionState = .result(currentTranscription)
-        } else {
-            transcriptionState = .idle
+        // For streaming providers (ElevenLabs, macOS), update state immediately
+        if !isBatchProvider {
+            if !currentTranscription.isEmpty {
+                transcriptionState = .result(currentTranscription)
+            } else {
+                transcriptionState = .idle
+            }
         }
     }
 
@@ -775,7 +784,14 @@ extension AppState: RealtimeSTTDelegate {
 
     func realtimeSTT(_ service: RealtimeSTTService, didReceiveFinalResult text: String) {
         currentTranscription = text
-        // Don't auto-stop on final result for continuous transcription
+        // Update state when processing is complete (for batch providers like OpenAI/Gemini)
+        if transcriptionState == .processing {
+            if !text.isEmpty {
+                transcriptionState = .result(text)
+            } else {
+                transcriptionState = .idle
+            }
+        }
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didFailWithError error: Error) {

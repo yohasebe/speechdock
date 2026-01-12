@@ -1,80 +1,63 @@
 import Foundation
 @preconcurrency import AVFoundation
 
-/// ElevenLabs Scribe API for speech-to-text with continuous recording
+/// ElevenLabs Scribe WebSocket API for real-time speech-to-text
 @MainActor
 final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "scribe_v2"
+    var selectedModel: String = "scribe_v2_realtime"
     var selectedLanguage: String = ""  // "" = Auto (ElevenLabs auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
 
     private var audioEngine: AVAudioEngine?
-    private var audioFile: AVAudioFile?
-    private var tempFileURL: URL?
-    private var transcriptionTimer: Timer?
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var urlSession: URLSession?
 
     private let apiKeyManager = APIKeyManager.shared
-    private let transcriptionInterval: TimeInterval = 2.0
+    private let sampleRate: Double = 16000
 
-    private var isTranscribing = false
+    // Audio format converter for resampling
+    private var audioConverter: AVAudioConverter?
+    private var outputFormat: AVAudioFormat?
 
     func startListening() async throws {
-        guard let _ = apiKeyManager.getAPIKey(for: .elevenLabs) else {
+        guard let apiKey = apiKeyManager.getAPIKey(for: .elevenLabs) else {
             throw RealtimeSTTError.apiError("ElevenLabs API key not found")
         }
 
         // Stop any existing session
         stopListening()
 
-        // Create temp file for audio (WAV format)
-        tempFileURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("stt_\(UUID().uuidString).wav")
+        // Connect WebSocket
+        try await connectWebSocket(apiKey: apiKey)
 
+        // Start audio capture
         if audioSource == .microphone {
-            // Start audio capture from microphone
             try await startAudioCapture()
         } else {
-            // For external source, create audio file with 16kHz mono format
-            guard let tempURL = tempFileURL else {
-                throw RealtimeSTTError.audioError("Failed to create temp file")
-            }
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatLinearPCM),
-                AVSampleRateKey: 16000.0,
-                AVNumberOfChannelsKey: 1,
-                AVLinearPCMBitDepthKey: 16,
-                AVLinearPCMIsFloatKey: false,
-                AVLinearPCMIsBigEndianKey: false
-            ]
-            audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
+            // For external source, prepare the output format
+            outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: true)
         }
-
-        // Start periodic transcription
-        startTranscriptionTimer()
 
         isListening = true
         delegate?.realtimeSTT(self, didChangeListeningState: true)
     }
 
     func stopListening() {
-        transcriptionTimer?.invalidate()
-        transcriptionTimer = nil
-
+        // Stop audio engine
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
+        audioConverter = nil
+        outputFormat = nil
 
-        audioFile = nil
-
-        // Final transcription
-        if let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
-            Task {
-                await performFinalTranscription()
-            }
-        }
+        // Close WebSocket
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
 
         if isListening {
             isListening = false
@@ -84,17 +67,128 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
     /// Process audio buffer from external source
     func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard audioSource == .external, isListening, let audioFile = audioFile else { return }
-        do {
-            try audioFile.write(from: buffer)
-        } catch {
-            print("Failed to write external audio: \(error)")
+        guard audioSource == .external, isListening else { return }
+        sendAudioBuffer(buffer)
+    }
+
+    // MARK: - WebSocket Connection
+
+    private func connectWebSocket(apiKey: String) async throws {
+        // Map old model IDs to realtime versions
+        var model = selectedModel.isEmpty ? "scribe_v2_realtime" : selectedModel
+        if model == "scribe_v2" || model == "scribe_v1" {
+            model = "scribe_v2_realtime"
+        }
+
+        var urlComponents = URLComponents(string: "wss://api.elevenlabs.io/v1/speech-to-text/realtime")!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "model_id", value: model),
+            URLQueryItem(name: "sample_rate", value: "\(Int(sampleRate))"),
+            URLQueryItem(name: "encoding", value: "pcm_s16le")
+        ]
+
+        // Add language if specified
+        if !selectedLanguage.isEmpty {
+            urlComponents.queryItems?.append(URLQueryItem(name: "language_code", value: selectedLanguage))
+        }
+
+        guard let url = urlComponents.url else {
+            throw RealtimeSTTError.apiError("Invalid WebSocket URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+
+        let session = URLSession(configuration: .default)
+        urlSession = session
+
+        let task = session.webSocketTask(with: request)
+        webSocketTask = task
+        task.resume()
+
+        // Start receiving messages
+        startReceivingMessages()
+
+        // Wait for session_started confirmation
+        try await waitForSessionStart()
+    }
+
+    private func waitForSessionStart() async throws {
+        // Give the WebSocket a moment to establish and receive session_started
+        try await Task.sleep(nanoseconds: 500_000_000)  // 0.5 seconds
+    }
+
+    private func startReceivingMessages() {
+        webSocketTask?.receive { [weak self] result in
+            Task { @MainActor in
+                guard let self = self else { return }
+
+                switch result {
+                case .success(let message):
+                    self.handleWebSocketMessage(message)
+                    // Continue receiving if WebSocket is still active
+                    if self.webSocketTask != nil {
+                        self.startReceivingMessages()
+                    }
+
+                case .failure(let error):
+                    if self.isListening {
+                        self.delegate?.realtimeSTT(self, didFailWithError: error)
+                    }
+                }
+            }
         }
     }
 
+    private func handleWebSocketMessage(_ message: URLSessionWebSocketTask.Message) {
+        switch message {
+        case .string(let text):
+            parseTranscriptionMessage(text)
+        case .data(let data):
+            if let text = String(data: data, encoding: .utf8) {
+                parseTranscriptionMessage(text)
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    private func parseTranscriptionMessage(_ jsonString: String) {
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let messageType = json["message_type"] as? String else {
+            return
+        }
+
+        switch messageType {
+        case "session_started":
+            break  // Session established
+
+        case "partial_transcript":
+            if let text = json["text"] as? String, !text.isEmpty {
+                delegate?.realtimeSTT(self, didReceivePartialResult: text)
+            }
+
+        case "committed_transcript", "committed_transcript_with_timestamps":
+            if let text = json["text"] as? String, !text.isEmpty {
+                delegate?.realtimeSTT(self, didReceiveFinalResult: text)
+            }
+
+        case "error", "invalid_request":
+            let errorMessage = json["error"] as? String ?? json["message"] as? String ?? "Unknown error"
+            delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.apiError(errorMessage))
+            stopListening()
+
+        default:
+            break
+        }
+    }
+
+    // MARK: - Audio Capture
+
     private func startAudioCapture() async throws {
         audioEngine = AVAudioEngine()
-        guard let audioEngine = audioEngine, let tempURL = tempFileURL else {
+        guard let audioEngine = audioEngine else {
             throw RealtimeSTTError.audioError("Failed to create audio engine")
         }
 
@@ -105,165 +199,97 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Create audio file for recording (WAV format)
-        let wavURL = tempURL.deletingPathExtension().appendingPathExtension("wav")
-        tempFileURL = wavURL
+        // Prepare output format (16kHz, mono, 16-bit PCM)
+        guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: true) else {
+            throw RealtimeSTTError.audioError("Failed to create output format")
+        }
+        outputFormat = outFormat
 
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatLinearPCM),
-            AVSampleRateKey: recordingFormat.sampleRate,
-            AVNumberOfChannelsKey: recordingFormat.channelCount,
-            AVLinearPCMBitDepthKey: 16,
-            AVLinearPCMIsFloatKey: false,
-            AVLinearPCMIsBigEndianKey: false
-        ]
+        // Create converter if sample rate differs
+        if inputFormat.sampleRate != sampleRate || inputFormat.channelCount != 1 {
+            audioConverter = AVAudioConverter(from: inputFormat, to: outFormat)
+        }
 
-        audioFile = try AVAudioFile(forWriting: wavURL, settings: settings)
-
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: recordingFormat) { [weak self] buffer, _ in
-            guard let self = self, let audioFile = self.audioFile else { return }
-
-            do {
-                try audioFile.write(from: buffer)
-            } catch {
-                print("Failed to write audio: \(error)")
-            }
+        // Install tap to capture audio
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
+            self?.sendAudioBuffer(buffer)
         }
 
         audioEngine.prepare()
         try audioEngine.start()
     }
 
-    private func startTranscriptionTimer() {
-        transcriptionTimer = Timer.scheduledTimer(withTimeInterval: transcriptionInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.performPeriodicTranscription()
+    private func sendAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard isListening, let webSocketTask = webSocketTask else { return }
+
+        let pcmData: Data
+
+        if let converter = audioConverter, let outFormat = outputFormat {
+            // Need to convert format
+            let ratio = outFormat.sampleRate / buffer.format.sampleRate
+            let outputFrameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
+
+            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outputFrameCapacity) else {
+                return
             }
+
+            var error: NSError?
+            let status = converter.convert(to: outputBuffer, error: &error) { inNumPackets, outStatus in
+                outStatus.pointee = .haveData
+                return buffer
+            }
+
+            guard status != .error, error == nil else { return }
+
+            pcmData = bufferToData(outputBuffer)
+        } else if buffer.format.commonFormat == .pcmFormatInt16 {
+            // Already in correct format
+            pcmData = bufferToData(buffer)
+        } else {
+            // Convert float to int16
+            pcmData = convertFloatBufferToInt16Data(buffer)
+        }
+
+        guard !pcmData.isEmpty else { return }
+
+        // Send as base64 encoded audio chunk
+        let base64Audio = pcmData.base64EncodedString()
+        let message: [String: Any] = [
+            "message_type": "input_audio_chunk",
+            "audio_base_64": base64Audio
+        ]
+
+        if let jsonData = try? JSONSerialization.data(withJSONObject: message),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            webSocketTask.send(.string(jsonString)) { _ in }
         }
     }
 
-    private func performPeriodicTranscription() async {
-        guard isListening, !isTranscribing, let tempURL = tempFileURL else { return }
-
-        guard FileManager.default.fileExists(atPath: tempURL.path),
-              let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
-              let fileSize = attrs[.size] as? Int,
-              fileSize > 1000 else {
-            return
-        }
-
-        isTranscribing = true
-        defer { isTranscribing = false }
-
-        do {
-            let transcription = try await transcribeAudio(at: tempURL)
-            if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
-            }
-        } catch {
-            print("Transcription error: \(error)")
-        }
+    private func bufferToData(_ buffer: AVAudioPCMBuffer) -> Data {
+        guard let int16Data = buffer.int16ChannelData else { return Data() }
+        let frameLength = Int(buffer.frameLength)
+        return Data(bytes: int16Data[0], count: frameLength * 2)
     }
 
-    private func performFinalTranscription() async {
-        guard let tempURL = tempFileURL else { return }
+    private func convertFloatBufferToInt16Data(_ buffer: AVAudioPCMBuffer) -> Data {
+        guard let floatData = buffer.floatChannelData else { return Data() }
+        let frameLength = Int(buffer.frameLength)
+        var int16Data = [Int16](repeating: 0, count: frameLength)
 
-        defer {
-            try? FileManager.default.removeItem(at: tempURL)
-            tempFileURL = nil
+        for i in 0..<frameLength {
+            let sample = floatData[0][i]
+            let clipped = max(-1.0, min(1.0, sample))
+            int16Data[i] = Int16(clipped * 32767.0)
         }
 
-        guard FileManager.default.fileExists(atPath: tempURL.path),
-              let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
-              let fileSize = attrs[.size] as? Int,
-              fileSize > 1000 else {
-            return
-        }
-
-        do {
-            let transcription = try await transcribeAudio(at: tempURL)
-            if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
-            }
-        } catch {
-            delegate?.realtimeSTT(self, didFailWithError: error)
-        }
-    }
-
-    private func transcribeAudio(at url: URL) async throws -> String {
-        guard let apiKey = apiKeyManager.getAPIKey(for: .elevenLabs) else {
-            throw RealtimeSTTError.apiError("ElevenLabs API key not found")
-        }
-
-        // Read audio file
-        let audioData = try Data(contentsOf: url)
-
-        // Build multipart request to ElevenLabs Speech-to-Text API
-        let boundary = UUID().uuidString
-        guard let url = URL(string: "https://api.elevenlabs.io/v1/speech-to-text") else {
-            throw RealtimeSTTError.apiError("Invalid API endpoint URL")
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 60
-
-        var body = Data()
-
-        // Add audio file
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
-        body.append(audioData)
-        body.append("\r\n".data(using: .utf8)!)
-
-        // Add model_id (required)
-        let model = selectedModel.isEmpty ? "scribe_v2" : selectedModel
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"model_id\"\r\n\r\n".data(using: .utf8)!)
-        body.append("\(model)\r\n".data(using: .utf8)!)
-
-        // Add language_code if specified (ISO 639-1 format)
-        if !selectedLanguage.isEmpty {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"language_code\"\r\n\r\n".data(using: .utf8)!)
-            body.append("\(selectedLanguage)\r\n".data(using: .utf8)!)
-        }
-
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-
-        request.httpBody = body
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw RealtimeSTTError.apiError("Invalid response")
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("ElevenLabs STT error: \(errorMessage)")
-            throw RealtimeSTTError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
-        }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let text = json["text"] as? String else {
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("ElevenLabs STT response: \(json)")
-            }
-            throw RealtimeSTTError.apiError("Invalid response format")
-        }
-
-        return text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        return Data(bytes: &int16Data, count: frameLength * 2)
     }
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "scribe_v2", name: "Scribe v2", description: "Latest, improved accuracy", isDefault: true),
-            RealtimeSTTModelInfo(id: "scribe_v1", name: "Scribe v1", description: "Standard transcription")
+            RealtimeSTTModelInfo(id: "scribe_v2_realtime", name: "Scribe v2 Realtime", description: "~150ms latency streaming", isDefault: true)
         ]
     }
 }
