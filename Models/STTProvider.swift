@@ -22,7 +22,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         case .gemini:
             return [.gemini25Flash]
         case .elevenLabs:
-            return [.scribeV1]
+            return [.scribeV2]
         }
     }
 
@@ -41,6 +41,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
     case gemini25Flash = "gemini-2.5-flash"
 
     // ElevenLabs models
+    case scribeV2 = "scribe_v2"
     case scribeV1 = "scribe_v1"
 
     var id: String { rawValue }
@@ -51,6 +52,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
         case .gpt4oMiniTranscribe: return "GPT-4o Mini Transcribe"
         case .whisper1: return "Whisper-1"
         case .gemini25Flash: return "Gemini 2.5 Flash"
+        case .scribeV2: return "Scribe v2"
         case .scribeV1: return "Scribe v1"
         }
     }
@@ -61,7 +63,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
             return .openAI
         case .gemini25Flash:
             return .gemini
-        case .scribeV1:
+        case .scribeV2, .scribeV1:
             return .elevenLabs
         }
     }

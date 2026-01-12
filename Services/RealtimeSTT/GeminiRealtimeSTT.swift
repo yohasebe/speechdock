@@ -6,7 +6,7 @@ import Foundation
 final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "gemini-2.0-flash"
+    var selectedModel: String = "gemini-2.5-flash"
     var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects, no language param)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
@@ -20,6 +20,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private let transcriptionInterval: TimeInterval = 2.0
 
     private var isTranscribing = false
+    private var lastTranscription = ""
 
     func startListening() async throws {
         guard let _ = apiKeyManager.getAPIKey(for: .gemini) else {
@@ -157,6 +158,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         do {
             let transcription = try await transcribeAudio(at: tempURL)
             if !transcription.isEmpty {
+                lastTranscription = transcription
                 delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
             }
         } catch {
@@ -170,23 +172,14 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         defer {
             try? FileManager.default.removeItem(at: tempURL)
             tempFileURL = nil
+            lastTranscription = ""
         }
 
-        guard FileManager.default.fileExists(atPath: tempURL.path),
-              let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
-              let fileSize = attrs[.size] as? Int,
-              fileSize > 1000 else {
-            return
-        }
-
-        do {
-            let transcription = try await transcribeAudio(at: tempURL)
-            if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
-            }
-        } catch {
-            delegate?.realtimeSTT(self, didFailWithError: error)
-        }
+        // For Gemini, we don't send final transcription because:
+        // 1. Periodic transcriptions already capture the full audio
+        // 2. Gemini sometimes returns slightly different formatting (e.g., spaced characters)
+        //    which causes duplicate display issues in the UI
+        // Just cleanup the temp file without additional API call
     }
 
     private func transcribeAudio(at url: URL) async throws -> String {
@@ -199,7 +192,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         let base64Audio = audioData.base64EncodedString()
 
         // Build request to Gemini API
-        let model = selectedModel.isEmpty ? "gemini-2.0-flash" : selectedModel
+        let model = selectedModel.isEmpty ? "gemini-2.5-flash" : selectedModel
         let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
 
         guard let url = URL(string: endpoint) else {

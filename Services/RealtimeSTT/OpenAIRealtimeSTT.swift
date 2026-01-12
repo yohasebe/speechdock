@@ -6,7 +6,7 @@ import Foundation
 final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "whisper-1"
+    var selectedModel: String = "gpt-4o-transcribe"
     var selectedLanguage: String = ""  // "" = Auto (OpenAI auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
@@ -198,16 +198,16 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         }
     }
 
-    private func transcribeAudio(at url: URL) async throws -> String {
+    private func transcribeAudio(at audioFileURL: URL) async throws -> String {
         guard let apiKey = apiKeyManager.getAPIKey(for: .openAI) else {
             throw RealtimeSTTError.apiError("OpenAI API key not found")
         }
 
         let boundary = UUID().uuidString
-        guard let url = URL(string: "https://api.openai.com/v1/audio/transcriptions") else {
+        guard let apiURL = URL(string: "https://api.openai.com/v1/audio/transcriptions") else {
             throw RealtimeSTTError.apiError("Invalid API endpoint URL")
         }
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -217,7 +217,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         var body = Data()
 
         // Add file
-        let audioData = try Data(contentsOf: url)
+        let audioData = try Data(contentsOf: audioFileURL)
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
@@ -225,7 +225,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         body.append("\r\n".data(using: .utf8)!)
 
         // Add model
-        let model = selectedModel.isEmpty ? "whisper-1" : selectedModel
+        let model = selectedModel.isEmpty ? "gpt-4o-transcribe" : selectedModel
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
         body.append("\(model)\r\n".data(using: .utf8)!)
@@ -262,9 +262,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "whisper-1", name: "Whisper", description: "OpenAI Whisper large-v2", isDefault: true),
-            RealtimeSTTModelInfo(id: "gpt-4o-transcribe", name: "GPT-4o Transcribe", description: "GPT-4o based transcription"),
-            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe", description: "Faster, lower cost")
+            RealtimeSTTModelInfo(id: "gpt-4o-transcribe", name: "GPT-4o Transcribe", description: "GPT-4o based transcription", isDefault: true),
+            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe", description: "Faster, lower cost"),
+            RealtimeSTTModelInfo(id: "whisper-1", name: "Whisper", description: "OpenAI Whisper large-v2")
         ]
     }
 }
