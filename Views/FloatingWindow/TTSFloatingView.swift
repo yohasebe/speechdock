@@ -294,7 +294,7 @@ struct TTSFloatingView: View {
             actionButtons
         }
         .padding(16)
-        .frame(minWidth: 400, idealWidth: 480, maxWidth: 800)
+        .frame(minWidth: 440, idealWidth: 520, maxWidth: 800)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onAppear {
@@ -362,7 +362,7 @@ struct TTSFloatingView: View {
                 enableHighlight: appState.enableWordHighlight && appState.ttsState == .speaking
             )
             .cornerRadius(8)
-            .frame(minHeight: 120, maxHeight: 300)
+            .frame(minHeight: 200, maxHeight: 400)
             .opacity(isEditorDisabled ? 0.85 : 1.0)
 
             // Loading overlay

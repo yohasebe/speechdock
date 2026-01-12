@@ -16,132 +16,175 @@ struct ButtonLabelWithShortcut: View {
     }
 }
 
-/// Window selector view with thumbnail preview
-struct WindowSelectorView: View {
+/// Window selector button (dropdown trigger only)
+struct WindowSelectorButton: View {
     @ObservedObject var floatingWindowManager: FloatingWindowManager
-    @State private var isExpanded = false
-    @State private var focusedIndex: Int = 0
-    @FocusState private var isListFocused: Bool
+    let isExpanded: Bool
+    let onToggle: () -> Void
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
-
-    /// Total count including clipboard option
-    private var totalItemCount: Int {
-        floatingWindowManager.availableWindows.count + 1  // +1 for clipboard option
-    }
-
-    /// Index of the clipboard option (last item)
-    private var clipboardIndex: Int {
-        floatingWindowManager.availableWindows.count
-    }
 
     private var targetSelectShortcut: CustomShortcut {
         shortcutManager.shortcut(for: .sttTargetSelect)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Main selector button - entire header is clickable
-            Button(action: {
-                toggleDropdown()
-            }) {
-                HStack(spacing: 6) {
-                    Image(systemName: floatingWindowManager.clipboardOnly ? "doc.on.clipboard" : "arrow.right.circle.fill")
+        Button(action: onToggle) {
+            HStack(spacing: 6) {
+                Image(systemName: floatingWindowManager.clipboardOnly ? "doc.on.clipboard" : "arrow.right.circle.fill")
+                    .foregroundColor(.accentColor)
+                    .font(.caption)
+
+                Text(floatingWindowManager.clipboardOnly ? "Copy to:" : "Paste to:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if floatingWindowManager.clipboardOnly {
+                    Image(systemName: "doc.on.clipboard.fill")
                         .foregroundColor(.accentColor)
                         .font(.caption)
-
-                    Text(floatingWindowManager.clipboardOnly ? "Copy to:" : "Paste to:")
+                    Text("Clipboard")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                } else if let selected = floatingWindowManager.selectedWindow {
+                    if let thumbnail = selected.thumbnail {
+                        Image(nsImage: thumbnail)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 20)
+                            .cornerRadius(2)
+                    }
+                    Text(selected.displayName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                } else {
+                    Text("No window selected")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
 
-                    if floatingWindowManager.clipboardOnly {
-                        Image(systemName: "doc.on.clipboard.fill")
-                            .foregroundColor(.accentColor)
-                            .font(.caption)
-                        Text("Clipboard")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                    } else if let selected = floatingWindowManager.selectedWindow {
-                        // Thumbnail
-                        if let thumbnail = selected.thumbnail {
-                            Image(nsImage: thumbnail)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(height: 20)
-                                .cornerRadius(2)
-                        }
+                Spacer()
 
-                        Text(selected.displayName)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    } else {
-                        Text("No window selected")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                Text(targetSelectShortcut.displayString)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color(.controlBackgroundColor).opacity(0.5))
+            .cornerRadius(4)
+        }
+        .buttonStyle(.plain)
+        .applyCustomShortcut(targetSelectShortcut)
+    }
+}
 
-                    Spacer()
+/// Dropdown list for window selector with keyboard navigation
+struct WindowSelectorDropdown: View {
+    @ObservedObject var floatingWindowManager: FloatingWindowManager
+    @Binding var isExpanded: Bool
+    @State private var focusedIndex: Int = 0
+    @FocusState private var isListFocused: Bool
 
-                    // Shortcut hint and expand/collapse indicator
-                    Text(targetSelectShortcut.displayString)
+    private var totalItemCount: Int {
+        floatingWindowManager.availableWindows.count + 1
+    }
+
+    private var clipboardIndex: Int {
+        floatingWindowManager.availableWindows.count
+    }
+
+    /// Currently focused window for thumbnail preview
+    private var focusedWindow: WindowInfo? {
+        guard focusedIndex < floatingWindowManager.availableWindows.count else { return nil }
+        return floatingWindowManager.availableWindows[focusedIndex]
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Thumbnail preview bubble (always show container for consistent width)
+            VStack(spacing: 4) {
+                if let window = focusedWindow, let thumbnail = window.thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 160, height: 120)
+                        .cornerRadius(8)
+                        .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
+                    Text(window.ownerName)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .lineLimit(1)
+                } else {
+                    // Clipboard or no thumbnail - show placeholder
+                    Image(systemName: "doc.on.clipboard.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.accentColor.opacity(0.5))
+                        .frame(width: 160, height: 120)
+                    Text(focusedIndex == clipboardIndex ? "Clipboard" : "No Preview")
+                        .font(.caption2)
                         .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(Color(.controlBackgroundColor).opacity(0.5))
-                .cornerRadius(isExpanded ? 0 : 4)
-                .cornerRadius(4, corners: [.topLeft, .topRight])
             }
-            .buttonStyle(.plain)
-            .applyCustomShortcut(targetSelectShortcut)
+            .padding(8)
+            .background(Color(.windowBackgroundColor))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
 
-            // Expanded window list
-            if isExpanded {
-                VStack(spacing: 2) {
-                    // Window list
-                    ForEach(Array(floatingWindowManager.availableWindows.enumerated()), id: \.element.id) { index, window in
-                        WindowRowView(
-                            window: window,
-                            isSelected: !floatingWindowManager.clipboardOnly && floatingWindowManager.selectedWindow?.id == window.id,
-                            isFocused: index == focusedIndex,
-                            onSelect: {
-                                selectWindowAndClose(window)
-                            }
-                        )
-                    }
+            // Dropdown list
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 2) {
+                        // Top spacer for scroll margin
+                        Color.clear
+                            .frame(height: 4)
+                            .id("top")
 
-                    // Divider
-                    Divider()
-                        .padding(.vertical, 4)
-
-                    // Clipboard option
-                    ClipboardRowView(
-                        isSelected: floatingWindowManager.clipboardOnly,
-                        isFocused: focusedIndex == clipboardIndex,
-                        onSelect: {
-                            selectClipboardAndClose()
+                        ForEach(Array(floatingWindowManager.availableWindows.enumerated()), id: \.element.id) { index, window in
+                            WindowRowView(
+                                window: window,
+                                isSelected: !floatingWindowManager.clipboardOnly && floatingWindowManager.selectedWindow?.id == window.id,
+                                isFocused: index == focusedIndex,
+                                onSelect: { selectWindowAndClose(window) }
+                            )
+                            .id(index)
                         }
-                    )
+
+                        Divider()
+                            .padding(.vertical, 4)
+
+                        ClipboardRowView(
+                            isSelected: floatingWindowManager.clipboardOnly,
+                            isFocused: focusedIndex == clipboardIndex,
+                            onSelect: { selectClipboardAndClose() }
+                        )
+                        .id(clipboardIndex)
+
+                        // Bottom spacer for scroll margin
+                        Color.clear
+                            .frame(height: 4)
+                            .id("bottom")
+                    }
+                    .padding(8)
                 }
-                .padding(4)
-                .frame(maxHeight: 250)
-                .background(Color(.controlBackgroundColor).opacity(0.5))
-                .cornerRadius(4, corners: [.bottomLeft, .bottomRight])
+                .frame(maxHeight: 300)
+                .background(Color(.windowBackgroundColor))
+                .cornerRadius(8)
+                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                 .focusable()
                 .focused($isListFocused)
                 .onKeyPress(.upArrow) {
-                    moveFocus(by: -1)
+                    moveFocus(by: -1, proxy: proxy)
                     return .handled
                 }
                 .onKeyPress(.downArrow) {
-                    moveFocus(by: 1)
+                    moveFocus(by: 1, proxy: proxy)
                     return .handled
                 }
                 .onKeyPress(.return) {
@@ -149,43 +192,52 @@ struct WindowSelectorView: View {
                     return .handled
                 }
                 .onKeyPress(.escape) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isExpanded = false
-                    }
+                    isExpanded = false
                     return .handled
+                }
+                .onAppear {
+                    // Set initial focus to current selection
+                    if floatingWindowManager.clipboardOnly {
+                        focusedIndex = clipboardIndex
+                    } else if let selected = floatingWindowManager.selectedWindow,
+                       let index = floatingWindowManager.availableWindows.firstIndex(where: { $0.id == selected.id }) {
+                        focusedIndex = index
+                    } else {
+                        focusedIndex = 0
+                    }
+                    // Focus the list for keyboard navigation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        isListFocused = true
+                        // Scroll to initial selection
+                        if self.focusedIndex == 0 {
+                            proxy.scrollTo("top", anchor: .top)
+                        } else if self.focusedIndex == self.totalItemCount - 1 {
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        } else {
+                            proxy.scrollTo(self.focusedIndex, anchor: nil)
+                        }
+                    }
                 }
             }
         }
     }
 
-    private func toggleDropdown() {
-        if !isExpanded {
-            // Refresh before expanding
-            floatingWindowManager.refreshAvailableWindows()
-            // Set focused index to currently selected item
-            if floatingWindowManager.clipboardOnly {
-                focusedIndex = clipboardIndex
-            } else if let selected = floatingWindowManager.selectedWindow,
-               let index = floatingWindowManager.availableWindows.firstIndex(where: { $0.id == selected.id }) {
-                focusedIndex = index
-            } else {
-                focusedIndex = 0
-            }
-        }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isExpanded.toggle()
-        }
-        // Focus the list after expanding
-        if isExpanded {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isListFocused = true
-            }
-        }
-    }
-
-    private func moveFocus(by offset: Int) {
+    private func moveFocus(by offset: Int, proxy: ScrollViewProxy) {
         guard totalItemCount > 0 else { return }
-        focusedIndex = (focusedIndex + offset + totalItemCount) % totalItemCount
+        let newIndex = focusedIndex + offset
+        // Don't wrap around - stop at boundaries
+        if newIndex < 0 || newIndex >= totalItemCount {
+            return
+        }
+        focusedIndex = newIndex
+        // Scroll to spacer at edges to show padding
+        if newIndex == 0 {
+            proxy.scrollTo("top", anchor: .top)
+        } else if newIndex == totalItemCount - 1 {
+            proxy.scrollTo("bottom", anchor: .bottom)
+        } else {
+            proxy.scrollTo(focusedIndex, anchor: nil)
+        }
     }
 
     private func selectFocusedAndClose() {
@@ -200,14 +252,16 @@ struct WindowSelectorView: View {
 
     private func selectWindowAndClose(_ window: WindowInfo) {
         floatingWindowManager.selectWindow(window)
-        withAnimation(.easeInOut(duration: 0.2)) {
+        // Brief delay to show selection feedback before closing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             isExpanded = false
         }
     }
 
     private func selectClipboardAndClose() {
         floatingWindowManager.selectClipboardOnly()
-        withAnimation(.easeInOut(duration: 0.2)) {
+        // Brief delay to show selection feedback before closing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             isExpanded = false
         }
     }
@@ -230,7 +284,9 @@ struct ClipboardRowView: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            // Placeholder to match window thumbnail size
             Image(systemName: "doc.on.clipboard.fill")
+                .font(.title2)
                 .foregroundColor(.accentColor)
                 .frame(width: 40, height: 30)
 
@@ -250,26 +306,25 @@ struct ClipboardRowView: View {
                 Image(systemName: "checkmark")
                     .font(.caption)
                     .foregroundColor(.accentColor)
+            } else {
+                // Placeholder for alignment
+                Color.clear
+                    .frame(width: 14, height: 14)
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .frame(height: 46)
         .background(backgroundColor)
         .cornerRadius(4)
         .contentShape(Rectangle())
-        .overlay(
-            isFocused ?
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.accentColor, lineWidth: 1.5)
-                : nil
-        )
         .onTapGesture {
             onSelect()
         }
     }
 }
 
-/// Individual window row in the selector
+/// Individual window row in the selector with thumbnail
 struct WindowRowView: View {
     let window: WindowInfo
     let isSelected: Bool
@@ -287,7 +342,6 @@ struct WindowRowView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Thumbnail
             if let thumbnail = window.thumbnail {
                 Image(nsImage: thumbnail)
                     .resizable()
@@ -306,13 +360,12 @@ struct WindowRowView: View {
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
-                if !window.windowTitle.isEmpty && window.windowTitle != window.ownerName {
-                    Text(window.windowTitle)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
+                    .lineLimit(1)
+                Text(window.windowTitle.isEmpty ? " " : window.windowTitle)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
 
             Spacer()
@@ -321,25 +374,24 @@ struct WindowRowView: View {
                 Image(systemName: "checkmark")
                     .font(.caption)
                     .foregroundColor(.accentColor)
+            } else {
+                // Placeholder for alignment
+                Color.clear
+                    .frame(width: 14, height: 14)
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .frame(height: 46)
         .background(backgroundColor)
         .cornerRadius(4)
         .contentShape(Rectangle())
-        .overlay(
-            // Focus ring
-            isFocused ?
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.accentColor, lineWidth: 1.5)
-                : nil
-        )
         .onTapGesture {
             onSelect()
         }
     }
 }
+
 
 /// Extension for corner-specific rounding
 extension View {
@@ -391,6 +443,8 @@ struct TranscriptionFloatingView: View {
     @State private var editedText: String = ""
     @State private var borderOpacity: Double = 1.0
     @State private var baseText: String = ""  // Text to preserve when resuming recording
+    @State private var isWindowSelectorExpanded: Bool = false
+    @State private var dropdownId: UUID = UUID()  // Force recreate dropdown when opened
     @FocusState private var isTextEditorFocused: Bool
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
@@ -402,6 +456,7 @@ struct TranscriptionFloatingView: View {
     private var recordShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttRecord) }
     private var stopShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttStop) }
     private var pasteShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttPaste) }
+    private var saveShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttSave) }
     private var targetSelectShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttTargetSelect) }
     private var cancelShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttCancel) }
 
@@ -438,61 +493,87 @@ struct TranscriptionFloatingView: View {
                 .applyCustomShortcut(cancelShortcut)
                 .help("Cancel (\(cancelShortcut.displayString))")
             }
-
-            // Window selector
-            WindowSelectorView(floatingWindowManager: appState.floatingWindowManager)
-
-            // Always show text area
-            TextEditor(text: $editedText)
-                .font(.system(.body, design: .default))
-                .padding(8)
-                .background(Color(.textBackgroundColor))
-                .cornerRadius(8)
-                .frame(minHeight: 120, maxHeight: 250)
-                .focused($isTextEditorFocused)
-                .overlay(
-                    // Placeholder text when empty and recording
-                    Group {
-                        if editedText.isEmpty && appState.transcriptionState == .recording {
-                            VStack {
-                                HStack(spacing: 4) {
-                                    ForEach(0..<5, id: \.self) { index in
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(Color.red.opacity(0.7))
-                                            .frame(width: 3, height: CGFloat.random(in: 8...25))
-                                    }
-                                }
-                                Text("Listening...")
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
-                            }
-                        }
-                    }
-                )
-                .overlay(
-                    // Recording indicator border - only exists while recording
-                    Group {
-                        if isRecording {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.red, lineWidth: 2)
-                                .opacity(borderOpacity)
-                        }
-                    }
-                )
-
-            // Error message if any
-            if case .error(let message) = appState.transcriptionState {
-                Text(message)
-                    .foregroundColor(.red)
-                    .font(.caption)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if isWindowSelectorExpanded {
+                    isWindowSelectorExpanded = false
+                }
             }
 
-            // Action buttons
-            actionButtons
+            // Window selector button
+            WindowSelectorButton(
+                floatingWindowManager: appState.floatingWindowManager,
+                isExpanded: isWindowSelectorExpanded,
+                onToggle: {
+                    if !isWindowSelectorExpanded {
+                        appState.floatingWindowManager.refreshAvailableWindows()
+                        dropdownId = UUID()  // Force recreate dropdown
+                    }
+                    isWindowSelectorExpanded.toggle()
+                }
+            )
+
+            // Show dropdown OR text area (not both)
+            if isWindowSelectorExpanded {
+                // Dropdown list
+                WindowSelectorDropdown(
+                    floatingWindowManager: appState.floatingWindowManager,
+                    isExpanded: $isWindowSelectorExpanded
+                )
+                .id(dropdownId)  // Force recreate to reset state
+            } else {
+                // Text area
+                TextEditor(text: $editedText)
+                    .font(.system(.body, design: .default))
+                    .padding(8)
+                    .background(Color(.textBackgroundColor))
+                    .cornerRadius(8)
+                    .frame(minHeight: 180, maxHeight: 350)
+                    .focused($isTextEditorFocused)
+                    .overlay(
+                        // Placeholder text when empty and recording
+                        Group {
+                            if editedText.isEmpty && appState.transcriptionState == .recording {
+                                VStack {
+                                    HStack(spacing: 4) {
+                                        ForEach(0..<5, id: \.self) { index in
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(Color.red.opacity(0.7))
+                                                .frame(width: 3, height: CGFloat.random(in: 8...25))
+                                        }
+                                    }
+                                    Text("Listening...")
+                                        .foregroundColor(.secondary)
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                    )
+                    .overlay(
+                        // Recording indicator border - only exists while recording
+                        Group {
+                            if isRecording {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.red, lineWidth: 2)
+                                    .opacity(borderOpacity)
+                            }
+                        }
+                    )
+
+                // Error message if any
+                if case .error(let message) = appState.transcriptionState {
+                    Text(message)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // Action buttons
+                actionButtons
+            }
         }
         .padding(16)
-        .frame(minWidth: 480, idealWidth: 600, maxWidth: 800)
+        .frame(minWidth: 520, idealWidth: 640, maxWidth: 800)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onChange(of: appState.currentTranscription) { _, newValue in
@@ -590,7 +671,7 @@ struct TranscriptionFloatingView: View {
             Spacer()
 
             if case .recording = appState.transcriptionState {
-                // Recording state: Stop and Paste buttons
+                // Recording state: Stop and Paste buttons (Save not available while recording)
                 Button {
                     AppState.shared.toggleRecording()
                 } label: {
@@ -608,7 +689,7 @@ struct TranscriptionFloatingView: View {
                     .applyCustomShortcut(pasteShortcut)
                 }
             } else {
-                // Not recording: Record and Paste buttons
+                // Not recording: Record, Save, and Paste buttons
                 Button {
                     startRecordingWithAppend()
                 } label: {
@@ -618,12 +699,48 @@ struct TranscriptionFloatingView: View {
                 .buttonStyle(.borderedProminent)
 
                 Button {
+                    saveTextToFile()
+                } label: {
+                    ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))")
+                }
+                .applyCustomShortcut(saveShortcut)
+                .disabled(editedText.isEmpty)
+
+                Button {
                     onConfirm(editedText)
                 } label: {
                     ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))")
                 }
                 .applyCustomShortcut(pasteShortcut)
                 .disabled(editedText.isEmpty)
+            }
+        }
+    }
+
+    /// Save transcribed text to a file using NSSavePanel
+    private func saveTextToFile() {
+        // Hide the floating window temporarily so save panel appears in front
+        appState.floatingWindowManager.temporarilyHideWindow()
+
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.plainText]
+        savePanel.nameFieldStringValue = "transcription.txt"
+        savePanel.title = "Save Transcription"
+        savePanel.message = "Choose a location to save the transcribed text"
+        savePanel.level = .floating
+
+        savePanel.begin { [self] response in
+            // Show the floating window again
+            appState.floatingWindowManager.restoreWindow()
+
+            if response == .OK, let url = savePanel.url {
+                do {
+                    try editedText.write(to: url, atomically: true, encoding: .utf8)
+                } catch {
+                    #if DEBUG
+                    print("Failed to save transcription: \(error)")
+                    #endif
+                }
             }
         }
     }
@@ -665,6 +782,15 @@ struct AudioInputSourceSelector: View {
     }
 
     var body: some View {
+        HStack(spacing: 4) {
+            Text("Input:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            inputMenu
+        }
+    }
+
+    private var inputMenu: some View {
         Menu {
             // Microphone option
             Button(action: {

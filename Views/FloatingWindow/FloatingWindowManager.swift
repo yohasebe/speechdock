@@ -56,9 +56,17 @@ final class FloatingWindowManager: ObservableObject {
 
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
         positionNearMouse()
-        floatingWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+
+        // Become regular app to ensure proper window activation
+        // This is essential for accessory apps to receive keyboard focus
+        NSApp.setActivationPolicy(.regular)
+
+        // Show window first
+        floatingWindow?.orderFrontRegardless()
         isVisible = true
+
+        // Activate window with retry (needed for apps launched via `open` command)
+        activateWindowWithRetry()
     }
 
     /// Refresh the list of available windows
@@ -84,9 +92,15 @@ final class FloatingWindowManager: ObservableObject {
 
         availableWindows = windows
 
-        // Select the first window (which is from the previous app if available)
+        // Keep current selection if it still exists in the list, otherwise select first
         if !clipboardOnly {
-            selectedWindow = availableWindows.first
+            if let current = selectedWindow,
+               availableWindows.contains(where: { $0.id == current.id }) {
+                // Current selection still valid, keep it
+            } else {
+                // Select first window only if no valid selection exists
+                selectedWindow = availableWindows.first
+            }
         }
     }
 
@@ -159,7 +173,7 @@ final class FloatingWindowManager: ObservableObject {
 
     private func createFloatingWindow() {
         floatingWindow = KeyableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 220),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 340),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -208,7 +222,7 @@ final class FloatingWindowManager: ObservableObject {
 
         // Create resizable window for TTS that can accept keyboard input
         let window = KeyableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 380),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -222,7 +236,7 @@ final class FloatingWindowManager: ObservableObject {
         window.isOpaque = false
         window.hasShadow = true
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 400, height: 200)
+        window.minSize = NSSize(width: 440, height: 200)
         window.maxSize = NSSize(width: 900, height: 600)
 
         // Hide standard window buttons (traffic lights)
@@ -337,6 +351,17 @@ final class FloatingWindowManager: ObservableObject {
                 self?.focusTextViewInWindow(window, attempt: attempt + 1)
             }
         }
+    }
+
+    /// Temporarily hide the floating window (for showing save panels, etc.)
+    func temporarilyHideWindow() {
+        floatingWindow?.orderOut(nil)
+    }
+
+    /// Restore the floating window after temporarily hiding it
+    func restoreWindow() {
+        floatingWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func hideFloatingWindow(skipActivation: Bool = false) {

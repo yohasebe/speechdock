@@ -205,6 +205,7 @@ enum ShortcutAction: String, CaseIterable, Codable {
     case sttRecord = "stt_record"
     case sttStop = "stt_stop"
     case sttPaste = "stt_paste"
+    case sttSave = "stt_save"
     case sttTargetSelect = "stt_target_select"
     case sttCancel = "stt_cancel"
 
@@ -219,6 +220,7 @@ enum ShortcutAction: String, CaseIterable, Codable {
         case .sttRecord: return "Record"
         case .sttStop: return "Stop Recording"
         case .sttPaste: return "Paste"
+        case .sttSave: return "Save Text"
         case .sttTargetSelect: return "Select Target"
         case .sttCancel: return "Cancel"
         case .ttsSpeak: return "Speak"
@@ -230,7 +232,7 @@ enum ShortcutAction: String, CaseIterable, Codable {
 
     var category: String {
         switch self {
-        case .sttRecord, .sttStop, .sttPaste, .sttTargetSelect, .sttCancel:
+        case .sttRecord, .sttStop, .sttPaste, .sttSave, .sttTargetSelect, .sttCancel:
             return "STT Panel"
         case .ttsSpeak, .ttsStop, .ttsSave, .ttsClose:
             return "TTS Panel"
@@ -246,6 +248,8 @@ enum ShortcutAction: String, CaseIterable, Codable {
             return CustomShortcut(key: "s", modifiers: .command)
         case .sttPaste:
             return CustomShortcut(keyCode: kVK_Return, modifiers: UInt(NSEvent.ModifierFlags.command.rawValue))
+        case .sttSave:
+            return CustomShortcut(key: "s", modifiers: [.command, .shift])
         case .sttTargetSelect:
             return CustomShortcut(keyCode: kVK_Return, modifiers: UInt(NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.shift.rawValue))
         case .sttCancel:
