@@ -397,6 +397,11 @@ final class AppState {
             realtimeSTTService = nil
             isRecording = false
 
+            // Stop duration timer
+            durationTimer?.invalidate()
+            durationTimer = nil
+            recordingStartTime = nil
+
             // Stop system audio capture if active
             if systemAudioCaptureService.isCapturing {
                 Task {

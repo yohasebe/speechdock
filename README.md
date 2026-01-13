@@ -95,8 +95,8 @@ Grant permissions in **System Settings** > **Privacy & Security**. TypeTalk will
 
 | Action | Default Shortcut |
 |--------|------------------|
-| Start/Stop Recording (STT) | `Ctrl + Cmd + S` |
-| Read Selected Text (TTS) | `Ctrl + Cmd + T` |
+| Start/Stop Recording (STT) | `Cmd + Shift + Space` |
+| Read Selected Text (TTS) | `Ctrl + Option + T` |
 
 Shortcuts can be customized in **Settings** > **Shortcuts**.
 

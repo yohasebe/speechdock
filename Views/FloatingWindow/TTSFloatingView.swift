@@ -306,16 +306,22 @@ struct TTSFloatingView: View {
 
     @ViewBuilder
     private var statusIcon: some View {
-        Image(systemName: statusIconName)
-            .foregroundColor(statusIconColor)
-            .font(.title2)
-            .frame(width: 28, height: 22)
+        if appState.ttsState == .speaking {
+            // Animated waveform icon for speaking state (matches menu bar style)
+            TTSPulsingWaveformIcon()
+                .frame(width: 28, height: 22)
+        } else {
+            Image(systemName: statusIconName)
+                .foregroundColor(statusIconColor)
+                .font(.title2)
+                .frame(width: 28, height: 22)
+        }
     }
 
     private var statusIconName: String {
         switch appState.ttsState {
         case .idle: return "speaker.wave.2"
-        case .speaking: return "speaker.wave.3.fill"
+        case .speaking: return "waveform"  // Not used when speaking (TTSPulsingWaveformIcon is used)
         case .loading: return "arrow.down.circle"
         case .paused: return "pause.circle.fill"
         case .error: return "exclamationmark.triangle.fill"
@@ -325,7 +331,7 @@ struct TTSFloatingView: View {
     private var statusIconColor: Color {
         switch appState.ttsState {
         case .idle: return .accentColor
-        case .speaking: return .green
+        case .speaking: return .blue  // Not used when speaking (TTSPulsingWaveformIcon is used)
         case .loading: return .blue
         case .paused: return .orange
         case .error: return .red
@@ -483,6 +489,35 @@ struct TTSFloatingView: View {
                 }
                 .applyCustomShortcut(stopShortcut)
             }
+        }
+    }
+}
+
+/// Pulsing waveform icon for TTS speaking state (matches menu bar style)
+struct TTSPulsingWaveformIcon: View {
+    @State private var animationPhase: Double = 0.0
+
+    var body: some View {
+        Image(systemName: "waveform")
+            .font(.title2)
+            .foregroundColor(Color.blue.opacity(pulsingOpacity))
+            .onAppear {
+                startPulseAnimation()
+            }
+    }
+
+    private var pulsingOpacity: Double {
+        // Smooth pulsing between 0.5 and 1.0 (matches StatusBarManager style)
+        0.5 + 0.5 * sin(animationPhase)
+    }
+
+    private func startPulseAnimation() {
+        // Continuous pulse animation (~1.2 seconds per cycle, matches menu bar)
+        withAnimation(
+            .linear(duration: 1.2)
+            .repeatForever(autoreverses: false)
+        ) {
+            animationPhase = .pi * 2
         }
     }
 }

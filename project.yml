@@ -53,6 +53,9 @@ targets:
         SWIFT_VERSION: "5.9"
         INFOPLIST_FILE: ""
         GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Developer ID Application: Yoichiro Hasebe (25ME8D76FY)"
+        DEVELOPMENT_TEAM: 25ME8D76FY
     dependencies:
       - target: TypeTalk
 
