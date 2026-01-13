@@ -1,22 +1,15 @@
 # 開発ノート
 
-このドキュメントは TypeTalk 開発における実装の詳細、設計上の決定、動作仕様をまとめたものです。
+TypeTalk開発者向けの技術ドキュメントです。
 
 [English](DEVELOPMENT_NOTES.md) | 日本語
 
 ## 目次
 
 - [ソースからのビルド](#ソースからのビルド)
-- [ウィンドウレベルの階層](#ウィンドウレベルの階層)
-- [設定の永続化](#設定の永続化)
-- [音声入力ソース](#音声入力ソース)
-- [STT/TTS 処理ライフサイクル](#stttts-処理ライフサイクル)
-- [パネルショートカット](#パネルショートカット)
-- [API キー管理](#api-キー管理)
-- [スレッドセーフティ](#スレッドセーフティ)
-- [キャッシュ管理](#キャッシュ管理)
-- [権限](#権限)
-- [UI/UX ガイドライン](#uiux-ガイドライン)
+- [プロジェクト構成](#プロジェクト構成)
+- [アーキテクチャ](#アーキテクチャ)
+- [実装詳細](#実装詳細)
 - [ビルドとリリース](#ビルドとリリース)
 - [既知の問題と回避策](#既知の問題と回避策)
 
@@ -26,291 +19,175 @@
 
 ### 前提条件
 
-- Xcode 16.0 以降
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (オプション、プロジェクト生成用)
-- Apple Developer アカウント (コード署名と公証用)
+- Xcode 16.0以降
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+- Apple Developerアカウント（コード署名と公証用）
 
 ### ビルド手順
 
-1. リポジトリをクローン:
-   ```bash
-   git clone https://github.com/yohasebe/TypeTalk.git
-   cd TypeTalk
-   ```
-
-2. Xcode プロジェクトを生成 (XcodeGen 使用時):
-   ```bash
-   xcodegen generate
-   ```
-
-3. Xcode で開く:
-   ```bash
-   open TypeTalk.xcodeproj
-   ```
-
-4. ビルドして実行 (Cmd + R)
-
-### ビルドスクリプト
-
 ```bash
-# リリース版をビルド
-./scripts/build.sh
+# リポジトリをクローン
+git clone https://github.com/yohasebe/TypeTalk.git
+cd TypeTalk
 
-# DMG インストーラーを作成
-./scripts/create-dmg.sh
+# Xcodeプロジェクトを生成
+xcodegen generate
 
-# 配布用に公証 (Apple Developer アカウントが必要)
-./scripts/notarize.sh
+# Xcodeで開く
+open TypeTalk.xcodeproj
+
+# ビルドと実行 (Cmd + R)
 ```
 
-### 環境変数 (開発専用)
+### 開発用APIキー
 
-開発時は、設定 UI の代わりに環境変数で API キーを設定できます:
+開発時は環境変数でAPIキーを設定できます：
 
 ```bash
-export OPENAI_API_KEY="your-openai-key"
-export GEMINI_API_KEY="your-gemini-key"
-export ELEVENLABS_API_KEY="your-elevenlabs-key"
+export OPENAI_API_KEY="your-key"
+export GEMINI_API_KEY="your-key"
+export ELEVENLABS_API_KEY="your-key"
 ```
 
-注意: 環境変数は開発専用です。本番ユーザーは設定 UI から API キーを設定してください (macOS キーチェーンに安全に保存されます)。
+注: 製品版ユーザーは設定UIでキーを設定（macOSキーチェーンに保存）。
 
 ---
 
-## ウィンドウレベルの階層
+## プロジェクト構成
 
-TypeTalk で使用する macOS ウィンドウレベル (低い順):
+```
+TypeTalk/
+├── App/
+│   ├── TypeTalkApp.swift      # アプリエントリーポイント
+│   ├── AppState.swift         # グローバル状態管理
+│   ├── AppDelegate.swift      # アプリライフサイクル
+│   ├── StatusBarManager.swift # メニューバー管理
+│   └── WindowManager.swift    # ウィンドウ管理
+├── Services/
+│   ├── TTS/                   # 音声合成実装
+│   ├── RealtimeSTT/           # 音声認識実装
+│   ├── AudioInputManager.swift
+│   ├── AudioOutputManager.swift
+│   └── KeychainService.swift
+├── Views/
+│   ├── MenuBarView.swift
+│   ├── FloatingWindow/        # STT/TTSパネル
+│   └── Settings/              # 設定ウィンドウ
+├── Resources/
+│   ├── Info.plist
+│   └── Assets.xcassets
+└── Scripts/
+    ├── build.sh
+    ├── create-dmg.sh
+    └── notarize.sh
+```
+
+---
+
+## アーキテクチャ
+
+### 状態管理
+
+- `AppState`: 全アプリ状態を管理するObservableシングルトン
+- 設定はUserDefaultsに永続化
+- APIキーはmacOSキーチェーンに保存
+
+### プロバイダパターン
+
+STTとTTSはプロトコルベースのプロバイダパターンを使用：
+
+```swift
+protocol TTSService {
+    func speak(text: String) async throws
+    func availableVoices() -> [TTSVoice]
+    func availableModels() -> [TTSModelInfo]
+    var audioOutputDeviceUID: String { get set }
+}
+```
+
+実装: `MacOSTTS`, `OpenAITTS`, `GeminiTTS`, `ElevenLabsTTS`
+
+### ウィンドウレベル階層
 
 | レベル | 値 | 用途 |
 |-------|-----|------|
-| `.normal` | 0 | 標準ウィンドウ |
 | `.floating` | 3 | 設定ウィンドウ |
 | `.popUpMenu` | 101 | メニューバーポップオーバー |
-| `popUpMenu + 1` | 102 | STT/TTS フローティングパネル |
-| `popUpMenu + 2` | 103 | 保存ダイアログ (NSSavePanel) |
+| `popUpMenu + 1` | 102 | STT/TTSパネル |
+| `popUpMenu + 2` | 103 | 保存ダイアログ |
 
-### 設計理由
-
-- **メニューバーポップオーバー**は STT/TTS パネルより**下**に表示 (パネル操作時の誤クリック防止)
-- **保存ダイアログ**は STT/TTS パネルより**上**に表示 (操作可能にするため)
-- **設定ウィンドウ**は標準の `.floating` レベルを使用
-
-### 保存ダイアログの設定
-
-```swift
-savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 2)
-savePanel.contentMinSize = NSSize(width: 400, height: 250)
-savePanel.setContentSize(NSSize(width: 500, height: 350))
-```
+設計: パネルはメニューバーポップオーバーより上に表示、保存ダイアログはパネルより上に表示。
 
 ---
 
-## 設定の永続化
+## 実装詳細
 
-### 永続化される設定 (UserDefaults に保存)
+### 設定の永続化
 
-| 設定 | キー | 備考 |
-|------|-----|------|
-| STT プロバイダ | `selectedRealtimeProvider` | |
-| STT モデル | `selectedRealtimeSTTModel` | |
-| TTS プロバイダ | `selectedTTSProvider` | |
-| TTS ボイス | `selectedTTSVoice` | |
-| TTS モデル | `selectedTTSModel` | |
-| TTS 速度 | `selectedTTSSpeed` | |
-| STT 言語 | `selectedSTTLanguage` | |
-| TTS 言語 | `selectedTTSLanguage` | |
-| 音声入力ソースタイプ | `selectedAudioInputSourceType` | **例外: App Audio は Microphone にリセット** |
-| マイクデバイス UID | `selectedAudioInputDeviceUID` | |
-| ログイン時に起動 | `launchAtLogin` | |
+永続化される設定（UserDefaults）：
 
-### セッション限定の設定 (永続化されない)
+| 設定 | キー |
+|------|-----|
+| STTプロバイダ | `selectedRealtimeProvider` |
+| STTモデル | `selectedRealtimeSTTModel` |
+| TTSプロバイダ | `selectedTTSProvider` |
+| TTS音声 | `selectedTTSVoice` |
+| TTSモデル | `selectedTTSModel` |
+| TTS速度 | `selectedTTSSpeed` |
+| STT言語 | `selectedSTTLanguage` |
+| TTS言語 | `selectedTTSLanguage` |
+| 音声入力ソース | `selectedAudioInputSourceType` |
+| マイクデバイス | `selectedAudioInputDeviceUID` |
+| 音声出力デバイス | `selectedAudioOutputDeviceUID` |
+| ログイン時起動 | `launchAtLogin` |
 
-| 設定 | 理由 |
-|------|------|
-| `selectedAudioAppBundleID` | App Audio は本質的にセッション固有 |
-| `AudioInputSourceType.applicationAudio` | アプリ再起動時に `.microphone` にリセット |
+セッション限定の設定（永続化されない）：
+- `selectedAudioAppBundleID` - アプリオーディオは再起動時にマイクにリセット
 
-### 実装の詳細
+### 音声出力デバイス選択
 
-```swift
-// loadPreferences() 内
-if audioSourceType == .applicationAudio {
-    selectedAudioInputSourceType = .microphone  // App Audio を Microphone にリセット
-}
-
-// savePreferences() 内
-let sourceTypeToSave = selectedAudioInputSourceType == .applicationAudio
-    ? .microphone
-    : selectedAudioInputSourceType
-```
-
----
-
-## 音声入力ソース
-
-### 利用可能なソース
-
-| ソース | 設定パネル | メニューバー | STT パネル | 備考 |
-|--------|-----------|-------------|-----------|------|
-| マイク | Yes | Yes | Yes | デフォルトソース |
-| システムオーディオ | Yes | Yes | Yes | 画面収録権限が必要 |
-| アプリオーディオ | **No** | Yes | Yes | セッション限定、画面収録権限が必要 |
-
-### マイクデバイス選択
-
-- 利用可能: メニューバー、STT パネル
-- 利用不可: 設定パネル (一般設定としては細かすぎる)
-- 永続化: Yes (`selectedAudioInputDeviceUID`)
-
-### App Audio の動作
-
-- 選択はセッション限定 (アプリ再起動時にリセット)
-- 設定パネルには表示されない (メニューバーまたは STT パネルからのみ選択可能)
-- キャプチャするには対象アプリケーションが実行中である必要あり
-- 音声ソースメニューからアプリリストを更新可能
-
----
-
-## STT/TTS 処理ライフサイクル
-
-### パネルを閉じた時の動作
-
-STT または TTS パネルが閉じられた時 (どの方法でも):
-
-1. **STT 録音**: `cancelRecording()` で自動キャンセル
-2. **TTS 再生**: `stopTTS()` で自動停止
-3. **ローディング状態**: 進行中であればキャンセル
-
-`FloatingWindowManager.setupWindowCloseObserver()` での実装:
+カスタム出力デバイスのサポートにAVAudioEngineを使用：
 
 ```swift
-NotificationCenter.default.addObserver(
-    forName: NSWindow.willCloseNotification,
-    object: window,
-    queue: .main
-) { [weak self] _ in
-    if let appState = self?.currentAppState {
-        if appState.isRecording {
-            appState.cancelRecording()
-        }
-        if appState.ttsState == .speaking || appState.ttsState == .loading {
-            appState.stopTTS()
-        }
-    }
+// システムデフォルトにはAVAudioPlayer
+if outputDeviceUID.isEmpty {
+    try playWithAudioPlayer(url: tempURL)
+} else {
+    // カスタムデバイスにはAVAudioEngine
+    try playWithAudioEngine(url: tempURL)
 }
 ```
 
-### Cmd+Q の動作
-
-- STT/TTS パネルが表示中: パネルのみ閉じる (アプリは終了しない)
-- パネルが表示されていない: アプリを通常終了
-
-### アプリケーション終了
-
-- @MainActor 状態への安全な同期アクセスに `MainActor.assumeIsolated` を使用
-- 終了前にアクティブな STT/TTS をキャンセル
-- 処理がアクティブな場合は `.terminateCancel` を返し、クリーンアップ後に終了
-
-### 文字起こしタイムアウト保護
-
-`isTranscribing` フラグのスタックによる潜在的なデッドロックを防止:
+Core Audio経由で出力デバイスを設定：
 
 ```swift
-private let transcriptionTimeout: TimeInterval = 30.0
-private var transcriptionStartTime: Date?
-
-// 長時間スタックしている場合は自動リセット
-if isTranscribing, let startTime = transcriptionStartTime {
-    if Date().timeIntervalSince(startTime) > transcriptionTimeout {
-        isTranscribing = false
-        transcriptionStartTime = nil
-    }
-}
+AudioUnitSetProperty(
+    audioUnit,
+    kAudioOutputUnitProperty_CurrentDevice,
+    kAudioUnitScope_Global,
+    0,
+    &deviceID,
+    UInt32(MemoryLayout<AudioDeviceID>.size)
+)
 ```
 
----
+### パネルライフサイクル
 
-## パネルショートカット
+パネルが閉じられたとき：
+1. STT: `cancelRecording()`が呼ばれる
+2. TTS: `stopTTS()`が呼ばれる
+3. ローディング状態: キャンセルされる
 
-### グローバルショートカット (カスタマイズ可能)
+Cmd+Qの動作：
+- パネル表示中: パネルのみ閉じる
+- パネルなし: アプリ終了
 
-| 操作 | デフォルト | 設定キー |
-|------|-----------|----------|
-| 録音開始/停止 (STT) | `Ctrl + Cmd + S` | `sttToggle` |
-| 選択テキストを読み上げ (TTS) | `Ctrl + Cmd + T` | `ttsToggle` |
+### スレッドセーフティ
 
-### STT パネルショートカット (カスタマイズ可能)
-
-| 操作 | デフォルト | 設定キー |
-|------|-----------|----------|
-| 録音 | `Cmd + R` | `sttRecord` |
-| 録音停止 | `Cmd + S` | `sttStop` |
-| テキスト貼り付け | `Cmd + Return` | `sttPaste` |
-| 挿入先選択 | `Cmd + Shift + Return` | `sttSelectTarget` |
-| キャンセル | `Cmd + .` | `sttCancel` |
-
-### TTS パネルショートカット (カスタマイズ可能)
-
-| 操作 | デフォルト | 設定キー |
-|------|-----------|----------|
-| 読み上げ | `Cmd + Return` | `ttsSpeak` |
-| 停止 | `Cmd + .` | `ttsStop` |
-| 音声を保存 | `Cmd + S` | `ttsSave` |
-
-### 修飾キーのサポート
-
-すべてのパネルショートカットは修飾キーの組み合わせをサポート:
-- Command (⌘)
-- Shift (⇧)
-- Option (⌥)
-- Control (⌃)
-
----
-
-## API キー管理
-
-### ストレージ
-
-- **主要**: macOS キーチェーン (安全、推奨)
-- **代替**: 環境変数 (開発専用)
-
-### サポートされる環境変数
-
-```bash
-OPENAI_API_KEY
-GEMINI_API_KEY
-ELEVENLABS_API_KEY
-```
-
-### セキュリティに関する注意
-
-- `~/.typetalk.env` 設定ファイルのサポートはセキュリティ上の理由で**削除**
-- デバッグログは情報漏洩防止のため `#if DEBUG` でラップ
-- API キーはデバッグモードでもログに記録されない
-
-### KeychainService のスレッドセーフティ
+タイマー管理パターン：
 
 ```swift
-private let lock = NSLock()
-
-func save(key: String, data: Data) throws {
-    lock.lock()
-    defer { lock.unlock() }
-    // ... キーチェーン操作
-}
-```
-
----
-
-## スレッドセーフティ
-
-### タイマー管理 (MacOSTTS)
-
-非同期タスクを作成する前に、タイマーは同期的に `self` をチェックする必要あり:
-
-```swift
-highlightTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
-    // 解放された場合にタイマーを即座に無効化するため、最初に self を同期的にチェック
+Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
     guard self != nil else {
         timer.invalidate()
         return
@@ -322,35 +199,35 @@ highlightTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true)
 }
 ```
 
-### クリップボード操作
-
-- クリップボードアクセスにスレッドセーフなロックを使用
-- レースコンディション保護を実装
-- 外部変更検出によるクリップボード状態の保持
-- 貼り付け操作にリトライロジックを追加
-
-### MainActor 分離
-
-非同期でないコンテキストから @MainActor 状態への同期アクセス:
+同期コンテキストでのMainActor分離：
 
 ```swift
 func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     return MainActor.assumeIsolated {
-        // @MainActor プロパティへの安全なアクセス
-        let appState = AppState.shared
-        // ...
+        // @MainActorプロパティへの安全なアクセス
     }
 }
 ```
 
----
+### キーチェーンセキュリティ
 
-## キャッシュ管理
+```swift
+private let lock = NSLock()
 
-### TTS ボイスキャッシュ
+func save(key: String, data: Data) throws {
+    lock.lock()
+    defer { lock.unlock() }
+    // キーチェーン操作
+}
+```
 
-- `TTSVoiceCache` でプロバイダごとにキャッシュ
-- キャッシュデータを使用する前に有効期限チェックが必要:
+- NSLockでスレッドセーフ
+- APIキーはログに出力されない
+- `~/.typetalk.env`サポートはセキュリティ上削除
+
+### キャッシュ管理
+
+TTS音声キャッシュ：
 
 ```swift
 if let cached = TTSVoiceCache.shared.getCachedVoices(for: provider),
@@ -361,55 +238,10 @@ if let cached = TTSVoiceCache.shared.getCachedVoices(for: provider),
 return Self.defaultVoices
 ```
 
-### 一時ファイル
-
-- アプリの起動時と終了時にクリーンアップ
+一時ファイル：
 - 場所: システム一時ディレクトリ
-- パターン: `typetalk_*` プレフィックス
-
----
-
-## 権限
-
-### 必要な権限
-
-| 権限 | 用途 | プロンプト表示タイミング |
-|------|------|------------------------|
-| マイク | STT 録音 | 初回 STT 使用時 |
-| アクセシビリティ | グローバルショートカット、テキスト挿入 | 初回起動時 |
-| 画面収録 | ウィンドウサムネイル、システム/アプリオーディオ | 関連機能の初回使用時 |
-
-### 権限の処理
-
-- 権限が付与されていない場合、初回起動時にプロンプトを表示
-- アクセサリアプリ (Dock アイコンなし) は権限アラートに特別な処理が必要
-- 適切なウィンドウアクティベーションのため一時的に `NSApp.setActivationPolicy(.regular)` を使用
-
----
-
-## UI/UX ガイドライン
-
-### テキストとラベル
-
-- すべての UI テキストは英語 (ツールチップやラベルに日本語は使用しない)
-- アプリ全体で一貫した用語を使用
-
-### プロバイダバッジ
-
-- パネルヘッダーに現在のプロバイダを表示
-- フォーマット: "Provider: [name]" アクセントカラー背景
-
-### エラー表示
-
-- パネル内のオーバーレイにエラーを表示
-- 可能な場合はアクション可能な情報を含める
-- 一時的なエラーは自動クリア
-
-### 単語ハイライト (TTS)
-
-- グラデーションハイライト: 現在の単語 + 前後2単語
-- アルファ値: 現在=0.45、隣接=0.25、遠い=0.12
-- 正確な単語境界検出に CFStringTokenizer を使用
+- パターン: `tts_*.wav`, `tts_*.mp3`
+- クリーンアップ: 作成から5分後
 
 ---
 
@@ -417,19 +249,39 @@ return Self.defaultVoices
 
 ### バージョン管理
 
-- セマンティックバージョニング (MAJOR.MINOR.PATCH) に従う
-- リリース前にプロジェクト設定でバージョン番号を更新
-- リリースには `v` プレフィックス付きのタグを使用 (例: `v0.1.3`)
+以下でバージョンを更新：
+- `project.yml` (`MARKETING_VERSION`)
+- `Resources/Info.plist` (`CFBundleShortVersionString`)
+
+その後プロジェクトを再生成：
+
+```bash
+xcodegen generate
+```
+
+### ビルドスクリプト
+
+```bash
+# リリースビルド
+./scripts/build.sh
+
+# DMG作成
+./scripts/create-dmg.sh
+
+# 公証
+./scripts/notarize.sh
+```
 
 ### リリースチェックリスト
 
-1. CHANGELOG.md を更新
-2. バージョン番号を更新
-3. リリース版をビルド (`./scripts/build.sh`)
-4. DMG を作成 (`./scripts/create-dmg.sh`)
-5. 公証 (`./scripts/notarize.sh`)
-6. タグ付きで GitHub リリースを作成
-7. リリースに DMG をアップロード
+1. CHANGELOG.mdを更新
+2. project.ymlとInfo.plistでバージョンを更新
+3. `xcodegen generate`を実行
+4. リリースビルド: `./scripts/build.sh`
+5. DMG作成: `./scripts/create-dmg.sh`
+6. 公証: `./scripts/notarize.sh`
+7. タグ付きでGitHubリリースを作成（例: `v0.1.4`）
+8. DMGをアップロード
 
 ---
 
@@ -437,7 +289,7 @@ return Self.defaultVoices
 
 ### 起動後のアプリアクティベーション
 
-LaunchServices (`open` コマンド) 経由で起動されたアプリは、複数回のアクティベーション試行が必要な場合あり:
+LaunchServices経由で起動されたアプリは複数回のアクティベーション試行が必要：
 
 ```swift
 private func activateWindowWithRetry(attempt: Int = 0) {
@@ -453,12 +305,23 @@ private func activateWindowWithRetry(attempt: Int = 0) {
 }
 ```
 
-### テキストビューのフォーカス
+### フローティングウィンドウでのテキストビューフォーカス
 
-フローティングウィンドウ内の SwiftUI TextEditor は明示的なフォーカス処理が必要:
-- `NSWindow.didBecomeKeyNotification` を監視
-- ビュー階層内で NSTextView を再帰的に検索
-- `window.makeFirstResponder(textView)` を呼び出す
+SwiftUI TextEditorは明示的なフォーカス処理が必要：
+
+1. `NSWindow.didBecomeKeyNotification`を監視
+2. ビュー階層でNSTextViewを検索
+3. `window.makeFirstResponder(textView)`を呼び出し
+
+### AVAudioEngineの完了ハンドラ
+
+`.dataPlayedBack`完了タイプを使用して、音声再生完了後にハンドラが呼ばれることを保証：
+
+```swift
+playerNode.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) { _ in
+    // 音声が実際に再生完了した時に呼ばれる
+}
+```
 
 ---
 
