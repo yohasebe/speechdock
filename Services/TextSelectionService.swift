@@ -20,11 +20,22 @@ final class TextSelectionService {
     func getSelectedText() -> String? {
         // Try accessibility API first (more reliable, less intrusive)
         if let text = getSelectedTextViaAccessibility() {
+            #if DEBUG
+            print("TextSelectionService: Got text via Accessibility API, length: \(text.count)")
+            #endif
             return text
         }
 
         // Fall back to clipboard-based approach with proper synchronization
-        return getSelectedTextViaClipboard()
+        let clipboardText = getSelectedTextViaClipboard()
+        #if DEBUG
+        if let text = clipboardText {
+            print("TextSelectionService: Got text via Clipboard fallback, length: \(text.count)")
+        } else {
+            print("TextSelectionService: No text found via any method")
+        }
+        #endif
+        return clipboardText
     }
 
     /// Get selected text using clipboard-based approach with race condition protection

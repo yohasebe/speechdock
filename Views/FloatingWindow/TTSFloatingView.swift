@@ -294,11 +294,20 @@ struct TTSFloatingView: View {
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onAppear {
+            #if DEBUG
+            print("TTSFloatingView: onAppear - setting editableText from ttsText, length: \(appState.ttsText.count)")
+            #endif
             editableText = appState.ttsText
         }
         .onChange(of: appState.ttsText) { _, newValue in
             // Sync when appState.ttsText changes externally
+            #if DEBUG
+            print("TTSFloatingView: onChange(ttsText) - current editableText length: \(editableText.count), new value length: \(newValue.count)")
+            #endif
             if editableText != newValue {
+                #if DEBUG
+                print("TTSFloatingView: Updating editableText to new value")
+                #endif
                 editableText = newValue
             }
         }

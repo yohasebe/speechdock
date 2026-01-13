@@ -265,6 +265,14 @@ final class AppState {
     private func startRecording() {
         guard !isProcessing else { return }
 
+        // Mutual exclusivity: close TTS panel and stop TTS if active
+        if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
+            stopTTS()
+            floatingWindowManager.hideFloatingWindow()
+            showTTSWindow = false
+            ttsText = ""
+        }
+
         isRecording = true
         errorMessage = nil
         transcriptionState = .recording
@@ -464,13 +472,18 @@ final class AppState {
         print("TTS: startTTS called")
         #endif
 
+        // Mutual exclusivity: close STT panel and cancel recording if active
+        if showFloatingWindow || isRecording {
+            cancelRecording()
+        }
+
         // Get selected text from frontmost app
         // Note: This runs on main thread synchronously
         let selectedText = TextSelectionService.shared.getSelectedText()
 
         if let selectedText = selectedText, !selectedText.isEmpty {
             #if DEBUG
-            print("TTS: Got selected text, length: \(selectedText.count)")
+            print("TTS: Got selected text, length: \(selectedText.count), content: '\(selectedText.prefix(200))'")
             #endif
             startTTSWithText(selectedText)
         } else {
@@ -496,10 +509,19 @@ final class AppState {
         print("TTS: Starting with text length: \(text.count), provider: \(selectedTTSProvider.rawValue)")
         #endif
 
+        // Mutual exclusivity: close STT panel and cancel recording if active
+        if showFloatingWindow || isRecording {
+            cancelRecording()
+        }
+
         // Stop any existing TTS but don't reset everything
         ttsService?.stop()
         ttsService = nil
 
+        #if DEBUG
+        print("TTS: Setting ttsText, current value length: \(ttsText.count), new value length: \(text.count)")
+        print("TTS: New text content: '\(text.prefix(200))'")
+        #endif
         ttsText = text
         ttsState = .loading
         currentSpeakingRange = nil

@@ -1,18 +1,21 @@
 import SwiftUI
 import Carbon.HIToolbox
 
-/// Button label with smaller keyboard shortcut text
+/// Button label with keyboard shortcut text - larger size for better visibility
 struct ButtonLabelWithShortcut: View {
     let title: String
     let shortcut: String
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 4) {
             Text(title)
+                .font(.body)
             Text(shortcut)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundColor(.secondary)
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
     }
 }
 
