@@ -29,14 +29,23 @@ struct TypeTalkApp: App {
 
 /// Menu bar icon view that observes AppState for color changes
 struct MenuBarIconView: View {
-    var appState: AppState
+    @Bindable var appState: AppState
 
     private var iconColor: Color {
+        // STT states (red tones)
         if appState.isRecording {
-            return .red  // STT recording
-        } else if appState.ttsState == .speaking {
-            return .green  // TTS playback
-        } else {
+            return .red  // STT recording active
+        } else if appState.transcriptionState == .processing {
+            return Color.red.opacity(0.6)  // STT processing
+        }
+        // TTS states (blue tones)
+        else if appState.ttsState == .speaking {
+            return .blue  // TTS speaking active
+        } else if appState.ttsState == .loading {
+            return Color.blue.opacity(0.6)  // TTS loading/generating
+        }
+        // Default
+        else {
             return .primary  // Default (adapts to light/dark mode)
         }
     }
