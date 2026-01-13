@@ -133,8 +133,10 @@ final class ElevenLabsTTS: NSObject, TTSService {
     }
 
     func availableVoices() -> [TTSVoice] {
-        // Return cached voices if available, otherwise return defaults
-        if let cached = TTSVoiceCache.shared.getCachedVoices(for: .elevenLabs), !cached.isEmpty {
+        // Return cached voices if available and not expired, otherwise return defaults
+        if let cached = TTSVoiceCache.shared.getCachedVoices(for: .elevenLabs),
+           !cached.isEmpty,
+           !TTSVoiceCache.shared.isCacheExpired(for: .elevenLabs) {
             return cached
         }
         return Self.defaultVoices

@@ -65,6 +65,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
+    /// Intercept ⌘Q when STT/TTS panels are visible - close panel instead of quitting
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // NSApplicationDelegate methods are called on the main thread
+        // Use assumeIsolated to safely access @MainActor state synchronously
+        return MainActor.assumeIsolated {
+            let appState = AppState.shared
+
+            // Check if any floating panel is visible
+            if appState.floatingWindowManager.isVisible {
+                // Cancel recording if active and close the panel (synchronously)
+                appState.cancelRecording()
+                return .terminateCancel
+            }
+
+            // Check if TTS is speaking
+            if appState.ttsState == .speaking || appState.ttsState == .loading {
+                // Stop TTS and close any TTS panel (synchronously)
+                appState.stopTTS()
+                appState.floatingWindowManager.hideFloatingWindow()
+                return .terminateCancel
+            }
+
+            // No panels visible, allow termination
+            return .terminateNow
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         hotKeyService?.unregisterAllHotKeys()
 
@@ -286,7 +313,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Wait for user to grant permission in System Settings
             // Give them time to interact with System Settings before showing the dialog again
-            Thread.sleep(forTimeInterval: 2.0)
+            // Allow UI events to be processed while waiting (non-blocking)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
         }
 
         // Hide from Dock after dialog is dismissed
@@ -326,7 +354,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             // Wait for user to grant permission
-            Thread.sleep(forTimeInterval: 2.0)
+            // Allow UI events to be processed while waiting (non-blocking)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
         }
 
         // Hide from Dock after dialog is dismissed
@@ -366,7 +395,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             // Wait for user to grant permission
-            Thread.sleep(forTimeInterval: 2.0)
+            // Allow UI events to be processed while waiting (non-blocking)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
         }
 
         // Hide from Dock after dialog is dismissed
@@ -409,7 +439,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             // Wait for user to grant permission
-            Thread.sleep(forTimeInterval: 2.0)
+            // Allow UI events to be processed while waiting (non-blocking)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
         }
 
         // Hide from Dock after dialog is dismissed

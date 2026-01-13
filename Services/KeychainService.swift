@@ -8,16 +8,23 @@ enum KeychainError: Error {
     case unhandledError(status: OSStatus)
 }
 
+/// Thread-safe keychain service for storing sensitive data
 final class KeychainService {
     private let service = "com.typetalk.apikeys"
 
+    /// Lock for thread-safe keychain access
+    private let lock = NSLock()
+
     func save(key: String, value: String) throws {
+        lock.lock()
+        defer { lock.unlock() }
+
         guard let data = value.data(using: .utf8) else {
             throw KeychainError.invalidData
         }
 
-        // Delete existing item first
-        try? delete(key: key)
+        // Delete existing item first (using unlocked version to avoid deadlock)
+        try? _deleteUnlocked(key: key)
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -34,6 +41,9 @@ final class KeychainService {
     }
 
     func retrieve(key: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -55,6 +65,14 @@ final class KeychainService {
     }
 
     func delete(key: String) throws {
+        lock.lock()
+        defer { lock.unlock() }
+
+        try _deleteUnlocked(key: key)
+    }
+
+    /// Internal delete without locking (called from within locked context)
+    private func _deleteUnlocked(key: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

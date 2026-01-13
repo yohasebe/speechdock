@@ -106,22 +106,12 @@ struct MenuBarView: View {
             }
             .disabled(!appState.hasMicrophonePermission)
 
-            // Audio Input Source display
+            // Audio Input Source selector
             HStack {
                 Text("Input:")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                HStack(spacing: 4) {
-                    Image(systemName: appState.selectedAudioInputSourceType.icon)
-                        .font(.caption)
-                    Text(audioInputDisplayName)
-                        .font(.caption)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(audioInputBackgroundColor)
-                .cornerRadius(4)
+                MenuBarAudioInputSelector(appState: appState)
                 Spacer()
             }
             .disabled(!appState.hasMicrophonePermission)
@@ -350,32 +340,6 @@ struct MenuBarView: View {
         }
     }
 
-    // Audio input source display name
-    private var audioInputDisplayName: String {
-        switch appState.selectedAudioInputSourceType {
-        case .microphone:
-            return "Microphone"
-        case .systemAudio:
-            return "System Audio"
-        case .applicationAudio:
-            let appName = appState.systemAudioCaptureService.availableApps
-                .first { $0.bundleID == appState.selectedAudioAppBundleID }?.name
-            return appName ?? "App"
-        }
-    }
-
-    // Audio input source background color
-    private var audioInputBackgroundColor: Color {
-        switch appState.selectedAudioInputSourceType {
-        case .microphone:
-            return Color.blue.opacity(0.2)
-        case .systemAudio:
-            return Color.green.opacity(0.2)
-        case .applicationAudio:
-            return Color.orange.opacity(0.2)
-        }
-    }
-
     // Shortcut badge view
     private func shortcutBadge(_ text: String) -> some View {
         Text(text)
@@ -506,6 +470,163 @@ struct MenuBarView: View {
                     break
                 }
             }
+        }
+    }
+}
+
+/// Audio input source selector for menu bar (syncs with STT panel selector)
+struct MenuBarAudioInputSelector: View {
+    var appState: AppState
+    @State private var availableApps: [CapturableApplication] = []
+    @State private var availableMicrophones: [AudioInputDevice] = []
+
+    private var currentIcon: String {
+        appState.selectedAudioInputSourceType.icon
+    }
+
+    private var currentLabel: String {
+        switch appState.selectedAudioInputSourceType {
+        case .microphone:
+            // Show device name if not default
+            if !appState.selectedAudioInputDeviceUID.isEmpty,
+               let device = availableMicrophones.first(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
+                return device.name
+            }
+            return "Microphone"
+        case .systemAudio:
+            return "System Audio"
+        case .applicationAudio:
+            return availableApps.first { $0.bundleID == appState.selectedAudioAppBundleID }?.name ?? "App"
+        }
+    }
+
+    private var sourceBackgroundColor: Color {
+        switch appState.selectedAudioInputSourceType {
+        case .microphone:
+            return Color.blue.opacity(0.2)
+        case .systemAudio:
+            return Color.green.opacity(0.2)
+        case .applicationAudio:
+            return Color.orange.opacity(0.2)
+        }
+    }
+
+    var body: some View {
+        Menu {
+            // Microphone submenu with device selection
+            Menu {
+                ForEach(availableMicrophones) { device in
+                    Button(action: {
+                        appState.selectedAudioInputSourceType = .microphone
+                        appState.selectedAudioInputDeviceUID = device.uid
+                    }) {
+                        HStack {
+                            Text(device.name)
+                            if appState.selectedAudioInputSourceType == .microphone &&
+                               appState.selectedAudioInputDeviceUID == device.uid {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+
+                if availableMicrophones.isEmpty {
+                    Text("No microphones detected")
+                        .foregroundColor(.secondary)
+                }
+            } label: {
+                HStack {
+                    Label("Microphone", systemImage: AudioInputSourceType.microphone.icon)
+                    if appState.selectedAudioInputSourceType == .microphone {
+                        Spacer()
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+
+            // System Audio option
+            Button(action: {
+                appState.selectedAudioInputSourceType = .systemAudio
+            }) {
+                HStack {
+                    Label("System Audio", systemImage: AudioInputSourceType.systemAudio.icon)
+                    if appState.selectedAudioInputSourceType == .systemAudio {
+                        Spacer()
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+
+            Divider()
+
+            // App Audio submenu
+            Menu {
+                if availableApps.isEmpty {
+                    Text("No apps detected")
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(availableApps) { app in
+                        Button(action: {
+                            appState.selectedAudioInputSourceType = .applicationAudio
+                            appState.selectedAudioAppBundleID = app.bundleID
+                        }) {
+                            HStack {
+                                Text(app.name)
+                                if appState.selectedAudioInputSourceType == .applicationAudio &&
+                                   appState.selectedAudioAppBundleID == app.bundleID {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button("Refresh Apps") {
+                    Task {
+                        await appState.systemAudioCaptureService.refreshAvailableApps()
+                        availableApps = appState.systemAudioCaptureService.availableApps
+                    }
+                }
+            } label: {
+                Label("App Audio", systemImage: AudioInputSourceType.applicationAudio.icon)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: currentIcon)
+                    .font(.caption)
+                Text(currentLabel)
+                    .font(.caption)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8))
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(sourceBackgroundColor)
+            .cornerRadius(4)
+        }
+        .menuStyle(.borderlessButton)
+        .onAppear {
+            loadMicrophones()
+            Task {
+                await appState.systemAudioCaptureService.refreshAvailableApps()
+                availableApps = appState.systemAudioCaptureService.availableApps
+            }
+        }
+    }
+
+    private func loadMicrophones() {
+        availableMicrophones = appState.audioInputManager.availableInputDevices()
+
+        // If selected device is not in the list, reset to system default
+        if appState.selectedAudioInputSourceType == .microphone &&
+           !appState.selectedAudioInputDeviceUID.isEmpty &&
+           !availableMicrophones.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
+            appState.selectedAudioInputDeviceUID = ""
         }
     }
 }

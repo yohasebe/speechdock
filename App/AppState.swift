@@ -30,6 +30,9 @@ final class AppState {
     var isRecording = false
     var currentTranscription = ""
     var transcriptionState: TranscriptionState = .idle
+    var recordingDuration: TimeInterval = 0  // Cumulative recording duration
+    private var recordingStartTime: Date?
+    private var durationTimer: Timer?
 
     // Realtime STT provider and model selection
     var selectedRealtimeProvider: RealtimeSTTProvider = .macOS {
@@ -259,6 +262,16 @@ final class AppState {
         transcriptionState = .recording
         currentTranscription = ""
 
+        // Start duration timer
+        recordingDuration = 0
+        recordingStartTime = Date()
+        durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self, let startTime = self.recordingStartTime else { return }
+                self.recordingDuration = Date().timeIntervalSince(startTime)
+            }
+        }
+
         // Only show floating window if not already visible
         // This prevents resetting @State variables when resuming recording
         if !showFloatingWindow {
@@ -314,11 +327,10 @@ final class AppState {
     private func stopRecording() {
         isRecording = false
 
-        // For batch providers (OpenAI, Gemini), show processing state while waiting for transcription
-        let isBatchProvider = selectedRealtimeProvider == .openAI || selectedRealtimeProvider == .gemini
-        if isBatchProvider {
-            transcriptionState = .processing
-        }
+        // Stop duration timer
+        durationTimer?.invalidate()
+        durationTimer = nil
+        recordingStartTime = nil
 
         realtimeSTTService?.stopListening()
         realtimeSTTService = nil
@@ -330,13 +342,11 @@ final class AppState {
             }
         }
 
-        // For streaming providers (ElevenLabs, macOS), update state immediately
-        if !isBatchProvider {
-            if !currentTranscription.isEmpty {
-                transcriptionState = .result(currentTranscription)
-            } else {
-                transcriptionState = .idle
-            }
+        // If we have transcription, show result state
+        if !currentTranscription.isEmpty {
+            transcriptionState = .result(currentTranscription)
+        } else {
+            transcriptionState = .idle
         }
     }
 
@@ -372,7 +382,8 @@ final class AppState {
         showFloatingWindow = true
     }
 
-    private func cancelRecording() {
+    /// Cancel recording without inserting any text (called when panel is closed)
+    func cancelRecording() {
         if isRecording {
             realtimeSTTService?.stopListening()
             realtimeSTTService = nil
@@ -480,9 +491,13 @@ final class AppState {
         ttsState = .loading
         currentSpeakingRange = nil
 
-        // Only show window if not already visible
-        if !showTTSWindow {
+        // Always ensure window is shown and brought to front
+        // Check actual visibility, not just the flag (which may be out of sync)
+        if !showTTSWindow || !floatingWindowManager.isVisible {
             showTTSFloatingWindow()
+        } else {
+            // Window already visible, but ensure it's at front
+            floatingWindowManager.bringToFront()
         }
 
         // Create TTS service and start speaking
@@ -529,6 +544,11 @@ final class AppState {
         ttsService = nil
         ttsState = .idle
         currentSpeakingRange = nil
+
+        // Ensure window state flag is in sync (in case stopTTS is called directly)
+        if showTTSWindow && !floatingWindowManager.isVisible {
+            showTTSWindow = false
+        }
     }
 
     /// Check if TTS audio save is available (text >= 5 chars)
@@ -688,14 +708,19 @@ final class AppState {
             selectedAudioInputDeviceUID = audioInputUID
         }
 
+        // Load audio source type, but reset App Audio to Microphone on startup
+        // App Audio is session-only because the target app may not be running on next launch
         if let audioSourceTypeRaw = UserDefaults.standard.string(forKey: "selectedAudioInputSourceType"),
            let audioSourceType = AudioInputSourceType(rawValue: audioSourceTypeRaw) {
-            selectedAudioInputSourceType = audioSourceType
+            // Reset App Audio to Microphone - App Audio is not persisted
+            if audioSourceType == .applicationAudio {
+                selectedAudioInputSourceType = .microphone
+            } else {
+                selectedAudioInputSourceType = audioSourceType
+            }
         }
 
-        if let audioAppBundleID = UserDefaults.standard.string(forKey: "selectedAudioAppBundleID") {
-            selectedAudioAppBundleID = audioAppBundleID
-        }
+        // Note: selectedAudioAppBundleID is not loaded - it's session-only
 
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
@@ -753,8 +778,15 @@ final class AppState {
         UserDefaults.standard.set(selectedSTTLanguage, forKey: "selectedSTTLanguage")
         UserDefaults.standard.set(selectedTTSLanguage, forKey: "selectedTTSLanguage")
         UserDefaults.standard.set(selectedAudioInputDeviceUID, forKey: "selectedAudioInputDeviceUID")
-        UserDefaults.standard.set(selectedAudioInputSourceType.rawValue, forKey: "selectedAudioInputSourceType")
-        UserDefaults.standard.set(selectedAudioAppBundleID, forKey: "selectedAudioAppBundleID")
+
+        // Save audio source type, but don't persist App Audio (save as Microphone instead)
+        // App Audio is session-only because the target app may not be running on next launch
+        let sourceTypeToSave: AudioInputSourceType = selectedAudioInputSourceType == .applicationAudio
+            ? .microphone
+            : selectedAudioInputSourceType
+        UserDefaults.standard.set(sourceTypeToSave.rawValue, forKey: "selectedAudioInputSourceType")
+
+        // Note: selectedAudioAppBundleID is not saved - it's session-only
     }
 }
 
@@ -784,14 +816,7 @@ extension AppState: RealtimeSTTDelegate {
 
     func realtimeSTT(_ service: RealtimeSTTService, didReceiveFinalResult text: String) {
         currentTranscription = text
-        // Update state when processing is complete (for batch providers like OpenAI/Gemini)
-        if transcriptionState == .processing {
-            if !text.isEmpty {
-                transcriptionState = .result(text)
-            } else {
-                transcriptionState = .idle
-            }
-        }
+        // Don't auto-stop on final result for continuous transcription
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didFailWithError error: Error) {

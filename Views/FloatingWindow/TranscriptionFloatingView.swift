@@ -467,6 +467,18 @@ struct TranscriptionFloatingView: View {
                 statusIcon
                 Text(headerText)
                     .font(.headline)
+
+                // Recording duration
+                if isRecording {
+                    Text(formattedDuration)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(4)
+                }
+
                 Spacer()
 
                 // Audio input source selector
@@ -660,6 +672,14 @@ struct TranscriptionFloatingView: View {
         }
     }
 
+    /// Format recording duration as MM:SS
+    private var formattedDuration: String {
+        let totalSeconds = Int(appState.recordingDuration)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+
     private func startRecordingWithAppend() {
         // Save current text BEFORE starting recording
         baseText = editedText.trimmingCharacters(in: .whitespaces)
@@ -765,6 +785,7 @@ struct AudioInputSourceSelector: View {
     var appState: AppState
     @State private var isExpanded = false
     @State private var availableApps: [CapturableApplication] = []
+    @State private var availableMicrophones: [AudioInputDevice] = []
 
     private var currentIcon: String {
         appState.selectedAudioInputSourceType.icon
@@ -773,6 +794,11 @@ struct AudioInputSourceSelector: View {
     private var currentLabel: String {
         switch appState.selectedAudioInputSourceType {
         case .microphone:
+            // Show device name if not default
+            if !appState.selectedAudioInputDeviceUID.isEmpty,
+               let device = availableMicrophones.first(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
+                return device.name
+            }
             return "Microphone"
         case .systemAudio:
             return "System Audio"
@@ -792,13 +818,35 @@ struct AudioInputSourceSelector: View {
 
     private var inputMenu: some View {
         Menu {
-            // Microphone option
-            Button(action: {
-                appState.selectedAudioInputSourceType = .microphone
-            }) {
-                Label("Microphone", systemImage: AudioInputSourceType.microphone.icon)
-                if appState.selectedAudioInputSourceType == .microphone {
-                    Image(systemName: "checkmark")
+            // Microphone submenu with device selection
+            Menu {
+                ForEach(availableMicrophones) { device in
+                    Button(action: {
+                        appState.selectedAudioInputSourceType = .microphone
+                        appState.selectedAudioInputDeviceUID = device.uid
+                    }) {
+                        HStack {
+                            Text(device.name)
+                            if appState.selectedAudioInputSourceType == .microphone &&
+                               appState.selectedAudioInputDeviceUID == device.uid {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+
+                if availableMicrophones.isEmpty {
+                    Text("No microphones detected")
+                        .foregroundColor(.secondary)
+                }
+            } label: {
+                HStack {
+                    Label("Microphone", systemImage: AudioInputSourceType.microphone.icon)
+                    if appState.selectedAudioInputSourceType == .microphone {
+                        Spacer()
+                        Image(systemName: "checkmark")
+                    }
                 }
             }
 
@@ -865,6 +913,7 @@ struct AudioInputSourceSelector: View {
         }
         .menuStyle(.borderlessButton)
         .onAppear {
+            loadMicrophones()
             Task {
                 await appState.systemAudioCaptureService.refreshAvailableApps()
                 availableApps = appState.systemAudioCaptureService.availableApps
@@ -880,6 +929,17 @@ struct AudioInputSourceSelector: View {
             return Color.green.opacity(0.2)
         case .applicationAudio:
             return Color.orange.opacity(0.2)
+        }
+    }
+
+    private func loadMicrophones() {
+        availableMicrophones = appState.audioInputManager.availableInputDevices()
+
+        // If selected device is not in the list, reset to system default
+        if appState.selectedAudioInputSourceType == .microphone &&
+           !appState.selectedAudioInputDeviceUID.isEmpty &&
+           !availableMicrophones.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
+            appState.selectedAudioInputDeviceUID = ""
         }
     }
 }

@@ -96,13 +96,22 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         arguments.append(tempTextFile.path)
         generateProcess.arguments = arguments
 
-        try generateProcess.run()
-        generateProcess.waitUntilExit()
+        // Run process asynchronously to avoid blocking main thread
+        let terminationStatus = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int32, Error>) in
+            generateProcess.terminationHandler = { process in
+                continuation.resume(returning: process.terminationStatus)
+            }
+            do {
+                try generateProcess.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
 
         // Clean up text file
         try? FileManager.default.removeItem(at: tempTextFile)
 
-        guard generateProcess.terminationStatus == 0 else {
+        guard terminationStatus == 0 else {
             throw TTSError.audioError("Failed to generate audio file")
         }
 
@@ -368,11 +377,14 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         let lookAheadFraction: Double = 0.015  // ~1.5% look-ahead
 
         highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
+            // Check self synchronously first to invalidate timer immediately if deallocated
+            guard self != nil else {
+                timer.invalidate()
+                return
+            }
+
             Task { @MainActor [weak self] in
-                guard let self = self else {
-                    timer.invalidate()
-                    return
-                }
+                guard let self = self else { return }
 
                 guard self.isSpeaking, !self.isPaused,
                       let player = self.audioPlayer, player.isPlaying else {

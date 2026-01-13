@@ -21,6 +21,12 @@ final class FloatingWindowManager: ObservableObject {
     private var previousApp: NSRunningApplication?
     @Published var isVisible = false
     private var windowBecameKeyObserver: NSObjectProtocol?
+    private var windowWillCloseObserver: NSObjectProtocol?
+    private var storedOnCancel: (() -> Void)?
+    private var storedOnClose: (() -> Void)?
+
+    /// Weak reference to AppState for stopping STT/TTS on window close
+    private weak var currentAppState: AppState?
 
     /// List of available windows for insertion target
     @Published var availableWindows: [WindowInfo] = []
@@ -42,6 +48,10 @@ final class FloatingWindowManager: ObservableObject {
             createFloatingWindow()
         }
 
+        // Store cancel callback and appState for use when window is closed externally
+        storedOnCancel = onCancel
+        currentAppState = appState
+
         let contentView = TranscriptionFloatingView(
             appState: appState,
             onConfirm: onConfirm,
@@ -57,12 +67,19 @@ final class FloatingWindowManager: ObservableObject {
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
         positionNearMouse()
 
+        // Set up observer to handle window close (stop recording if active)
+        setupWindowCloseObserver()
+
         // Become regular app to ensure proper window activation
         // This is essential for accessory apps to receive keyboard focus
         NSApp.setActivationPolicy(.regular)
 
-        // Show window first
+        // Activate app first, then show window
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Show window and bring to front
         floatingWindow?.orderFrontRegardless()
+        floatingWindow?.makeKeyAndOrderFront(nil)
         isVisible = true
 
         // Activate window with retry (needed for apps launched via `open` command)
@@ -179,7 +196,8 @@ final class FloatingWindowManager: ObservableObject {
             defer: false
         )
 
-        floatingWindow?.level = .floating
+        // Use popUpMenu level to ensure panels appear above menu bar extra
+        floatingWindow?.level = .popUpMenu
         floatingWindow?.isReleasedWhenClosed = false
         floatingWindow?.titlebarAppearsTransparent = true
         floatingWindow?.titleVisibility = .hidden
@@ -216,6 +234,10 @@ final class FloatingWindowManager: ObservableObject {
         appState: AppState,
         onClose: @escaping () -> Void
     ) {
+        // Store close callback and appState for use when window is closed externally
+        storedOnClose = onClose
+        currentAppState = appState
+
         // Close any existing window first
         floatingWindow?.orderOut(nil)
         floatingWindow = nil
@@ -228,7 +250,8 @@ final class FloatingWindowManager: ObservableObject {
             defer: false
         )
 
-        window.level = .floating
+        // Use popUpMenu level to ensure panels appear above menu bar extra
+        window.level = .popUpMenu
         window.isReleasedWhenClosed = false
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -257,12 +280,19 @@ final class FloatingWindowManager: ObservableObject {
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
         positionNearMouse()
 
+        // Set up observer to handle window close (stop TTS if active)
+        setupWindowCloseObserver()
+
         // Become regular app to ensure proper window activation
         // This is essential for accessory apps to receive keyboard focus
         NSApp.setActivationPolicy(.regular)
 
-        // Show window first
+        // Activate app first, then show window
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Show window and bring to front
         floatingWindow?.orderFrontRegardless()
+        floatingWindow?.makeKeyAndOrderFront(nil)
         isVisible = true
 
         // Set up observer to focus text view when window becomes key
@@ -353,6 +383,64 @@ final class FloatingWindowManager: ObservableObject {
         }
     }
 
+    /// Set up observer to handle window close and stop STT/TTS if active
+    private func setupWindowCloseObserver() {
+        // Remove any existing observer
+        if let observer = windowWillCloseObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowWillCloseObserver = nil
+        }
+
+        guard let window = floatingWindow else { return }
+
+        // Observe when window will close - stop any active STT/TTS processing
+        windowWillCloseObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+
+            // Stop STT recording if active
+            if let onCancel = self.storedOnCancel {
+                onCancel()
+                self.storedOnCancel = nil
+            }
+
+            // Stop TTS playback if active
+            if let onClose = self.storedOnClose {
+                onClose()
+                self.storedOnClose = nil
+            }
+
+            // Additional safety: directly stop via AppState
+            if let appState = self.currentAppState {
+                if appState.isRecording {
+                    appState.cancelRecording()
+                }
+                if appState.ttsState == .speaking || appState.ttsState == .loading {
+                    appState.stopTTS()
+                }
+            }
+            self.currentAppState = nil
+        }
+    }
+
+    /// Bring the floating window to the front
+    func bringToFront() {
+        guard let window = floatingWindow else { return }
+
+        // Ensure we're a regular app so we can become key
+        NSApp.setActivationPolicy(.regular)
+
+        // Bring window to front
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+
+        // Activate app
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     /// Temporarily hide the floating window (for showing save panels, etc.)
     func temporarilyHideWindow() {
         floatingWindow?.orderOut(nil)
@@ -365,11 +453,20 @@ final class FloatingWindowManager: ObservableObject {
     }
 
     func hideFloatingWindow(skipActivation: Bool = false) {
-        // Clean up observer
+        // Clean up observers
         if let observer = windowBecameKeyObserver {
             NotificationCenter.default.removeObserver(observer)
             windowBecameKeyObserver = nil
         }
+        if let observer = windowWillCloseObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowWillCloseObserver = nil
+        }
+
+        // Clear stored callbacks (already handled or not needed)
+        storedOnCancel = nil
+        storedOnClose = nil
+        currentAppState = nil
 
         floatingWindow?.orderOut(nil)
         isVisible = false

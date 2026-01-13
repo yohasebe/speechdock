@@ -14,8 +14,14 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
     private var tempFileURL: URL?
+    private var transcriptionTimer: Timer?
 
     private let apiKeyManager = APIKeyManager.shared
+    private let transcriptionInterval: TimeInterval = 2.0
+    private let transcriptionTimeout: TimeInterval = 30.0  // Timeout to auto-reset isTranscribing flag
+
+    private var isTranscribing = false
+    private var transcriptionStartTime: Date?
 
     func startListening() async throws {
         guard let _ = apiKeyManager.getAPIKey(for: .gemini) else {
@@ -48,28 +54,32 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
         }
 
+        // Start periodic transcription
+        startTranscriptionTimer()
+
         isListening = true
         delegate?.realtimeSTT(self, didChangeListeningState: true)
     }
 
     func stopListening() {
+        transcriptionTimer?.invalidate()
+        transcriptionTimer = nil
+
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
 
         audioFile = nil
 
-        let wasListening = isListening
+        // Clean up temp file (no final transcription - periodic already covers it)
+        if let url = tempFileURL {
+            try? FileManager.default.removeItem(at: url)
+            tempFileURL = nil
+        }
+
         if isListening {
             isListening = false
             delegate?.realtimeSTT(self, didChangeListeningState: false)
-        }
-
-        // Transcribe only when stopped after listening
-        if wasListening, let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
-            Task {
-                await performFinalTranscription()
-            }
         }
     }
 
@@ -124,13 +134,27 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         try audioEngine.start()
     }
 
-    private func performFinalTranscription() async {
-        guard let tempURL = tempFileURL else { return }
-
-        defer {
-            try? FileManager.default.removeItem(at: tempURL)
-            tempFileURL = nil
+    private func startTranscriptionTimer() {
+        transcriptionTimer = Timer.scheduledTimer(withTimeInterval: transcriptionInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.performPeriodicTranscription()
+            }
         }
+    }
+
+    private func performPeriodicTranscription() async {
+        // Auto-reset isTranscribing if it's been stuck for too long (timeout protection)
+        if isTranscribing, let startTime = transcriptionStartTime {
+            if Date().timeIntervalSince(startTime) > transcriptionTimeout {
+                #if DEBUG
+                print("GeminiRealtimeSTT: isTranscribing timeout, auto-resetting flag")
+                #endif
+                isTranscribing = false
+                transcriptionStartTime = nil
+            }
+        }
+
+        guard isListening, !isTranscribing, let tempURL = tempFileURL else { return }
 
         // Check if file has content
         guard FileManager.default.fileExists(atPath: tempURL.path),
@@ -140,13 +164,20 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             return
         }
 
+        isTranscribing = true
+        transcriptionStartTime = Date()
+        defer {
+            isTranscribing = false
+            transcriptionStartTime = nil
+        }
+
         do {
             let transcription = try await transcribeAudio(at: tempURL)
             if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
+                delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
             }
         } catch {
-            delegate?.realtimeSTT(self, didFailWithError: error)
+            print("Transcription error: \(error)")
         }
     }
 
@@ -182,7 +213,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
                             ]
                         ],
                         [
-                            "text": "Transcribe the audio exactly as spoken. Output only the transcription text, nothing else. If the audio is in Japanese, transcribe in Japanese. If in English, transcribe in English."
+                            "text": "Transcribe the audio exactly as spoken. Output ONLY the transcription text with no explanation. For Japanese, do NOT add spaces between words or characters. Write naturally like: 今日はいい天気ですね (NOT: 今日 は いい 天気 です ね)."
                         ]
                     ]
                 ]

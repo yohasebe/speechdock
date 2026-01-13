@@ -60,9 +60,9 @@ protocol RealtimeSTTDelegate: AnyObject {
 /// Realtime STT provider types
 enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     case macOS = "macOS"
-    case openAI = "OpenAI Realtime"
-    case gemini = "Gemini Live"
-    case elevenLabs = "ElevenLabs Scribe"
+    case openAI = "OpenAI"
+    case gemini = "Gemini"
+    case elevenLabs = "ElevenLabs"
 
     var id: String { rawValue }
 

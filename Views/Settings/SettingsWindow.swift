@@ -765,16 +765,18 @@ struct TTSLanguagePicker: View {
     }
 }
 
-/// Audio input source picker for STT (Microphone, System Audio, App Audio)
+/// Audio input source picker for STT (Microphone, System Audio only in Settings)
+/// App Audio is only available in Menu Bar and STT Panel
 struct AudioInputSourcePicker: View {
     @Bindable var appState: AppState
-    @State private var availableApps: [CapturableApplication] = []
-    @State private var isLoadingApps = false
+
+    /// Source types available in Settings (excludes App Audio)
+    private let availableSourceTypes: [AudioInputSourceType] = [.microphone, .systemAudio]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Audio Source", selection: $appState.selectedAudioInputSourceType) {
-                ForEach(AudioInputSourceType.allCases) { sourceType in
+                ForEach(availableSourceTypes) { sourceType in
                     Label(sourceType.rawValue, systemImage: sourceType.icon)
                         .tag(sourceType)
                 }
@@ -784,70 +786,23 @@ struct AudioInputSourcePicker: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            // Show app picker when App Audio is selected
-            if appState.selectedAudioInputSourceType == .applicationAudio {
-                HStack {
-                    Picker("Application", selection: $appState.selectedAudioAppBundleID) {
-                        Text("Select an app...").tag("")
-                        ForEach(availableApps) { app in
-                            HStack {
-                                if let icon = app.icon {
-                                    Image(nsImage: icon)
-                                        .resizable()
-                                        .frame(width: 16, height: 16)
-                                }
-                                Text(app.name)
-                            }
-                            .tag(app.bundleID)
-                        }
-                    }
-
-                    Button(action: refreshApps) {
-                        if isLoadingApps {
-                            ProgressView()
-                                .scaleEffect(0.6)
-                                .frame(width: 16, height: 16)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(isLoadingApps)
-                    .help("Refresh app list")
-                }
-
-                if availableApps.isEmpty && !isLoadingApps {
-                    Text("No apps with audio output detected. Make sure an app is playing audio.")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                }
-            }
-
             // Note about system audio permission
-            if appState.selectedAudioInputSourceType != .microphone {
-                Text("System Audio and App Audio require Screen Recording permission.")
+            if appState.selectedAudioInputSourceType == .systemAudio {
+                Text("System Audio requires Screen Recording permission.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
+
+            // Note about App Audio availability
+            Text("App-specific audio capture is available in the menu bar and STT panel.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
         }
         .onAppear {
+            // If App Audio was selected elsewhere, reset to Microphone in Settings
             if appState.selectedAudioInputSourceType == .applicationAudio {
-                refreshApps()
+                appState.selectedAudioInputSourceType = .microphone
             }
-        }
-        .onChange(of: appState.selectedAudioInputSourceType) { _, newValue in
-            if newValue == .applicationAudio {
-                refreshApps()
-            }
-        }
-    }
-
-    private func refreshApps() {
-        isLoadingApps = true
-        Task {
-            await appState.systemAudioCaptureService.refreshAvailableApps()
-            availableApps = appState.systemAudioCaptureService.availableApps
-            isLoadingApps = false
         }
     }
 }

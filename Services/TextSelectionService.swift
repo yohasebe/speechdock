@@ -103,12 +103,16 @@ final class TextSelectionService {
         var focusedElement: AnyObject?
         let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedElement)
 
-        guard focusResult == .success, let element = focusedElement else {
+        guard focusResult == .success,
+              let element = focusedElement,
+              CFGetTypeID(element) == AXUIElementGetTypeID() else {
             return nil
         }
 
+        // Safe cast after type verification
+        let axElement = element as! AXUIElement
         var selectedText: AnyObject?
-        let textResult = AXUIElementCopyAttributeValue(element as! AXUIElement, kAXSelectedTextAttribute as CFString, &selectedText)
+        let textResult = AXUIElementCopyAttributeValue(axElement, kAXSelectedTextAttribute as CFString, &selectedText)
 
         guard textResult == .success, let text = selectedText as? String else {
             return nil

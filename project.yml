@@ -42,13 +42,32 @@ targets:
     dependencies:
       - package: HotKey
 
+  TypeTalkTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.typetalk.app.tests
+        SWIFT_VERSION: "5.9"
+        INFOPLIST_FILE: ""
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: TypeTalk
+
 schemes:
   TypeTalk:
     build:
       targets:
         TypeTalk: all
+        TypeTalkTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - TypeTalkTests
     profile:
       config: Release
     analyze:
