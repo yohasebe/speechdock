@@ -2,8 +2,6 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(AppState.self) var appState
-    @Environment(\.openSettings) private var openSettingsAction
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var appState = appState
@@ -382,7 +380,7 @@ struct MenuBarView: View {
 
     // Open Microphone settings
     private func openMicrophoneSettings() {
-        NSApp.keyWindow?.close()
+        StatusBarManager.shared.closePopover()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
             NSWorkspace.shared.open(url)
         }
@@ -390,7 +388,7 @@ struct MenuBarView: View {
 
     // Open Accessibility settings
     private func openAccessibilitySettings() {
-        NSApp.keyWindow?.close()
+        StatusBarManager.shared.closePopover()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
@@ -399,7 +397,7 @@ struct MenuBarView: View {
     // Open About window
     private func openAbout() {
         // Close the menu bar popover first
-        NSApp.keyWindow?.close()
+        StatusBarManager.shared.closePopover()
 
         // Show in Dock while About window is open
         NSApp.setActivationPolicy(.regular)
@@ -407,34 +405,14 @@ struct MenuBarView: View {
         // Activate the app to bring it to front
         NSApp.activate(ignoringOtherApps: true)
 
-        // Open the About window
-        openWindow(id: "about")
-
-        // Set up observer to hide from Dock when About window closes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            for window in NSApp.windows {
-                if window.identifier?.rawValue == "about" {
-                    NotificationCenter.default.addObserver(
-                        forName: NSWindow.willCloseNotification,
-                        object: window,
-                        queue: .main
-                    ) { _ in
-                        // Hide from Dock when About closes (only if Settings is not open)
-                        let settingsOpen = NSApp.windows.contains { $0.title == "Settings" && $0.isVisible }
-                        if !settingsOpen {
-                            NSApp.setActivationPolicy(.accessory)
-                        }
-                    }
-                    break
-                }
-            }
-        }
+        // Open About window using WindowManager
+        WindowManager.shared.openAboutWindow()
     }
 
     // Open help documentation (GitHub)
     private func openHelp() {
         // Close the menu bar popover first
-        NSApp.keyWindow?.close()
+        StatusBarManager.shared.closePopover()
 
         if let url = URL(string: "https://github.com/yohasebe/typetalk") {
             NSWorkspace.shared.open(url)
@@ -444,7 +422,7 @@ struct MenuBarView: View {
     // Open settings and bring window to front
     private func openSettings() {
         // Close the menu bar popover first
-        NSApp.keyWindow?.close()
+        StatusBarManager.shared.closePopover()
 
         // Show in Dock while settings is open
         NSApp.setActivationPolicy(.regular)
@@ -452,8 +430,12 @@ struct MenuBarView: View {
         // Activate the app to bring it to front
         NSApp.activate(ignoringOtherApps: true)
 
-        // Use the environment action to open settings (must be called synchronously)
-        openSettingsAction()
+        // Open Settings window using the standard macOS API
+        if #available(macOS 14.0, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
 
         // Ensure the settings window is brought to front after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
