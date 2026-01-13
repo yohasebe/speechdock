@@ -169,6 +169,12 @@ struct MenuBarView: View {
                 .scaleEffect(0.9, anchor: .leading)
             }
 
+            // TTS Model picker (compact)
+            MenuBarTTSModelPicker(appState: appState)
+
+            // TTS Voice picker (compact)
+            MenuBarTTSVoicePicker(appState: appState)
+
             // TTS Speed slider (compact)
             HStack(spacing: 4) {
                 Text("Speed:")
@@ -628,5 +634,141 @@ struct MenuBarAudioInputSelector: View {
            !availableMicrophones.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
             appState.selectedAudioInputDeviceUID = ""
         }
+    }
+}
+
+/// Compact TTS Model picker for menu bar
+struct MenuBarTTSModelPicker: View {
+    var appState: AppState
+    @State private var availableModels: [TTSModelInfo] = []
+
+    var body: some View {
+        HStack {
+            Text("Model:")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Picker("", selection: Binding(
+                get: { appState.selectedTTSModel },
+                set: { appState.selectedTTSModel = $0 }
+            )) {
+                ForEach(availableModels) { model in
+                    Text(model.name).tag(model.id)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .scaleEffect(0.9, anchor: .leading)
+        }
+        .onAppear {
+            loadModels()
+        }
+        .onChange(of: appState.selectedTTSProvider) { _, _ in
+            loadModels()
+        }
+    }
+
+    private func loadModels() {
+        let service = TTSFactory.makeService(for: appState.selectedTTSProvider)
+        availableModels = service.availableModels()
+
+        // If current model is not in the list, select the default or first model
+        if !availableModels.contains(where: { $0.id == appState.selectedTTSModel }) {
+            if let defaultModel = availableModels.first(where: { $0.isDefault }) {
+                appState.selectedTTSModel = defaultModel.id
+            } else if let firstModel = availableModels.first {
+                appState.selectedTTSModel = firstModel.id
+            }
+        }
+    }
+}
+
+/// Compact TTS Voice picker for menu bar
+struct MenuBarTTSVoicePicker: View {
+    var appState: AppState
+    @State private var availableVoices: [TTSVoice] = []
+    @State private var isRefreshing = false
+
+    var body: some View {
+        HStack {
+            Text("Voice:")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Picker("", selection: Binding(
+                get: { appState.selectedTTSVoice },
+                set: { appState.selectedTTSVoice = $0 }
+            )) {
+                ForEach(availableVoices) { voice in
+                    Text(voiceDisplayName(voice)).tag(voice.id)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .scaleEffect(0.9, anchor: .leading)
+
+            // Refresh button for ElevenLabs
+            if appState.selectedTTSProvider == .elevenLabs {
+                Button(action: refreshVoices) {
+                    if isRefreshing {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                            .frame(width: 12, height: 12)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption2)
+                    }
+                }
+                .buttonStyle(.borderless)
+                .disabled(isRefreshing)
+                .help("Refresh voice list")
+            }
+        }
+        .onAppear {
+            loadVoices()
+            refreshVoicesInBackgroundIfNeeded()
+        }
+        .onChange(of: appState.selectedTTSProvider) { _, _ in
+            loadVoices()
+            refreshVoicesInBackgroundIfNeeded()
+        }
+    }
+
+    private func loadVoices() {
+        let service = TTSFactory.makeService(for: appState.selectedTTSProvider)
+        availableVoices = service.availableVoices()
+
+        // If current voice is not in the list, select the default or first voice
+        if !availableVoices.contains(where: { $0.id == appState.selectedTTSVoice }) {
+            if let defaultVoice = availableVoices.first(where: { $0.isDefault }) {
+                appState.selectedTTSVoice = defaultVoice.id
+            } else if let firstVoice = availableVoices.first {
+                appState.selectedTTSVoice = firstVoice.id
+            }
+        }
+    }
+
+    private func refreshVoicesInBackgroundIfNeeded() {
+        guard appState.selectedTTSProvider == .elevenLabs else { return }
+        guard TTSVoiceCache.shared.isCacheExpired(for: .elevenLabs) else { return }
+
+        Task {
+            await ElevenLabsTTS.fetchAndCacheVoices()
+            loadVoices()
+        }
+    }
+
+    private func refreshVoices() {
+        guard appState.selectedTTSProvider == .elevenLabs else { return }
+
+        isRefreshing = true
+        Task {
+            await ElevenLabsTTS.fetchAndCacheVoices()
+            loadVoices()
+            isRefreshing = false
+        }
+    }
+
+    private func voiceDisplayName(_ voice: TTSVoice) -> String {
+        // Keep it short for menu bar
+        return voice.name
     }
 }
