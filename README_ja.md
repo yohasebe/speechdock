@@ -130,24 +130,6 @@ TypeTalk は STT 用に複数の音声入力ソースをサポート:
 
 API キーは macOS キーチェーンに安全に保存されます。
 
-### 環境変数
-
-環境変数または設定ファイルで API キーを設定することもできます:
-
-**方法1: シェル環境変数** (ターミナルから起動する場合)
-
-```bash
-export OPENAI_API_KEY="your-openai-key"
-export GEMINI_API_KEY="your-gemini-key"
-export ELEVENLABS_API_KEY="your-elevenlabs-key"
-```
-
-**方法2: 設定画面** (推奨)
-
-設定 > API Keys を開き、API キーを入力してください。キーは macOS キーチェーンに安全に保存されます。
-
-注意: 環境変数は主に開発用です。通常の使用には設定画面から API キーを設定してください。
-
 ### 設定項目
 
 - **General**: STT/TTS プロバイダ、モデル、音声、言語、音声入力ソース、再生速度の選択
@@ -166,46 +148,6 @@ STT では言語を指定することで認識精度が向上する場合があ�
 ### ログイン時の自動起動
 
 設定 > General で「Launch at Login」を有効にすると、ログイン時に TypeTalk が自動的に起動します。
-
-## ソースからのビルド
-
-### 前提条件
-
-- Xcode 16.0 以降
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (オプション、プロジェクト生成用)
-
-### ビルド手順
-
-1. リポジトリをクローン:
-   ```bash
-   git clone https://github.com/yohasebe/TypeTalk.git
-   cd TypeTalk
-   ```
-
-2. Xcode プロジェクトを生成 (XcodeGen 使用時):
-   ```bash
-   xcodegen generate
-   ```
-
-3. Xcode で開く:
-   ```bash
-   open TypeTalk.xcodeproj
-   ```
-
-4. ビルドして実行 (Cmd + R)
-
-### ビルドスクリプト
-
-```bash
-# リリース版をビルド
-./scripts/build.sh
-
-# DMG インストーラーを作成
-./scripts/create-dmg.sh
-
-# 配布用に公証 (Apple Developer アカウントが必要)
-./scripts/notarize.sh
-```
 
 ## 権限
 
@@ -255,3 +197,5 @@ TypeTalk は以下の権限が必要です:
 ## コントリビューション
 
 コントリビューションを歓迎します！ガイドラインについては [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+
+開発者向け: ビルド手順、アーキテクチャの詳細、実装ノートについては [DEVELOPMENT_NOTES_ja.md](DEVELOPMENT_NOTES_ja.md) を参照してください。

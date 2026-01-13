@@ -2,8 +2,11 @@
 
 This document consolidates implementation details, design decisions, and behavioral specifications for TypeTalk development.
 
+English | [日本語](DEVELOPMENT_NOTES_ja.md)
+
 ## Table of Contents
 
+- [Building from Source](#building-from-source)
 - [Window Level Hierarchy](#window-level-hierarchy)
 - [Settings Persistence](#settings-persistence)
 - [Audio Input Sources](#audio-input-sources)
@@ -12,6 +15,65 @@ This document consolidates implementation details, design decisions, and behavio
 - [API Key Management](#api-key-management)
 - [Thread Safety](#thread-safety)
 - [Cache Management](#cache-management)
+- [Permissions](#permissions)
+- [UI/UX Guidelines](#uiux-guidelines)
+- [Build and Release](#build-and-release)
+- [Known Issues and Workarounds](#known-issues-and-workarounds)
+
+---
+
+## Building from Source
+
+### Prerequisites
+
+- Xcode 16.0 or later
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (optional, for project generation)
+- Apple Developer account (for code signing and notarization)
+
+### Build Steps
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yohasebe/TypeTalk.git
+   cd TypeTalk
+   ```
+
+2. Generate Xcode project (if using XcodeGen):
+   ```bash
+   xcodegen generate
+   ```
+
+3. Open in Xcode:
+   ```bash
+   open TypeTalk.xcodeproj
+   ```
+
+4. Build and run (Cmd + R)
+
+### Build Scripts
+
+```bash
+# Build release version
+./scripts/build.sh
+
+# Create DMG installer
+./scripts/create-dmg.sh
+
+# Notarize for distribution (requires Apple Developer account)
+./scripts/notarize.sh
+```
+
+### Environment Variables (Development Only)
+
+For development, you can set API keys using environment variables instead of the Settings UI:
+
+```bash
+export OPENAI_API_KEY="your-openai-key"
+export GEMINI_API_KEY="your-gemini-key"
+export ELEVENLABS_API_KEY="your-elevenlabs-key"
+```
+
+Note: Environment variables are only for development. Production users should configure API keys through the Settings UI (stored securely in macOS Keychain).
 
 ---
 
@@ -352,12 +414,6 @@ return Self.defaultVoices
 ---
 
 ## Build and Release
-
-### Prerequisites
-
-- Xcode 16.0 or later
-- XcodeGen (optional, for project generation)
-- Apple Developer account (for notarization)
 
 ### Version Management
 

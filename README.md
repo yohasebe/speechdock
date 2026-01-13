@@ -128,24 +128,6 @@ Note: App Audio selection is session-only and resets to Microphone when the app 
 
 API keys are securely stored in macOS Keychain.
 
-### Environment Variables
-
-Alternatively, you can set API keys using environment variables or a config file:
-
-**Option 1: Shell environment variables** (when launching from Terminal)
-
-```bash
-export OPENAI_API_KEY="your-openai-key"
-export GEMINI_API_KEY="your-gemini-key"
-export ELEVENLABS_API_KEY="your-elevenlabs-key"
-```
-
-**Option 2: Settings UI** (recommended)
-
-Open Settings > API Keys and enter your API keys. Keys are securely stored in macOS Keychain.
-
-Note: Environment variables are primarily for development. For normal usage, configure API keys through the Settings UI.
-
 ### Settings
 
 - **General**: Select STT/TTS providers, models, voices, languages, audio input source, and playback speed
@@ -164,46 +146,6 @@ For STT, specifying a language can improve recognition accuracy. For TTS, langua
 ### Launch at Login
 
 Enable "Launch at Login" in Settings > General to automatically start TypeTalk when you log in.
-
-## Building from Source
-
-### Prerequisites
-
-- Xcode 16.0 or later
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (optional, for project generation)
-
-### Build Steps
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yohasebe/TypeTalk.git
-   cd TypeTalk
-   ```
-
-2. Generate Xcode project (if using XcodeGen):
-   ```bash
-   xcodegen generate
-   ```
-
-3. Open in Xcode:
-   ```bash
-   open TypeTalk.xcodeproj
-   ```
-
-4. Build and run (Cmd + R)
-
-### Build Scripts
-
-```bash
-# Build release version
-./scripts/build.sh
-
-# Create DMG installer
-./scripts/create-dmg.sh
-
-# Notarize for distribution (requires Apple Developer account)
-./scripts/notarize.sh
-```
 
 ## Permissions
 
@@ -253,3 +195,5 @@ Yoichiro Hasebe
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+For developers: See [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md) for build instructions, architecture details, and implementation notes.
