@@ -307,6 +307,10 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         pausedTime = 0
     }
 
+    func clearAudioCache() {
+        lastAudioData = nil
+    }
+
     /// Detect language from text using NaturalLanguage framework
     private func detectLanguage(for text: String) -> String {
         let recognizer = NLLanguageRecognizer()

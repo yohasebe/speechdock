@@ -125,6 +125,10 @@ final class OpenAITTS: NSObject, TTSService {
         playbackController.stopPlayback()
     }
 
+    func clearAudioCache() {
+        lastAudioData = nil
+    }
+
     /// Valid OpenAI voice IDs
     private static let validVoiceIds: Set<String> = [
         "alloy", "ash", "ballad", "coral", "echo", "fable",

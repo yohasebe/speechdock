@@ -41,6 +41,9 @@ protocol TTSService: AnyObject {
     func resume()
     func stop()
 
+    /// Clear cached audio data to free memory
+    func clearAudioCache()
+
     func availableVoices() -> [TTSVoice]
     func availableModels() -> [TTSModelInfo]
 

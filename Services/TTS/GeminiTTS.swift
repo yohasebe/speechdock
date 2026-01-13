@@ -187,6 +187,10 @@ final class GeminiTTS: NSObject, TTSService {
         playbackController.stopPlayback()
     }
 
+    func clearAudioCache() {
+        lastAudioData = nil
+    }
+
     // MARK: - Gemini-specific Helpers
 
     private func createWAVFromPCM(_ pcmData: Data, mimeType: String) -> Data {

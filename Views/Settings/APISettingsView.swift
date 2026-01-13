@@ -68,13 +68,6 @@ struct APIKeySection: View {
             }
         } header: {
             Text(provider.rawValue)
-        } footer: {
-            HStack {
-                Text("Environment variable: \(provider.envKeyName)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
         }
         .onAppear {
             loadAPIKey()

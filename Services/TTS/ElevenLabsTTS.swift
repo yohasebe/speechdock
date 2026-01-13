@@ -135,6 +135,10 @@ final class ElevenLabsTTS: NSObject, TTSService {
         playbackController.stopPlayback()
     }
 
+    func clearAudioCache() {
+        lastAudioData = nil
+    }
+
     func availableVoices() -> [TTSVoice] {
         // Return cached voices if available and not expired, otherwise return defaults
         if let cached = TTSVoiceCache.shared.getCachedVoices(for: .elevenLabs),

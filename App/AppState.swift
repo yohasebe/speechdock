@@ -577,9 +577,11 @@ final class AppState {
 
     func stopTTS() {
         ttsService?.stop()
+        ttsService?.clearAudioCache()
         ttsService = nil
         ttsState = .idle
         currentSpeakingRange = nil
+        lastSynthesizedText = ""  // Clear cache reference
 
         // Ensure window state flag is in sync (in case stopTTS is called directly)
         if showTTSWindow && !floatingWindowManager.isVisible {

@@ -63,10 +63,10 @@ final class TTSAudioPlaybackController: NSObject {
             try playWithAudioPlayer(url: tempURL)
         }
 
-        // Schedule temp file cleanup
+        // Schedule temp file cleanup as safety net (in case stopPlayback is not called)
         let urlToClean = tempURL
         Task {
-            try? await Task.sleep(nanoseconds: 300_000_000_000) // 5 minutes
+            try? await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
             try? FileManager.default.removeItem(at: urlToClean)
         }
     }
@@ -213,12 +213,23 @@ final class TTSAudioPlaybackController: NSObject {
         // Stop AVAudioEngine if in use
         stopAudioEngine()
 
+        // Clean up temp file immediately
+        cleanupTempFile()
+
         isSpeaking = false
         isPaused = false
         currentText = ""
         wordRanges = []
         wordWeights = []
         audioDuration = 0
+    }
+
+    /// Clean up temporary audio file
+    private func cleanupTempFile() {
+        if let url = tempFileURL {
+            try? FileManager.default.removeItem(at: url)
+            tempFileURL = nil
+        }
     }
 
     // MARK: - Word Highlighting Timer
