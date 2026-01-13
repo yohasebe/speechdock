@@ -14,12 +14,22 @@ struct SettingsWindow: View {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
 
+            TextReplacementSettingsView()
+                .tabItem {
+                    Label("Text Replacement", systemImage: "text.badge.plus")
+                }
+
+            WhisperKitSettingsView()
+                .tabItem {
+                    Label("WhisperKit", systemImage: "waveform")
+                }
+
             APISettingsView()
                 .tabItem {
                     Label("API Keys", systemImage: "key")
                 }
         }
-        .frame(width: 500, height: 450)
+        .frame(width: 550, height: 480)
     }
 }
 
@@ -61,6 +71,9 @@ struct GeneralSettingsView: View {
 
                 // Audio Input Device selection (only shown for microphone)
                 AudioInputDevicePicker(appState: appState)
+
+                // VAD Auto-Stop settings (only for Gemini, OpenAI, LocalWhisper)
+                VADAutoStopSettings(appState: appState)
             } header: {
                 Text("Speech-to-Text")
             }
@@ -140,7 +153,7 @@ struct GeneralSettingsView: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
-        case .macOS:
+        case .macOS, .localWhisper:
             return true
         }
     }
@@ -489,6 +502,7 @@ struct TTSVoicePicker: View {
 struct STTModelPicker: View {
     @Bindable var appState: AppState
     @State private var availableModels: [RealtimeSTTModelInfo] = []
+    @ObservedObject private var whisperKitManager = WhisperKitManager.shared
 
     var body: some View {
         Picker("Model", selection: $appState.selectedRealtimeSTTModel) {
@@ -498,10 +512,29 @@ struct STTModelPicker: View {
             }
         }
         .onAppear {
-            loadModels()
+            Task {
+                await ensureWhisperKitInitialized()
+                loadModels()
+            }
         }
         .onChange(of: appState.selectedRealtimeProvider) { _, _ in
-            loadModels()
+            Task {
+                await ensureWhisperKitInitialized()
+                loadModels()
+            }
+        }
+        // Reload when WhisperKit download states change (for Local Whisper)
+        .onChange(of: whisperKitManager.downloadStates) { _, _ in
+            if appState.selectedRealtimeProvider == .localWhisper {
+                loadModels()
+            }
+        }
+    }
+
+    /// Ensure WhisperKit model states are loaded before displaying
+    private func ensureWhisperKitInitialized() async {
+        if appState.selectedRealtimeProvider == .localWhisper {
+            await whisperKitManager.refreshModelStates()
         }
     }
 
@@ -723,11 +756,24 @@ struct TTSWordHighlightToggle: View {
 struct STTLanguagePicker: View {
     @Bindable var appState: AppState
 
+    /// Get supported languages for the current provider
+    private var supportedLanguages: [LanguageCode] {
+        LanguageCode.supportedLanguages(for: appState.selectedRealtimeProvider)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Picker("Language", selection: $appState.selectedSTTLanguage) {
-                ForEach(LanguageCode.allCases) { lang in
+                ForEach(supportedLanguages) { lang in
                     Text(lang.displayName).tag(lang.rawValue)
+                }
+            }
+            .onChange(of: appState.selectedRealtimeProvider) { _, newProvider in
+                // Reset to default language if current selection is not supported
+                let supported = LanguageCode.supportedLanguages(for: newProvider)
+                if let currentLang = LanguageCode(rawValue: appState.selectedSTTLanguage),
+                   !supported.contains(currentLang) {
+                    appState.selectedSTTLanguage = LanguageCode.defaultLanguage(for: newProvider).rawValue
                 }
             }
 
@@ -740,13 +786,15 @@ struct STTLanguagePicker: View {
     private var languageHelpText: String {
         switch appState.selectedRealtimeProvider {
         case .macOS:
-            return "Specifies the expected language for speech recognition."
+            return "Select the language for speech recognition. Only system-installed languages are shown."
+        case .localWhisper:
+            return "Auto detects the language. Specifying a language can improve accuracy."
         case .openAI:
-            return "Helps improve accuracy. Auto uses automatic detection."
+            return "Auto detects the language. Specifying a language can improve accuracy."
         case .gemini:
-            return "Gemini auto-detects language (setting ignored)."
+            return "Auto detects the language. Note: Portuguese is not supported."
         case .elevenLabs:
-            return "Specifies the input language for transcription."
+            return "Auto detects the language. Specifying a language can improve accuracy."
         }
     }
 }
@@ -877,6 +925,99 @@ struct AudioOutputDevicePicker: View {
         // If selected device is not in the list, reset to system default
         if !availableDevices.contains(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
             appState.selectedAudioOutputDeviceUID = ""
+        }
+    }
+}
+
+/// VAD Auto-Stop settings (only shown for providers that use VAD)
+struct VADAutoStopSettings: View {
+    @Bindable var appState: AppState
+
+    /// Check if current provider uses VAD for auto-stop
+    private var supportsVADAutoStop: Bool {
+        [.gemini, .openAI, .localWhisper].contains(appState.selectedRealtimeProvider)
+    }
+
+    var body: some View {
+        if supportsVADAutoStop {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Auto-Stop Settings")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                // Minimum recording time
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Min. recording time")
+                        Spacer()
+                        Text("\(Int(appState.vadMinimumRecordingTime))s")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+
+                    HStack {
+                        Text("5s")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+
+                        Slider(
+                            value: $appState.vadMinimumRecordingTime,
+                            in: 5...60,
+                            step: 5
+                        )
+
+                        Text("60s")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text("Recording must reach this duration before auto-stop activates.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                // Silence duration
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Silence duration")
+                        Spacer()
+                        Text("\(Int(appState.vadSilenceDuration))s")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+
+                    HStack {
+                        Text("1s")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+
+                        Slider(
+                            value: $appState.vadSilenceDuration,
+                            in: 1...10,
+                            step: 1
+                        )
+
+                        Text("10s")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text("Duration of silence required to trigger auto-stop.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                // Reset button
+                HStack {
+                    Spacer()
+                    Button("Reset to Defaults") {
+                        appState.vadMinimumRecordingTime = 10.0
+                        appState.vadSilenceDuration = 3.0
+                    }
+                    .font(.caption)
+                }
+            }
+            .padding(.top, 4)
         }
     }
 }

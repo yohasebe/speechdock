@@ -17,6 +17,7 @@ Convert speech to text using:
 | Provider | Models | API Key |
 |----------|--------|---------|
 | **macOS Native** | System Default | Not required |
+| **Local Whisper** | Tiny, Base, Small, Medium, Large v2/v3, Large v3 Turbo | Not required |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | Required |
 | **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | Required |
 | **ElevenLabs** | Scribe v2 Realtime | Required |

@@ -1,7 +1,7 @@
 import Foundation
 @preconcurrency import AVFoundation
 
-/// OpenAI Whisper API for speech-to-text with continuous recording
+/// OpenAI Whisper API for speech-to-text (record then transcribe)
 @MainActor
 final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
@@ -12,91 +12,151 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     var audioSource: STTAudioSource = .microphone
 
     private var audioEngine: AVAudioEngine?
-    private var audioFile: AVAudioFile?
-    private var tempFileURL: URL?
-    private var transcriptionTimer: Timer?
+
+    // Audio buffer (no max limit - record until stop)
+    private var audioBuffer: [Float] = []
+    private let bufferLock = NSLock()
+
+    // VAD for auto-stop
+    private let vadService = VADService.shared
+    private var vadBuffer: [Float] = []
+    private let vadChunkSize = 4096  // 256ms at 16kHz
+    private var silenceStartTime: Date?
+    private var recordingStartTime: Date?
+
+    // VAD auto-stop settings (configurable via AppState)
+    var vadMinimumRecordingTime: TimeInterval = 10.0
+    var vadSilenceDuration: TimeInterval = 3.0
+
+    // Audio level monitoring
+    private let audioLevelMonitor = AudioLevelMonitor.shared
 
     private let apiKeyManager = APIKeyManager.shared
-    private let transcriptionInterval: TimeInterval = 2.0
-    private let transcriptionTimeout: TimeInterval = 30.0  // Timeout to auto-reset isTranscribing flag
-
-    private var isTranscribing = false
-    private var transcriptionStartTime: Date?
+    private let sampleRate: Double = 16000
 
     func startListening() async throws {
-        guard let _ = apiKeyManager.getAPIKey(for: .openAI) else {
+        guard apiKeyManager.getAPIKey(for: .openAI) != nil else {
             throw RealtimeSTTError.apiError("OpenAI API key not found")
         }
 
         // Stop any existing session
         stopListening()
 
-        // Create temp file for audio
-        tempFileURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("stt_\(UUID().uuidString).wav")
+        // Reset state
+        bufferLock.lock()
+        audioBuffer.removeAll()
+        vadBuffer.removeAll()
+        bufferLock.unlock()
+        silenceStartTime = nil
+        recordingStartTime = Date()
+        vadService.reset()
+        audioLevelMonitor.start()
 
+        // Start audio capture FIRST for immediate response
         if audioSource == .microphone {
-            // Start audio capture from microphone
             try await startAudioCapture()
-        } else {
-            // For external source, create audio file with 16kHz mono format
-            guard let tempURL = tempFileURL else {
-                throw RealtimeSTTError.audioError("Failed to create temp file")
-            }
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatLinearPCM),
-                AVSampleRateKey: 16000.0,
-                AVNumberOfChannelsKey: 1,
-                AVLinearPCMBitDepthKey: 16,
-                AVLinearPCMIsFloatKey: false,
-                AVLinearPCMIsBigEndianKey: false
-            ]
-            audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
         }
-
-        // Start periodic transcription
-        startTranscriptionTimer()
 
         isListening = true
         delegate?.realtimeSTT(self, didChangeListeningState: true)
+
+        // Initialize VAD in background (non-blocking)
+        Task {
+            do {
+                try await vadService.initialize()
+            } catch {
+                #if DEBUG
+                print("OpenAIRealtimeSTT: VAD initialization failed: \(error)")
+                #endif
+            }
+        }
     }
 
     func stopListening() {
-        transcriptionTimer?.invalidate()
-        transcriptionTimer = nil
+        let wasListening = isListening
+        isListening = false
 
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
+        audioLevelMonitor.stop()
 
-        audioFile = nil
-
-        // Perform final transcription
-        if let url = tempFileURL, FileManager.default.fileExists(atPath: url.path) {
+        if wasListening {
+            // Transcribe the recorded audio
             Task {
-                await performFinalTranscription()
+                await transcribeRecordedAudio()
             }
-        }
-
-        if isListening {
-            isListening = false
             delegate?.realtimeSTT(self, didChangeListeningState: false)
         }
     }
 
-    /// Process audio buffer from external source
     func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard audioSource == .external, isListening, let audioFile = audioFile else { return }
-        do {
-            try audioFile.write(from: buffer)
-        } catch {
-            print("Failed to write external audio: \(error)")
+        guard audioSource == .external, isListening else { return }
+        appendToBuffer(buffer)
+    }
+
+    private func appendToBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard let channelData = buffer.floatChannelData else { return }
+        let frameLength = Int(buffer.frameLength)
+        let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+
+        bufferLock.lock()
+        audioBuffer.append(contentsOf: samples)
+        vadBuffer.append(contentsOf: samples)
+        bufferLock.unlock()
+
+        // Update audio level monitor
+        audioLevelMonitor.updateLevel(from: samples)
+
+        // Process VAD for auto-stop
+        Task {
+            await processVADForAutoStop()
         }
+    }
+
+    private func processVADForAutoStop() async {
+        guard vadService.isReady, isListening else { return }
+
+        // Check if minimum recording time has passed
+        guard let startTime = recordingStartTime,
+              Date().timeIntervalSince(startTime) >= vadMinimumRecordingTime else {
+            return
+        }
+
+        bufferLock.lock()
+        while vadBuffer.count >= vadChunkSize {
+            let chunk = Array(vadBuffer.prefix(vadChunkSize))
+            vadBuffer.removeFirst(vadChunkSize)
+            bufferLock.unlock()
+
+            let result = await vadService.processSamples(chunk)
+
+            if result.isSpeech {
+                // Speech detected - reset silence timer
+                silenceStartTime = nil
+            } else {
+                // Silence detected
+                if silenceStartTime == nil {
+                    silenceStartTime = Date()
+                } else if let silenceStart = silenceStartTime,
+                          Date().timeIntervalSince(silenceStart) >= vadSilenceDuration {
+                    // Silence duration reached - auto-stop
+                    #if DEBUG
+                    print("OpenAIRealtimeSTT: Auto-stop triggered after \(vadSilenceDuration)s of silence")
+                    #endif
+                    stopListening()
+                    return
+                }
+            }
+
+            bufferLock.lock()
+        }
+        bufferLock.unlock()
     }
 
     private func startAudioCapture() async throws {
         audioEngine = AVAudioEngine()
-        guard let audioEngine = audioEngine, let tempURL = tempFileURL else {
+        guard let audioEngine = audioEngine else {
             throw RealtimeSTTError.audioError("Failed to create audio engine")
         }
 
@@ -107,27 +167,26 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Create audio file with the input format (no conversion needed for WAV)
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatLinearPCM),
-            AVSampleRateKey: recordingFormat.sampleRate,
-            AVNumberOfChannelsKey: recordingFormat.channelCount,
-            AVLinearPCMBitDepthKey: 16,
-            AVLinearPCMIsFloatKey: false,
-            AVLinearPCMIsBigEndianKey: false
-        ]
+        // Convert to 16kHz mono
+        let targetFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
+        let converter = AVAudioConverter(from: inputFormat, to: targetFormat)
 
-        audioFile = try AVAudioFile(forWriting: tempURL, settings: settings)
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
+            guard let self = self else { return }
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: recordingFormat) { [weak self] buffer, _ in
-            guard let self = self, let audioFile = self.audioFile else { return }
+            let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * self.sampleRate / inputFormat.sampleRate)
+            guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCount) else { return }
 
-            do {
-                try audioFile.write(from: buffer)
-            } catch {
-                print("Failed to write audio: \(error)")
+            var error: NSError?
+            converter?.convert(to: convertedBuffer, error: &error) { inNumPackets, outStatus in
+                outStatus.pointee = .haveData
+                return buffer
+            }
+
+            if error == nil {
+                self.appendToBuffer(convertedBuffer)
             }
         }
 
@@ -135,72 +194,23 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         try audioEngine.start()
     }
 
-    private func startTranscriptionTimer() {
-        transcriptionTimer = Timer.scheduledTimer(withTimeInterval: transcriptionInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.performPeriodicTranscription()
-            }
-        }
-    }
+    private func transcribeRecordedAudio() async {
+        bufferLock.lock()
+        let samples = audioBuffer
+        audioBuffer.removeAll()
+        vadBuffer.removeAll()
+        bufferLock.unlock()
 
-    private func performPeriodicTranscription() async {
-        // Auto-reset isTranscribing if it's been stuck for too long (timeout protection)
-        if isTranscribing, let startTime = transcriptionStartTime {
-            if Date().timeIntervalSince(startTime) > transcriptionTimeout {
-                #if DEBUG
-                print("OpenAIRealtimeSTT: isTranscribing timeout, auto-resetting flag")
-                #endif
-                isTranscribing = false
-                transcriptionStartTime = nil
-            }
-        }
-
-        guard isListening, !isTranscribing, let tempURL = tempFileURL else { return }
-
-        // Check if file has content
-        guard FileManager.default.fileExists(atPath: tempURL.path),
-              let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
-              let fileSize = attrs[.size] as? Int,
-              fileSize > 1000 else {
-            return
-        }
-
-        isTranscribing = true
-        transcriptionStartTime = Date()
-        defer {
-            isTranscribing = false
-            transcriptionStartTime = nil
-        }
-
-        do {
-            let transcription = try await transcribeAudio(at: tempURL)
-            if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
-            }
-        } catch {
-            print("Transcription error: \(error)")
-        }
-    }
-
-    private func performFinalTranscription() async {
-        guard let tempURL = tempFileURL else { return }
-
-        defer {
-            // Cleanup
-            try? FileManager.default.removeItem(at: tempURL)
-            tempFileURL = nil
-        }
-
-        // Check if file has content
-        guard FileManager.default.fileExists(atPath: tempURL.path),
-              let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
-              let fileSize = attrs[.size] as? Int,
-              fileSize > 1000 else {
+        // Need at least 0.5 seconds of audio
+        guard samples.count > 8000 else {
+            #if DEBUG
+            print("OpenAIRealtimeSTT: Recording too short, skipping transcription")
+            #endif
             return
         }
 
         do {
-            let transcription = try await transcribeAudio(at: tempURL)
+            let transcription = try await transcribeAudio(samples: samples)
             if !transcription.isEmpty {
                 delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
             }
@@ -209,10 +219,13 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         }
     }
 
-    private func transcribeAudio(at audioFileURL: URL) async throws -> String {
+    private func transcribeAudio(samples: [Float]) async throws -> String {
         guard let apiKey = apiKeyManager.getAPIKey(for: .openAI) else {
             throw RealtimeSTTError.apiError("OpenAI API key not found")
         }
+
+        // Convert Float samples to WAV data
+        let wavData = createWAVData(from: samples, sampleRate: Int(sampleRate))
 
         let boundary = UUID().uuidString
         guard let apiURL = URL(string: "https://api.openai.com/v1/audio/transcriptions") else {
@@ -222,17 +235,16 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 60  // Longer timeout for longer recordings
 
         // Build multipart form data
         var body = Data()
 
         // Add file
-        let audioData = try Data(contentsOf: audioFileURL)
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
-        body.append(audioData)
+        body.append(wavData)
         body.append("\r\n".data(using: .utf8)!)
 
         // Add model
@@ -241,7 +253,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
         body.append("\(model)\r\n".data(using: .utf8)!)
 
-        // Add language if specified (ISO 639-1 format)
+        // Add language if specified
         if !selectedLanguage.isEmpty {
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
@@ -269,6 +281,49 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         return text
+    }
+
+    /// Create WAV file data from Float samples
+    private func createWAVData(from samples: [Float], sampleRate: Int) -> Data {
+        var data = Data()
+
+        // Convert float samples to 16-bit PCM
+        var pcmData = Data()
+        for sample in samples {
+            let clipped = max(-1.0, min(1.0, sample))
+            let intSample = Int16(clipped * 32767.0)
+            pcmData.append(contentsOf: withUnsafeBytes(of: intSample.littleEndian) { Array($0) })
+        }
+
+        // WAV header
+        let dataSize = UInt32(pcmData.count)
+        let fileSize = UInt32(36 + pcmData.count)
+        let channels: UInt16 = 1
+        let bitsPerSample: UInt16 = 16
+        let byteRate = UInt32(sampleRate * Int(channels) * Int(bitsPerSample) / 8)
+        let blockAlign = UInt16(channels * bitsPerSample / 8)
+
+        // RIFF header
+        data.append("RIFF".data(using: .ascii)!)
+        data.append(contentsOf: withUnsafeBytes(of: fileSize.littleEndian) { Array($0) })
+        data.append("WAVE".data(using: .ascii)!)
+
+        // fmt chunk
+        data.append("fmt ".data(using: .ascii)!)
+        data.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) })
+        data.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) })
+        data.append(contentsOf: withUnsafeBytes(of: channels.littleEndian) { Array($0) })
+        data.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) })
+        data.append(contentsOf: withUnsafeBytes(of: byteRate.littleEndian) { Array($0) })
+        data.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Array($0) })
+        data.append(contentsOf: withUnsafeBytes(of: bitsPerSample.littleEndian) { Array($0) })
+
+        // data chunk
+        data.append("data".data(using: .ascii)!)
+        data.append(contentsOf: withUnsafeBytes(of: dataSize.littleEndian) { Array($0) })
+        data.append(pcmData)
+
+        return data
     }
 
     func availableModels() -> [RealtimeSTTModelInfo] {

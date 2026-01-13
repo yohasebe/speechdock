@@ -11,6 +11,10 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
 
+    // VAD auto-stop settings (not used by ElevenLabs streaming, but required by protocol)
+    var vadMinimumRecordingTime: TimeInterval = 10.0
+    var vadSilenceDuration: TimeInterval = 3.0
+
     private var audioEngine: AVAudioEngine?
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -22,6 +26,14 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     private var audioConverter: AVAudioConverter?
     private var outputFormat: AVAudioFormat?
 
+    // Accumulated committed text (ElevenLabs resets partial transcripts after each commit)
+    private var committedText: String = ""
+    // Current partial text (not yet committed) - needed to preserve on stop
+    private var currentPartialText: String = ""
+
+    // Audio level monitoring
+    private let audioLevelMonitor = AudioLevelMonitor.shared
+
     func startListening() async throws {
         guard let apiKey = apiKeyManager.getAPIKey(for: .elevenLabs) else {
             throw RealtimeSTTError.apiError("ElevenLabs API key not found")
@@ -29,6 +41,10 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         // Stop any existing session
         stopListening()
+
+        // Reset accumulated text
+        committedText = ""
+        currentPartialText = ""
 
         // Connect WebSocket
         try await connectWebSocket(apiKey: apiKey)
@@ -42,6 +58,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         isListening = true
+        audioLevelMonitor.start()
         delegate?.realtimeSTT(self, didChangeListeningState: true)
     }
 
@@ -52,12 +69,25 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         audioEngine = nil
         audioConverter = nil
         outputFormat = nil
+        audioLevelMonitor.stop()
 
         // Close WebSocket
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
         urlSession?.invalidateAndCancel()
         urlSession = nil
+
+        // Only send final result if there's uncommitted partial text to preserve
+        // (committed text was already sent via didReceivePartialResult)
+        if !currentPartialText.isEmpty {
+            let finalText: String
+            if committedText.isEmpty {
+                finalText = currentPartialText
+            } else {
+                finalText = committedText + " " + currentPartialText
+            }
+            delegate?.realtimeSTT(self, didReceiveFinalResult: finalText)
+        }
 
         if isListening {
             isListening = false
@@ -84,10 +114,11 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         urlComponents.queryItems = [
             URLQueryItem(name: "model_id", value: model),
             URLQueryItem(name: "sample_rate", value: "\(Int(sampleRate))"),
-            URLQueryItem(name: "encoding", value: "pcm_s16le")
+            URLQueryItem(name: "encoding", value: "pcm_s16le"),
+            URLQueryItem(name: "include_language_detection", value: "true")
         ]
 
-        // Add language if specified
+        // Add language if specified (recommended for better accuracy)
         if !selectedLanguage.isEmpty {
             urlComponents.queryItems?.append(URLQueryItem(name: "language_code", value: selectedLanguage))
         }
@@ -95,6 +126,11 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         guard let url = urlComponents.url else {
             throw RealtimeSTTError.apiError("Invalid WebSocket URL")
         }
+
+        #if DEBUG
+        print("ElevenLabsRealtimeSTT: Connecting to \(url.absoluteString)")
+        print("ElevenLabsRealtimeSTT: Language code = '\(selectedLanguage)' (empty = auto-detect)")
+        #endif
 
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
@@ -166,12 +202,37 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         case "partial_transcript":
             if let text = json["text"] as? String, !text.isEmpty {
-                delegate?.realtimeSTT(self, didReceivePartialResult: text)
+                // Track current partial text
+                currentPartialText = text
+                // Combine committed text with current partial text
+                let fullText = committedText.isEmpty ? text : committedText + " " + text
+                delegate?.realtimeSTT(self, didReceivePartialResult: fullText)
+            } else {
+                // Empty partial - clear current partial
+                currentPartialText = ""
+                if !committedText.isEmpty {
+                    delegate?.realtimeSTT(self, didReceivePartialResult: committedText)
+                }
             }
 
         case "committed_transcript", "committed_transcript_with_timestamps":
             if let text = json["text"] as? String, !text.isEmpty {
-                delegate?.realtimeSTT(self, didReceiveFinalResult: text)
+                #if DEBUG
+                // Log detected language for debugging
+                if let detectedLang = json["language_code"] as? String {
+                    print("ElevenLabsRealtimeSTT: Detected language = '\(detectedLang)', text = '\(text.prefix(50))...'")
+                }
+                #endif
+                // Accumulate committed text
+                if committedText.isEmpty {
+                    committedText = text
+                } else {
+                    committedText += " " + text
+                }
+                // Clear partial text since it's now committed
+                currentPartialText = ""
+                // Show accumulated text as partial result (final is only sent when stopping)
+                delegate?.realtimeSTT(self, didReceivePartialResult: committedText)
             }
 
         case "error", "invalid_request":
@@ -215,6 +276,13 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         // Install tap to capture audio
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
             self?.sendAudioBuffer(buffer)
+
+            // Update audio level monitor
+            if let channelData = buffer.floatChannelData {
+                let frameLength = Int(buffer.frameLength)
+                let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+                self?.audioLevelMonitor.updateLevel(from: samples)
+            }
         }
 
         audioEngine.prepare()

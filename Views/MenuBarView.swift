@@ -307,7 +307,7 @@ struct MenuBarView: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
-        case .macOS:
+        case .macOS, .localWhisper:
             return true
         }
     }

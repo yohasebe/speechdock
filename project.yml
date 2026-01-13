@@ -9,6 +9,12 @@ packages:
   HotKey:
     url: https://github.com/soffes/HotKey
     from: 0.2.1
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit
+    from: 0.15.0
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio
+    from: 0.7.9
 
 targets:
   TypeTalk:
@@ -26,7 +32,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.typetalk.app
         PRODUCT_NAME: TypeTalk
-        MARKETING_VERSION: "0.1.3"
+        MARKETING_VERSION: "0.1.4"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/TypeTalk.entitlements
@@ -41,6 +47,8 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: HotKey
+      - package: WhisperKit
+      - package: FluidAudio
 
   TypeTalkTests:
     type: bundle.unit-test

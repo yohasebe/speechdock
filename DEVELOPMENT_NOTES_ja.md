@@ -140,9 +140,98 @@ protocol TTSService {
 | マイクデバイス | `selectedAudioInputDeviceUID` |
 | 音声出力デバイス | `selectedAudioOutputDeviceUID` |
 | ログイン時起動 | `launchAtLogin` |
+| VAD最小録音時間 | `vadMinimumRecordingTime` |
+| VAD無音検出時間 | `vadSilenceDuration` |
 
 セッション限定の設定（永続化されない）：
 - `selectedAudioAppBundleID` - アプリオーディオは再起動時にマイクにリセット
+
+### STT言語サポート
+
+#### プロバイダ別言語対応
+
+| プロバイダ | 対応言語数 | 自動検出 |
+|----------|-----------|---------|
+| macOS | システムインストール済みのみ | なし（システムロケール使用） |
+| Local Whisper | 99言語 | あり |
+| OpenAI Realtime | 50+言語 | あり |
+| Gemini Live | 24言語 | あり |
+| ElevenLabs Scribe | 90+言語 | あり |
+
+#### 言語選択の設計方針
+
+言語ピッカーには、全対応言語ではなく**厳選された26の主要言語**を表示：
+
+- 英語、日本語、中国語、韓国語、スペイン語、フランス語、ドイツ語、イタリア語、ポルトガル語、ロシア語、アラビア語、ヒンディー語
+- オランダ語、ポーランド語、トルコ語、インドネシア語、ベトナム語、タイ語
+- ベンガル語、グジャラート語、カンナダ語、マラヤーラム語、マラーティー語、タミル語、テルグ語
+
+**選定理由：**
+1. UIの使いやすさ維持（99項目のピッカーは扱いにくい）
+2. 最も一般的に使用される言語をカバー
+3. リストにない言語は「Auto」検出で対応可能
+
+**プロバイダ別の調整：**
+- **macOS**: システムにインストールされた言語のみ表示（`SFSpeechRecognizer.supportedLocales()`で取得）
+- **Gemini**: ポルトガル語を除外（Gemini Live APIが非対応）
+- **その他**: 共通言語リストをすべて表示
+
+**重要:** ピッカーにない言語でも、「Auto」選択時には認識可能です。ピッカーは精度向上のために言語を明示指定する用途であり、プロバイダの認識能力の制限ではありません。
+
+#### 新しい言語の追加方法
+
+ピッカーに新しい言語を追加するには：
+
+1. `Models/LanguageCode.swift`の`LanguageCode`列挙型にケースを追加
+2. 新言語の`displayName`を追加
+3. `toLocaleIdentifier()`と`toElevenLabsTTSCode()`にマッピングを追加
+4. `commonLanguages`配列に追加（必要に応じてプロバイダ固有の配列にも）
+
+### Local Whisper (WhisperKit) モデルの保存
+
+#### モデルの保存場所
+
+WhisperKitモデルはユーザーのDocumentsフォルダに保存されます：
+
+```
+~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
+```
+
+これはWhisperKitのデフォルト保存場所で、WhisperKitを使用するすべてのアプリで共有されます。
+
+#### 利用可能なモデル
+
+| モデル | タイプ | サイズ | 説明 |
+|-------|-------|-------|------|
+| Tiny | 多言語 | ~39MB | 最速、精度低め |
+| Tiny (English) | 英語専用 | ~39MB | 英語に最適化 |
+| Base | 多言語 | ~74MB | 高速、良好な精度 |
+| Base (English) | 英語専用 | ~74MB | 英語推奨 |
+| Small | 多言語 | ~244MB | バランス型 |
+| Small (English) | 英語専用 | ~244MB | 英語推奨 |
+| Medium | 多言語 | ~769MB | 高精度 |
+| Large v2 | 多言語 | ~1.5GB | 非常に高精度 |
+| Large v3 | 多言語 | ~1.5GB | 最高精度 |
+| Large v3 Turbo | 多言語 | ~800MB | 高速＋高精度 |
+
+#### アプリ削除時の動作
+
+TypeTalkをアンインストールした場合：
+
+| データ | 削除される？ | 場所 |
+|-------|------------|------|
+| TypeTalk.app | はい | /Applications |
+| WhisperKitモデル | **いいえ** | ~/Documents/huggingface/ |
+| ユーザー設定 | アンインストーラによる | ~/Library/Preferences |
+| APIキー | アンインストーラによる | Keychain |
+
+**重要:** WhisperKitモデルはアプリ削除後も残ります。ディスク容量を回復するには手動での削除が必要です：
+
+```bash
+rm -rf ~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
+```
+
+**注意:** この場所は他のWhisperKit利用アプリと共有される可能性があります。
 
 ### 音声出力デバイス選択
 

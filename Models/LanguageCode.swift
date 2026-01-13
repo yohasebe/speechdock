@@ -1,4 +1,5 @@
 import Foundation
+import Speech
 
 /// Common language code definitions for STT and TTS services
 enum LanguageCode: String, CaseIterable, Identifiable {
@@ -15,6 +16,20 @@ enum LanguageCode: String, CaseIterable, Identifiable {
     case russian = "ru"
     case arabic = "ar"
     case hindi = "hi"
+    // Additional languages for Gemini and other providers
+    case dutch = "nl"
+    case polish = "pl"
+    case turkish = "tr"
+    case indonesian = "id"
+    case vietnamese = "vi"
+    case thai = "th"
+    case bengali = "bn"
+    case gujarati = "gu"
+    case kannada = "kn"
+    case malayalam = "ml"
+    case marathi = "mr"
+    case tamil = "ta"
+    case telugu = "te"
 
     var id: String { rawValue }
 
@@ -33,6 +48,19 @@ enum LanguageCode: String, CaseIterable, Identifiable {
         case .russian: return "Русский"
         case .arabic: return "العربية"
         case .hindi: return "हिन्दी"
+        case .dutch: return "Nederlands"
+        case .polish: return "Polski"
+        case .turkish: return "Türkçe"
+        case .indonesian: return "Bahasa Indonesia"
+        case .vietnamese: return "Tiếng Việt"
+        case .thai: return "ไทย"
+        case .bengali: return "বাংলা"
+        case .gujarati: return "ગુજરાતી"
+        case .kannada: return "ಕನ್ನಡ"
+        case .malayalam: return "മലയാളം"
+        case .marathi: return "मराठी"
+        case .tamil: return "தமிழ்"
+        case .telugu: return "తెలుగు"
         }
     }
 
@@ -51,7 +79,20 @@ enum LanguageCode: String, CaseIterable, Identifiable {
             .portuguese: "pt-BR",
             .russian: "ru-RU",
             .arabic: "ar-SA",
-            .hindi: "hi-IN"
+            .hindi: "hi-IN",
+            .dutch: "nl-NL",
+            .polish: "pl-PL",
+            .turkish: "tr-TR",
+            .indonesian: "id-ID",
+            .vietnamese: "vi-VN",
+            .thai: "th-TH",
+            .bengali: "bn-IN",
+            .gujarati: "gu-IN",
+            .kannada: "kn-IN",
+            .malayalam: "ml-IN",
+            .marathi: "mr-IN",
+            .tamil: "ta-IN",
+            .telugu: "te-IN"
         ]
         return mapping[self]
     }
@@ -71,8 +112,115 @@ enum LanguageCode: String, CaseIterable, Identifiable {
             .portuguese: "por",
             .russian: "rus",
             .arabic: "ara",
-            .hindi: "hin"
+            .hindi: "hin",
+            .dutch: "nld",
+            .polish: "pol",
+            .turkish: "tur",
+            .indonesian: "ind",
+            .vietnamese: "vie",
+            .thai: "tha",
+            .bengali: "ben",
+            .gujarati: "guj",
+            .kannada: "kan",
+            .malayalam: "mal",
+            .marathi: "mar",
+            .tamil: "tam",
+            .telugu: "tel"
         ]
         return mapping[self]
+    }
+}
+
+// MARK: - Provider-specific language support
+
+extension LanguageCode {
+    /// Common languages shown in the picker (curated subset)
+    /// All providers support these via Auto detection even if not listed
+    private static var commonLanguages: [LanguageCode] {
+        [.auto, .english, .japanese, .chinese, .korean, .spanish, .french, .german,
+         .italian, .portuguese, .russian, .arabic, .hindi, .dutch, .polish, .turkish,
+         .indonesian, .vietnamese, .thai, .bengali, .gujarati, .kannada, .malayalam,
+         .marathi, .tamil, .telugu]
+    }
+
+    /// Languages for Local Whisper, OpenAI, ElevenLabs (all support the same languages)
+    static var whisperLanguages: [LanguageCode] { commonLanguages }
+    static var openAILanguages: [LanguageCode] { commonLanguages }
+    static var elevenLabsLanguages: [LanguageCode] { commonLanguages }
+
+    /// Languages supported by Gemini Live API
+    /// Note: Portuguese is NOT supported by Gemini
+    static var geminiLanguages: [LanguageCode] {
+        commonLanguages.filter { $0 != .portuguese }
+    }
+
+    /// Get supported languages for a given STT provider
+    static func supportedLanguages(for provider: RealtimeSTTProvider) -> [LanguageCode] {
+        switch provider {
+        case .macOS:
+            return macOSAvailableLanguages()
+        case .localWhisper:
+            return whisperLanguages
+        case .openAI:
+            return openAILanguages
+        case .gemini:
+            return geminiLanguages
+        case .elevenLabs:
+            return elevenLabsLanguages
+        }
+    }
+
+    /// Get available languages from macOS Speech Recognition
+    /// Returns dynamically based on system-installed languages
+    static func macOSAvailableLanguages() -> [LanguageCode] {
+        let supportedLocales = SFSpeechRecognizer.supportedLocales()
+        var availableLanguages: [LanguageCode] = []
+
+        // Map system locales to our LanguageCode enum
+        for locale in supportedLocales {
+            let languageCode = locale.language.languageCode?.identifier ?? locale.identifier.prefix(2).lowercased()
+
+            if let lang = LanguageCode(rawValue: String(languageCode.prefix(2))),
+               !availableLanguages.contains(lang) {
+                availableLanguages.append(lang)
+            }
+        }
+
+        // Sort by display name, but keep a common order
+        let preferredOrder: [LanguageCode] = [.english, .japanese, .chinese, .korean, .spanish, .french, .german, .italian, .portuguese, .russian, .arabic, .hindi]
+
+        var sorted: [LanguageCode] = []
+        for lang in preferredOrder {
+            if availableLanguages.contains(lang) {
+                sorted.append(lang)
+            }
+        }
+        // Add any remaining languages
+        for lang in availableLanguages where !sorted.contains(lang) {
+            sorted.append(lang)
+        }
+
+        return sorted
+    }
+
+    /// Check if Auto detection is supported for a provider
+    static func supportsAutoDetection(for provider: RealtimeSTTProvider) -> Bool {
+        switch provider {
+        case .macOS:
+            return false  // macOS uses system locale, not auto-detection
+        case .localWhisper, .openAI, .gemini, .elevenLabs:
+            return true
+        }
+    }
+
+    /// Get default language for a provider
+    static func defaultLanguage(for provider: RealtimeSTTProvider) -> LanguageCode {
+        if supportsAutoDetection(for: provider) {
+            return .auto
+        } else {
+            // For macOS, return system language or English as fallback
+            let systemLanguage = Locale.current.language.languageCode?.identifier ?? "en"
+            return LanguageCode(rawValue: systemLanguage) ?? .english
+        }
     }
 }

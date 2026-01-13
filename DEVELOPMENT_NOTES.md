@@ -140,9 +140,98 @@ Persisted settings (UserDefaults):
 | Microphone Device | `selectedAudioInputDeviceUID` |
 | Audio Output Device | `selectedAudioOutputDeviceUID` |
 | Launch at Login | `launchAtLogin` |
+| VAD Min Recording Time | `vadMinimumRecordingTime` |
+| VAD Silence Duration | `vadSilenceDuration` |
 
 Session-only settings (NOT persisted):
 - `selectedAudioAppBundleID` - App Audio resets to Microphone on restart
+
+### STT Language Support
+
+#### Provider Language Capabilities
+
+| Provider | Supported Languages | Auto Detection |
+|----------|---------------------|----------------|
+| macOS | System-installed only | No (uses system locale) |
+| Local Whisper | 99 languages | Yes |
+| OpenAI Realtime | 50+ languages | Yes |
+| Gemini Live | 24 languages | Yes |
+| ElevenLabs Scribe | 90+ languages | Yes |
+
+#### Language Selection Design
+
+The language picker shows a **curated subset of 26 common languages** rather than all supported languages:
+
+- English, Japanese, Chinese, Korean, Spanish, French, German, Italian, Portuguese, Russian, Arabic, Hindi
+- Dutch, Polish, Turkish, Indonesian, Vietnamese, Thai
+- Bengali, Gujarati, Kannada, Malayalam, Marathi, Tamil, Telugu
+
+**Rationale:**
+1. Keeps the UI manageable (a picker with 99 items is unwieldy)
+2. Covers the most commonly used languages
+3. "Auto" detection handles languages not in the list
+
+**Provider-specific adjustments:**
+- **macOS**: Shows only system-installed languages (queried via `SFSpeechRecognizer.supportedLocales()`)
+- **Gemini**: Excludes Portuguese (not supported by Gemini Live API)
+- **Others**: Show the full common language list
+
+**Important:** Languages not in the picker can still be recognized when "Auto" is selected. The picker is for explicitly specifying a language to improve accuracy, not a limitation of what the provider can recognize.
+
+#### Adding New Languages
+
+To add a new language to the picker:
+
+1. Add the case to `LanguageCode` enum in `Models/LanguageCode.swift`
+2. Add `displayName` for the new language
+3. Add mappings in `toLocaleIdentifier()` and `toElevenLabsTTSCode()`
+4. Add to `commonLanguages` array (or provider-specific array if needed)
+
+### Local Whisper (WhisperKit) Model Storage
+
+#### Model Storage Location
+
+WhisperKit models are stored in the user's Documents folder:
+
+```
+~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
+```
+
+This is WhisperKit's default storage location, shared across all apps using WhisperKit.
+
+#### Available Models
+
+| Model | Type | Size | Description |
+|-------|------|------|-------------|
+| Tiny | Multilingual | ~39MB | Fastest, lowest accuracy |
+| Tiny (English) | English only | ~39MB | Faster for English |
+| Base | Multilingual | ~74MB | Fast, good accuracy |
+| Base (English) | English only | ~74MB | Recommended for English |
+| Small | Multilingual | ~244MB | Balanced speed/accuracy |
+| Small (English) | English only | ~244MB | Recommended for English |
+| Medium | Multilingual | ~769MB | High accuracy |
+| Large v2 | Multilingual | ~1.5GB | Very high accuracy |
+| Large v3 | Multilingual | ~1.5GB | Best accuracy |
+| Large v3 Turbo | Multilingual | ~800MB | Fast + high accuracy |
+
+#### App Uninstallation Behavior
+
+When TypeTalk is uninstalled:
+
+| Data | Deleted? | Location |
+|------|----------|----------|
+| TypeTalk.app | Yes | /Applications |
+| WhisperKit models | **No** | ~/Documents/huggingface/ |
+| User settings | Depends on uninstaller | ~/Library/Preferences |
+| API keys | Depends on uninstaller | Keychain |
+
+**Important:** WhisperKit models persist after app deletion. Users must manually delete them to reclaim disk space:
+
+```bash
+rm -rf ~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
+```
+
+**Note:** This location may be shared with other WhisperKit-based applications.
 
 ### Audio Output Device Selection
 

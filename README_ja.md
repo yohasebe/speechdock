@@ -17,6 +17,7 @@
 | プロバイダ | モデル | APIキー |
 |----------|--------|---------|
 | **macOS Native** | System Default | 不要 |
+| **Local Whisper** | Tiny, Base, Small, Medium, Large v2/v3, Large v3 Turbo | 不要 |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | 必要 |
 | **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | 必要 |
 | **ElevenLabs** | Scribe v2 Realtime | 必要 |

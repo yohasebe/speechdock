@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- VAD auto-stop settings configurable in Settings UI (minimum recording time, silence duration)
+- Transcription loading overlay for Local Whisper, OpenAI, and Gemini providers
+- Local Whisper STT provider using WhisperKit for on-device transcription
+
+### Changed
+- Close button moved to top-left in STT and TTS panels
+- Audio level indicator now has fixed height to prevent layout shifts
+
+### Fixed
+- Japanese/Chinese/Korean spacing in Gemini transcription (spurious spaces removed)
+- 5-second audio capture delay in Local Whisper, OpenAI, and Gemini (VAD initialization now non-blocking)
+
 ## [0.1.3] - 2026-01-13
 
 ### Added

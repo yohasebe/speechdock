@@ -33,23 +33,15 @@ struct WindowSelectorButton: View {
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: 6) {
-                Image(systemName: floatingWindowManager.clipboardOnly ? "doc.on.clipboard" : "arrow.right.circle.fill")
+                Image(systemName: "arrow.right.circle.fill")
                     .foregroundColor(.accentColor)
                     .font(.caption)
 
-                Text(floatingWindowManager.clipboardOnly ? "Copy to:" : "Paste to:")
+                Text("Paste to:")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                if floatingWindowManager.clipboardOnly {
-                    Image(systemName: "doc.on.clipboard.fill")
-                        .foregroundColor(.accentColor)
-                        .font(.caption)
-                    Text("Clipboard")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                } else if let selected = floatingWindowManager.selectedWindow {
+                if let selected = floatingWindowManager.selectedWindow {
                     if let thumbnail = selected.thumbnail {
                         Image(nsImage: thumbnail)
                             .resizable()
@@ -96,10 +88,6 @@ struct WindowSelectorDropdown: View {
     @FocusState private var isListFocused: Bool
 
     private var totalItemCount: Int {
-        floatingWindowManager.availableWindows.count + 1
-    }
-
-    private var clipboardIndex: Int {
         floatingWindowManager.availableWindows.count
     }
 
@@ -125,12 +113,12 @@ struct WindowSelectorDropdown: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 } else {
-                    // Clipboard or no thumbnail - show placeholder
-                    Image(systemName: "doc.on.clipboard.fill")
+                    // No thumbnail - show placeholder
+                    Image(systemName: "macwindow")
                         .font(.system(size: 48))
-                        .foregroundColor(.accentColor.opacity(0.5))
+                        .foregroundColor(.secondary.opacity(0.5))
                         .frame(width: 160, height: 120)
-                    Text(focusedIndex == clipboardIndex ? "Clipboard" : "No Preview")
+                    Text("No Preview")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -152,22 +140,12 @@ struct WindowSelectorDropdown: View {
                         ForEach(Array(floatingWindowManager.availableWindows.enumerated()), id: \.element.id) { index, window in
                             WindowRowView(
                                 window: window,
-                                isSelected: !floatingWindowManager.clipboardOnly && floatingWindowManager.selectedWindow?.id == window.id,
+                                isSelected: floatingWindowManager.selectedWindow?.id == window.id,
                                 isFocused: index == focusedIndex,
                                 onSelect: { selectWindowAndClose(window) }
                             )
                             .id(index)
                         }
-
-                        Divider()
-                            .padding(.vertical, 4)
-
-                        ClipboardRowView(
-                            isSelected: floatingWindowManager.clipboardOnly,
-                            isFocused: focusedIndex == clipboardIndex,
-                            onSelect: { selectClipboardAndClose() }
-                        )
-                        .id(clipboardIndex)
 
                         // Bottom spacer for scroll margin
                         Color.clear
@@ -200,9 +178,7 @@ struct WindowSelectorDropdown: View {
                 }
                 .onAppear {
                     // Set initial focus to current selection
-                    if floatingWindowManager.clipboardOnly {
-                        focusedIndex = clipboardIndex
-                    } else if let selected = floatingWindowManager.selectedWindow,
+                    if let selected = floatingWindowManager.selectedWindow,
                        let index = floatingWindowManager.availableWindows.firstIndex(where: { $0.id == selected.id }) {
                         focusedIndex = index
                     } else {
@@ -244,13 +220,9 @@ struct WindowSelectorDropdown: View {
     }
 
     private func selectFocusedAndClose() {
-        if focusedIndex == clipboardIndex {
-            selectClipboardAndClose()
-        } else {
-            let windows = floatingWindowManager.availableWindows
-            guard focusedIndex < windows.count else { return }
-            selectWindowAndClose(windows[focusedIndex])
-        }
+        let windows = floatingWindowManager.availableWindows
+        guard focusedIndex < windows.count else { return }
+        selectWindowAndClose(windows[focusedIndex])
     }
 
     private func selectWindowAndClose(_ window: WindowInfo) {
@@ -258,71 +230,6 @@ struct WindowSelectorDropdown: View {
         // Brief delay to show selection feedback before closing
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             isExpanded = false
-        }
-    }
-
-    private func selectClipboardAndClose() {
-        floatingWindowManager.selectClipboardOnly()
-        // Brief delay to show selection feedback before closing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            isExpanded = false
-        }
-    }
-}
-
-/// Row for clipboard-only option
-struct ClipboardRowView: View {
-    let isSelected: Bool
-    let isFocused: Bool
-    let onSelect: () -> Void
-
-    private var backgroundColor: Color {
-        if isFocused {
-            return Color.accentColor.opacity(0.2)
-        } else if isSelected {
-            return Color.accentColor.opacity(0.1)
-        }
-        return Color.clear
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            // Placeholder to match window thumbnail size
-            Image(systemName: "doc.on.clipboard.fill")
-                .font(.title2)
-                .foregroundColor(.accentColor)
-                .frame(width: 40, height: 30)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Clipboard")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                Text("Copy only, no paste")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.caption)
-                    .foregroundColor(.accentColor)
-            } else {
-                // Placeholder for alignment
-                Color.clear
-                    .frame(width: 14, height: 14)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(height: 46)
-        .background(backgroundColor)
-        .cornerRadius(4)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onSelect()
         }
     }
 }
@@ -438,6 +345,104 @@ struct RoundedCorner: Shape {
     }
 }
 
+/// Animated loading indicator for STT transcription processing (matches "Listening..." style)
+struct STTLoadingIndicator: View {
+    @State private var animationPhase: Double = 0
+
+    private let barCount = 5
+    private let barWidth: CGFloat = 3
+    private let barSpacing: CGFloat = 4
+    private let minHeight: CGFloat = 8
+    private let maxHeight: CGFloat = 25
+
+    var body: some View {
+        VStack(spacing: 6) {
+            // Animated waveform bars (blue color for processing)
+            HStack(spacing: barSpacing) {
+                ForEach(0..<barCount, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.accentColor.opacity(0.7))
+                        .frame(width: barWidth, height: barHeight(for: index))
+                }
+            }
+            .frame(height: maxHeight)
+
+            Text("Transcribing...")
+                .foregroundColor(.secondary)
+                .font(.caption)
+        }
+        .onAppear {
+            startAnimation()
+        }
+    }
+
+    private func barHeight(for index: Int) -> CGFloat {
+        // Create wave effect with phase offset for each bar
+        let phaseOffset = Double(index) * 0.5
+        let wave = sin(animationPhase + phaseOffset)
+        let normalizedWave = (wave + 1) / 2  // Convert from -1...1 to 0...1
+        return minHeight + (maxHeight - minHeight) * CGFloat(normalizedWave)
+    }
+
+    private func startAnimation() {
+        // Continuous animation loop
+        withAnimation(
+            .linear(duration: 1.0)
+            .repeatForever(autoreverses: false)
+        ) {
+            animationPhase = .pi * 2
+        }
+    }
+}
+
+/// Audio level indicator bars for STT panel (fixed height container)
+struct AudioLevelIndicator: View {
+    @ObservedObject var audioLevelMonitor = AudioLevelMonitor.shared
+    let barCount: Int = 5
+    let barWidth: CGFloat = 3
+    let containerHeight: CGFloat = 16  // Fixed container height
+    let maxBarHeight: CGFloat = 14
+    let minBarHeight: CGFloat = 4
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 2) {
+            ForEach(0..<barCount, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(barColor(for: index))
+                    .frame(width: barWidth, height: barHeight(for: index))
+            }
+        }
+        .frame(height: containerHeight)  // Fixed container height
+        .animation(.easeOut(duration: 0.1), value: audioLevelMonitor.level)
+    }
+
+    private func barHeight(for index: Int) -> CGFloat {
+        let level = audioLevelMonitor.level
+        // Each bar has a threshold - bars light up progressively
+        let threshold = Float(index) / Float(barCount)
+        let barLevel = max(0, min(1, (level - threshold) / (1.0 / Float(barCount))))
+        return minBarHeight + CGFloat(barLevel) * (maxBarHeight - minBarHeight)
+    }
+
+    private func barColor(for index: Int) -> Color {
+        let level = audioLevelMonitor.level
+        let threshold = Float(index) / Float(barCount)
+
+        if level > threshold {
+            // Color gradient: green -> yellow -> red
+            if index < 2 {
+                return .green
+            } else if index < 4 {
+                return .yellow
+            } else {
+                return .red
+            }
+        } else {
+            return Color.gray.opacity(0.3)
+        }
+    }
+}
+
 struct TranscriptionFloatingView: View {
     var appState: AppState
     let onConfirm: (String) -> Void
@@ -448,8 +453,8 @@ struct TranscriptionFloatingView: View {
     @State private var baseText: String = ""  // Text to preserve when resuming recording
     @State private var isWindowSelectorExpanded: Bool = false
     @State private var dropdownId: UUID = UUID()  // Force recreate dropdown when opened
-    @FocusState private var isTextEditorFocused: Bool
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
+    @StateObject private var audioLevelMonitor = AudioLevelMonitor.shared
 
     private var isRecording: Bool {
         appState.transcriptionState == .recording
@@ -467,19 +472,33 @@ struct TranscriptionFloatingView: View {
         VStack(spacing: 12) {
             // Header
             HStack {
+                Button(action: onCancel) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .applyCustomShortcut(cancelShortcut)
+                .help("Cancel (\(cancelShortcut.displayString))")
+
                 statusIcon
                 Text(headerText)
                     .font(.headline)
 
-                // Recording duration
+                // Recording duration and audio level
                 if isRecording {
-                    Text(formattedDuration)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.red)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(4)
+                    HStack(spacing: 8) {
+                        // Audio level indicator
+                        AudioLevelIndicator()
+
+                        // Duration
+                        Text(formattedDuration)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.red)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(4)
                 }
 
                 Spacer()
@@ -496,14 +515,6 @@ struct TranscriptionFloatingView: View {
                 .padding(.vertical, 2)
                 .background(Color.accentColor.opacity(0.2))
                 .cornerRadius(4)
-
-                Button(action: onCancel) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                .applyCustomShortcut(cancelShortcut)
-                .help("Cancel (\(cancelShortcut.displayString))")
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -534,43 +545,54 @@ struct TranscriptionFloatingView: View {
                 )
                 .id(dropdownId)  // Force recreate to reset state
             } else {
-                // Text area
-                TextEditor(text: $editedText)
-                    .font(.system(.body, design: .default))
-                    .padding(8)
-                    .background(Color(.textBackgroundColor))
-                    .cornerRadius(8)
-                    .frame(minHeight: 180, maxHeight: 350)
-                    .focused($isTextEditorFocused)
-                    .overlay(
-                        // Placeholder text when empty and recording
-                        Group {
-                            if editedText.isEmpty && appState.transcriptionState == .recording {
-                                VStack {
-                                    HStack(spacing: 4) {
-                                        ForEach(0..<5, id: \.self) { index in
-                                            RoundedRectangle(cornerRadius: 2)
-                                                .fill(Color.red.opacity(0.7))
-                                                .frame(width: 3, height: CGFloat.random(in: 8...25))
-                                        }
+                // Text area with replacement highlighting
+                ScrollableTextView(
+                    text: $editedText,
+                    isEditable: true,
+                    highlightRange: nil,
+                    enableHighlight: false,
+                    showReplacementHighlights: true
+                )
+                .background(Color(.textBackgroundColor))
+                .cornerRadius(8)
+                .frame(minHeight: 180, maxHeight: 350)
+                .overlay(
+                    // Placeholder text when empty and recording
+                    Group {
+                        if editedText.isEmpty && appState.transcriptionState == .recording {
+                            VStack {
+                                HStack(spacing: 4) {
+                                    ForEach(0..<5, id: \.self) { index in
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.red.opacity(0.7))
+                                            .frame(width: 3, height: CGFloat.random(in: 8...25))
                                     }
-                                    Text("Listening...")
-                                        .foregroundColor(.secondary)
-                                        .font(.caption)
                                 }
+                                Text("Listening...")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
                             }
                         }
-                    )
-                    .overlay(
-                        // Recording indicator border - only exists while recording
-                        Group {
-                            if isRecording {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.red, lineWidth: 2)
-                                    .opacity(borderOpacity)
-                            }
+                    }
+                )
+                .overlay(
+                    // Recording indicator border - only exists while recording
+                    Group {
+                        if isRecording {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.red, lineWidth: 2)
+                                .opacity(borderOpacity)
                         }
-                    )
+                    }
+                )
+                .overlay(
+                    // Transcription processing overlay
+                    Group {
+                        if case .processing = appState.transcriptionState {
+                            STTLoadingIndicator()
+                        }
+                    }
+                )
 
                 // Error message if any
                 if case .error(let message) = appState.transcriptionState {
@@ -614,10 +636,6 @@ struct TranscriptionFloatingView: View {
         }
         .onAppear {
             editedText = appState.currentTranscription
-            // Auto-focus text editor
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isTextEditorFocused = true
-            }
             // Start animation if already recording
             if isRecording {
                 startBorderAnimation()
@@ -641,8 +659,8 @@ struct TranscriptionFloatingView: View {
                     .foregroundColor(.red)
                     .symbolEffect(.pulse)
             case .processing:
-                ProgressView()
-                    .scaleEffect(0.8)
+                Image(systemName: "text.badge.checkmark")
+                    .foregroundColor(.accentColor)
             case .result:
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
@@ -694,7 +712,7 @@ struct TranscriptionFloatingView: View {
             Spacer()
 
             if case .recording = appState.transcriptionState {
-                // Recording state: Stop and Paste buttons (Save not available while recording)
+                // Recording state: Stop, Copy, and Paste buttons (Save not available while recording)
                 Button {
                     AppState.shared.toggleRecording()
                 } label: {
@@ -705,6 +723,13 @@ struct TranscriptionFloatingView: View {
 
                 if !editedText.isEmpty {
                     Button {
+                        copyTextToClipboard()
+                    } label: {
+                        ButtonLabelWithShortcut(title: "Copy", shortcut: "(⌘⇧C)")
+                    }
+                    .keyboardShortcut("c", modifiers: [.command, .shift])
+
+                    Button {
                         AppState.shared.stopRecordingAndInsert(editedText)
                     } label: {
                         ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))")
@@ -712,7 +737,7 @@ struct TranscriptionFloatingView: View {
                     .applyCustomShortcut(pasteShortcut)
                 }
             } else {
-                // Not recording: Record, Save, and Paste buttons
+                // Not recording: Record, Save, Copy, and Paste buttons
                 Button {
                     startRecordingWithAppend()
                 } label: {
@@ -730,6 +755,14 @@ struct TranscriptionFloatingView: View {
                 .disabled(editedText.isEmpty)
 
                 Button {
+                    copyTextToClipboard()
+                } label: {
+                    ButtonLabelWithShortcut(title: "Copy", shortcut: "(⌘⇧C)")
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .disabled(editedText.isEmpty)
+
+                Button {
                     onConfirm(editedText)
                 } label: {
                     ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))")
@@ -738,6 +771,13 @@ struct TranscriptionFloatingView: View {
                 .disabled(editedText.isEmpty)
             }
         }
+    }
+
+    /// Copy all text to clipboard
+    private func copyTextToClipboard() {
+        guard !editedText.isEmpty else { return }
+        let processedText = TextReplacementService.shared.applyReplacements(to: editedText)
+        ClipboardService.shared.copyToClipboard(processedText)
     }
 
     /// Save transcribed text to a file using NSSavePanel

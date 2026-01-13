@@ -12,12 +12,19 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
 
+    // VAD auto-stop settings (not used by macOS native, but required by protocol)
+    var vadMinimumRecordingTime: TimeInterval = 10.0
+    var vadSilenceDuration: TimeInterval = 3.0
+
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var audioEngine: AVAudioEngine?
 
     private var lastTranscription = ""
+
+    // Audio level monitoring
+    private let audioLevelMonitor = AudioLevelMonitor.shared
 
     override init() {
         super.init()
@@ -84,6 +91,13 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
 
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
                 self?.recognitionRequest?.append(buffer)
+
+                // Update audio level monitor
+                if let channelData = buffer.floatChannelData {
+                    let frameLength = Int(buffer.frameLength)
+                    let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+                    self?.audioLevelMonitor.updateLevel(from: samples)
+                }
             }
 
             // Start audio engine
@@ -126,6 +140,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         isListening = true
+        audioLevelMonitor.start()
         delegate?.realtimeSTT(self, didChangeListeningState: true)
     }
 
@@ -133,11 +148,19 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
         guard audioSource == .external, isListening else { return }
         recognitionRequest?.append(buffer)
+
+        // Update audio level monitor
+        if let channelData = buffer.floatChannelData {
+            let frameLength = Int(buffer.frameLength)
+            let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+            audioLevelMonitor.updateLevel(from: samples)
+        }
     }
 
     func stopListening() {
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        audioLevelMonitor.stop()
 
         recognitionRequest?.endAudio()
         recognitionRequest = nil

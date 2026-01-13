@@ -21,6 +21,7 @@ struct ScrollableTextView: NSViewRepresentable {
     var isEditable: Bool
     var highlightRange: NSRange?
     var enableHighlight: Bool
+    var showReplacementHighlights: Bool = true
 
     // Number of words to highlight before/after current word with gradient
     private let gradientRadius = 2
@@ -114,6 +115,11 @@ struct ScrollableTextView: NSViewRepresentable {
                 }
             }
 
+            // Apply replacement highlights on top of word highlights
+            if showReplacementHighlights {
+                applyReplacementHighlights(to: attrString)
+            }
+
             textView.textStorage?.setAttributedString(attrString)
         } else if !enableHighlight || highlightRange == nil {
             // Reset to plain text when not highlighting
@@ -123,7 +129,30 @@ struct ScrollableTextView: NSViewRepresentable {
             attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
             attrString.addAttribute(.backgroundColor, value: NSColor.clear, range: fullRange)
             attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: NSFont.systemFontSize), range: fullRange)
+
+            // Apply replacement highlights (underline + tooltip)
+            if showReplacementHighlights {
+                applyReplacementHighlights(to: attrString)
+            }
+
             textView.textStorage?.setAttributedString(attrString)
+        }
+    }
+
+    /// Apply underline and tooltip for text replacement matches
+    private func applyReplacementHighlights(to attrString: NSMutableAttributedString) {
+        let matches = TextReplacementService.shared.findMatches(in: attrString.string)
+
+        for match in matches {
+            guard match.range.location + match.range.length <= attrString.length else { continue }
+
+            // Add dotted underline
+            attrString.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: match.range)
+            attrString.addAttribute(.underlineColor, value: NSColor.systemOrange, range: match.range)
+
+            // Add tooltip showing replacement
+            let tooltipText = "\(match.originalText) → \(match.replacementText)"
+            attrString.addAttribute(.toolTip, value: tooltipText, range: match.range)
         }
     }
 
@@ -258,6 +287,16 @@ struct TTSFloatingView: View {
         VStack(spacing: 12) {
             // Header
             HStack {
+                Button(action: {
+                    appState.stopTTS()
+                    onClose()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Close (\(closeShortcut.displayString))")
+
                 statusIcon
                 Text(headerText)
                     .font(.headline)
@@ -271,16 +310,6 @@ struct TTSFloatingView: View {
 
                 // Speed badge
                 infoBadge(label: "Speed", value: String(format: "%.1fx", appState.selectedTTSSpeed))
-
-                Button(action: {
-                    appState.stopTTS()
-                    onClose()
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Close (\(closeShortcut.displayString))")
             }
 
             // Content area - always editable TextEditor

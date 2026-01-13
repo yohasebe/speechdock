@@ -200,6 +200,23 @@ final class AppState {
     let audioInputManager = AudioInputManager.shared
     let systemAudioCaptureService = SystemAudioCaptureService.shared
 
+    // MARK: - VAD Auto-Stop Settings
+    /// Minimum recording duration before VAD auto-stop becomes active (seconds)
+    var vadMinimumRecordingTime: Double = 10.0 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Duration of silence required to trigger auto-stop (seconds)
+    var vadSilenceDuration: Double = 3.0 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
     // MARK: - Permission Status
     var hasMicrophonePermission: Bool = false
     var hasAccessibilityPermission: Bool = false
@@ -325,6 +342,10 @@ final class AppState {
             systemAudioCaptureService.delegate = self
         }
 
+        // Apply VAD auto-stop settings
+        realtimeSTTService?.vadMinimumRecordingTime = vadMinimumRecordingTime
+        realtimeSTTService?.vadSilenceDuration = vadSilenceDuration
+
         do {
             try await realtimeSTTService?.startListening()
 
@@ -348,21 +369,32 @@ final class AppState {
         durationTimer = nil
         recordingStartTime = nil
 
-        realtimeSTTService?.stopListening()
-        realtimeSTTService = nil
+        // Check if this provider does "record then transcribe" (needs processing state)
+        let needsProcessingState = [.gemini, .openAI, .localWhisper].contains(selectedRealtimeProvider)
+
+        if needsProcessingState {
+            // Set processing state - the delegate will update when transcription completes
+            transcriptionState = .processing
+            // Keep realtimeSTTService alive - it will be cleared in didReceiveFinalResult
+            realtimeSTTService?.stopListening()
+        } else {
+            // Realtime providers (macOS, ElevenLabs) - immediate result
+            realtimeSTTService?.stopListening()
+            realtimeSTTService = nil
+
+            // If we have transcription, show result state
+            if !currentTranscription.isEmpty {
+                transcriptionState = .result(currentTranscription)
+            } else {
+                transcriptionState = .idle
+            }
+        }
 
         // Stop system audio capture if active
         if systemAudioCaptureService.isCapturing {
             Task {
                 await systemAudioCaptureService.stopCapturing()
             }
-        }
-
-        // If we have transcription, show result state
-        if !currentTranscription.isEmpty {
-            transcriptionState = .result(currentTranscription)
-        } else {
-            transcriptionState = .idle
         }
     }
 
@@ -424,10 +456,13 @@ final class AppState {
     }
 
     private func hideWindowAndPaste(_ text: String) {
+        // Apply text replacement rules
+        let processedText = TextReplacementService.shared.applyReplacements(to: text)
+
         // Check if clipboard-only mode
         if floatingWindowManager.clipboardOnly {
             // Just copy to clipboard, no paste
-            ClipboardService.shared.copyToClipboard(text)
+            ClipboardService.shared.copyToClipboard(processedText)
             floatingWindowManager.hideFloatingWindow(skipActivation: false)
             showFloatingWindow = false
             transcriptionState = .idle
@@ -453,7 +488,7 @@ final class AppState {
         // Delay paste to allow window to close and focus to switch
         let delay = activated ? 0.4 : 0.3  // Slightly longer delay when switching windows
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            ClipboardService.shared.copyAndPaste(text)
+            ClipboardService.shared.copyAndPaste(processedText)
         }
     }
 
@@ -550,7 +585,9 @@ final class AppState {
 
         Task {
             do {
-                try await ttsService?.speak(text: text)
+                // Apply text replacement rules before speaking
+                let processedText = TextReplacementService.shared.applyReplacements(to: text)
+                try await ttsService?.speak(text: processedText)
                 ttsState = .speaking
                 // Record synthesized text for cache
                 lastSynthesizedText = text
@@ -768,6 +805,14 @@ final class AppState {
 
         // Note: selectedAudioAppBundleID is not loaded - it's session-only
 
+        // VAD auto-stop settings
+        if UserDefaults.standard.object(forKey: "vadMinimumRecordingTime") != nil {
+            vadMinimumRecordingTime = UserDefaults.standard.double(forKey: "vadMinimumRecordingTime")
+        }
+        if UserDefaults.standard.object(forKey: "vadSilenceDuration") != nil {
+            vadSilenceDuration = UserDefaults.standard.double(forKey: "vadSilenceDuration")
+        }
+
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
     }
@@ -793,7 +838,7 @@ final class AppState {
             return apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return apiKeyManager.hasAPIKey(for: .elevenLabs)
-        case .macOS:
+        case .macOS, .localWhisper:
             return true
         }
     }
@@ -833,6 +878,10 @@ final class AppState {
             : selectedAudioInputSourceType
         UserDefaults.standard.set(sourceTypeToSave.rawValue, forKey: "selectedAudioInputSourceType")
 
+        // VAD auto-stop settings
+        UserDefaults.standard.set(vadMinimumRecordingTime, forKey: "vadMinimumRecordingTime")
+        UserDefaults.standard.set(vadSilenceDuration, forKey: "vadSilenceDuration")
+
         // Note: selectedAudioAppBundleID is not saved - it's session-only
     }
 }
@@ -863,12 +912,24 @@ extension AppState: RealtimeSTTDelegate {
 
     func realtimeSTT(_ service: RealtimeSTTService, didReceiveFinalResult text: String) {
         currentTranscription = text
-        // Don't auto-stop on final result for continuous transcription
+
+        // For "record then transcribe" providers, update state when result arrives
+        if transcriptionState == .processing {
+            if !text.isEmpty {
+                transcriptionState = .result(text)
+            } else {
+                transcriptionState = .idle
+            }
+            // Clean up the service
+            realtimeSTTService = nil
+        }
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didFailWithError error: Error) {
         errorMessage = error.localizedDescription
         transcriptionState = .error(error.localizedDescription)
+        // Clean up the service if it was in processing state
+        realtimeSTTService = nil
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didChangeListeningState isListening: Bool) {

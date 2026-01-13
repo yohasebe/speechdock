@@ -17,6 +17,10 @@ protocol RealtimeSTTService: AnyObject {
     var audioInputDeviceUID: String { get set }  // "" = System Default
     var audioSource: STTAudioSource { get set }  // Audio input source
 
+    // VAD auto-stop settings (only used by providers that support it)
+    var vadMinimumRecordingTime: TimeInterval { get set }  // Seconds before auto-stop activates
+    var vadSilenceDuration: TimeInterval { get set }  // Seconds of silence to trigger auto-stop
+
     func startListening() async throws
     func stopListening()
     func availableModels() -> [RealtimeSTTModelInfo]
@@ -60,6 +64,7 @@ protocol RealtimeSTTDelegate: AnyObject {
 /// Realtime STT provider types
 enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     case macOS = "macOS"
+    case localWhisper = "Local Whisper"
     case openAI = "OpenAI"
     case gemini = "Gemini"
     case elevenLabs = "ElevenLabs"
@@ -69,6 +74,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     var envKeyName: String? {
         switch self {
         case .macOS: return nil
+        case .localWhisper: return nil
         case .openAI: return "OPENAI_API_KEY"
         case .gemini: return "GEMINI_API_KEY"
         case .elevenLabs: return "ELEVENLABS_API_KEY"
@@ -76,12 +82,18 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     }
 
     var requiresAPIKey: Bool {
-        self != .macOS
+        switch self {
+        case .macOS, .localWhisper:
+            return false
+        default:
+            return true
+        }
     }
 
     var description: String {
         switch self {
-        case .macOS: return "Local (offline, fast)"
+        case .macOS: return "Apple Speech (offline, fast)"
+        case .localWhisper: return "WhisperKit (offline, high quality)"
         case .openAI: return "OpenAI Realtime API (high quality)"
         case .gemini: return "Gemini Live API (multimodal)"
         case .elevenLabs: return "ElevenLabs Scribe v2 (150ms latency)"
@@ -96,6 +108,8 @@ enum RealtimeSTTFactory {
         switch provider {
         case .macOS:
             return MacOSRealtimeSTT()
+        case .localWhisper:
+            return LocalWhisperSTT()
         case .openAI:
             return OpenAIRealtimeSTT()
         case .gemini:
