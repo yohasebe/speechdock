@@ -31,18 +31,28 @@ struct TypeTalkApp: App {
 struct MenuBarIconView: View {
     @Bindable var appState: AppState
 
+    private var iconName: String {
+        if appState.isRecording || appState.transcriptionState == .processing {
+            return "waveform.badge.mic"  // STT active
+        } else if appState.ttsState == .speaking || appState.ttsState == .loading {
+            return "speaker.wave.2.fill"  // TTS active
+        } else {
+            return "waveform"  // Default
+        }
+    }
+
     private var iconColor: Color {
         // STT states (red tones)
         if appState.isRecording {
             return .red  // STT recording active
         } else if appState.transcriptionState == .processing {
-            return Color.red.opacity(0.6)  // STT processing
+            return Color.red.opacity(0.7)  // STT processing
         }
         // TTS states (blue tones)
         else if appState.ttsState == .speaking {
             return .blue  // TTS speaking active
         } else if appState.ttsState == .loading {
-            return Color.blue.opacity(0.6)  // TTS loading/generating
+            return Color.blue.opacity(0.7)  // TTS loading/generating
         }
         // Default
         else {
@@ -51,8 +61,8 @@ struct MenuBarIconView: View {
     }
 
     var body: some View {
-        Image("MenuBarIcon")
-            .renderingMode(.template)
+        Image(systemName: iconName)
+            .symbolRenderingMode(.monochrome)
             .foregroundStyle(iconColor)
     }
 }
