@@ -617,7 +617,11 @@ final class AppState {
         savePanel.nameFieldStringValue = "tts_audio.\(ttsAudioFileExtension)"
         savePanel.title = "Save Audio"
         savePanel.message = "Choose a location to save the audio file"
-        savePanel.level = .floating  // Ensure panel appears above floating window
+        // Use a level higher than floating panels (popUpMenu + 1 = 102) so dialog appears above them
+        savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 2)
+        // Set a reasonable size for the save panel
+        savePanel.contentMinSize = NSSize(width: 400, height: 250)
+        savePanel.setContentSize(NSSize(width: 500, height: 350))
 
         // Activate app and bring panel to front
         NSApp.activate(ignoringOtherApps: true)

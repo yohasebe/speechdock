@@ -739,20 +739,21 @@ struct TranscriptionFloatingView: View {
 
     /// Save transcribed text to a file using NSSavePanel
     private func saveTextToFile() {
-        // Hide the floating window temporarily so save panel appears in front
-        appState.floatingWindowManager.temporarilyHideWindow()
-
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.plainText]
         savePanel.nameFieldStringValue = "transcription.txt"
         savePanel.title = "Save Transcription"
         savePanel.message = "Choose a location to save the transcribed text"
-        savePanel.level = .floating
+        // Use a level higher than floating panels (popUpMenu + 1 = 102) so dialog appears above them
+        savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 2)
+        // Set a reasonable size for the save panel
+        savePanel.contentMinSize = NSSize(width: 400, height: 250)
+        savePanel.setContentSize(NSSize(width: 500, height: 350))
 
-        savePanel.begin { [self] response in
-            // Show the floating window again
-            appState.floatingWindowManager.restoreWindow()
+        // Activate app and bring panel to front
+        NSApp.activate(ignoringOtherApps: true)
 
+        savePanel.begin { response in
             if response == .OK, let url = savePanel.url {
                 do {
                     try editedText.write(to: url, atomically: true, encoding: .utf8)

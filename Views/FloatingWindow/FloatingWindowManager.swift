@@ -196,8 +196,8 @@ final class FloatingWindowManager: ObservableObject {
             defer: false
         )
 
-        // Use popUpMenu level to ensure panels appear above menu bar extra
-        floatingWindow?.level = .popUpMenu
+        // Use a level above popUpMenu to ensure panels appear above menu bar popover
+        floatingWindow?.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 1)
         floatingWindow?.isReleasedWhenClosed = false
         floatingWindow?.titlebarAppearsTransparent = true
         floatingWindow?.titleVisibility = .hidden
@@ -250,8 +250,8 @@ final class FloatingWindowManager: ObservableObject {
             defer: false
         )
 
-        // Use popUpMenu level to ensure panels appear above menu bar extra
-        window.level = .popUpMenu
+        // Use a level above popUpMenu to ensure panels appear above menu bar popover
+        window.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 1)
         window.isReleasedWhenClosed = false
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
