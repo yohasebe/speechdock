@@ -264,17 +264,13 @@ struct TTSFloatingView: View {
                 Spacer()
 
                 // Provider badge
-                HStack(spacing: 4) {
-                    Text("Provider:")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Text(appState.selectedTTSProvider.rawValue)
-                        .font(.caption2)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color.accentColor.opacity(0.2))
-                .cornerRadius(4)
+                infoBadge(label: "Provider", value: appState.selectedTTSProvider.rawValue)
+
+                // Voice badge
+                infoBadge(label: "Voice", value: currentVoiceName)
+
+                // Speed badge
+                infoBadge(label: "Speed", value: String(format: "%.1fx", appState.selectedTTSSpeed))
 
                 Button(action: {
                     appState.stopTTS()
@@ -294,7 +290,7 @@ struct TTSFloatingView: View {
             actionButtons
         }
         .padding(16)
-        .frame(minWidth: 440, idealWidth: 520, maxWidth: 800)
+        .frame(minWidth: 680, idealWidth: 780, maxWidth: 1000)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onAppear {
@@ -351,6 +347,31 @@ struct TTSFloatingView: View {
         }
     }
 
+    /// Get the display name for the current voice
+    private var currentVoiceName: String {
+        let service = TTSFactory.makeService(for: appState.selectedTTSProvider)
+        let voices = service.availableVoices()
+        if let voice = voices.first(where: { $0.id == appState.selectedTTSVoice }) {
+            return voice.name
+        }
+        return appState.selectedTTSVoice.isEmpty ? "Auto" : appState.selectedTTSVoice
+    }
+
+    /// Info badge view for displaying provider, voice, speed
+    private func infoBadge(label: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Text("\(label):")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.caption2)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Color.accentColor.opacity(0.2))
+        .cornerRadius(4)
+    }
+
     @ViewBuilder
     private var contentArea: some View {
         ZStack {
@@ -365,23 +386,9 @@ struct TTSFloatingView: View {
             .frame(minHeight: 200, maxHeight: 400)
             .opacity(isEditorDisabled ? 0.85 : 1.0)
 
-            // Loading overlay
+            // Loading overlay with animated waveform
             if case .loading = appState.ttsState {
-                VStack(spacing: 6) {
-                    HStack(spacing: 3) {
-                        ForEach(0..<5, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.blue.opacity(0.7))
-                                .frame(width: 3, height: CGFloat.random(in: 6...18))
-                        }
-                    }
-                    Text("Loading...")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                .padding(8)
-                .background(Color(.windowBackgroundColor).opacity(0.9))
-                .cornerRadius(8)
+                TTSLoadingIndicator()
             }
 
             // Error overlay
@@ -404,6 +411,9 @@ struct TTSFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
+            // Audio output selector on the left
+            TTSAudioOutputSelector(appState: appState)
+
             Spacer()
 
             switch appState.ttsState {
@@ -473,6 +483,140 @@ struct TTSFloatingView: View {
                 }
                 .applyCustomShortcut(stopShortcut)
             }
+        }
+    }
+}
+
+/// Animated loading indicator for TTS audio generation
+struct TTSLoadingIndicator: View {
+    @State private var animationPhase: Double = 0
+
+    private let barCount = 5
+    private let barWidth: CGFloat = 4
+    private let barSpacing: CGFloat = 3
+    private let minHeight: CGFloat = 8
+    private let maxHeight: CGFloat = 24
+
+    var body: some View {
+        VStack(spacing: 8) {
+            // Animated waveform bars
+            HStack(spacing: barSpacing) {
+                ForEach(0..<barCount, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.blue.opacity(0.8))
+                        .frame(width: barWidth, height: barHeight(for: index))
+                }
+            }
+            .frame(height: maxHeight)
+
+            Text("Generating audio...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            ProgressView()
+                .scaleEffect(0.8)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(Color(.windowBackgroundColor).opacity(0.95))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .onAppear {
+            startAnimation()
+        }
+    }
+
+    private func barHeight(for index: Int) -> CGFloat {
+        // Create wave effect with phase offset for each bar
+        let phaseOffset = Double(index) * 0.4
+        let wave = sin(animationPhase + phaseOffset)
+        let normalizedWave = (wave + 1) / 2  // Convert from -1...1 to 0...1
+        return minHeight + (maxHeight - minHeight) * CGFloat(normalizedWave)
+    }
+
+    private func startAnimation() {
+        // Continuous animation loop
+        withAnimation(
+            .linear(duration: 0.8)
+            .repeatForever(autoreverses: false)
+        ) {
+            animationPhase = .pi * 2
+        }
+    }
+}
+
+/// Compact audio output device selector for TTS panel
+struct TTSAudioOutputSelector: View {
+    var appState: AppState
+    @State private var availableDevices: [AudioOutputDevice] = []
+
+    private var currentName: String {
+        if appState.selectedAudioOutputDeviceUID.isEmpty {
+            return "System Default"
+        }
+        if let device = availableDevices.first(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
+            return device.name
+        }
+        return "System Default"
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Output:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            outputMenu
+        }
+        .onAppear {
+            loadDevices()
+        }
+    }
+
+    private var outputMenu: some View {
+        Menu {
+            ForEach(availableDevices) { device in
+                Button(action: {
+                    appState.selectedAudioOutputDeviceUID = device.uid
+                }) {
+                    HStack {
+                        Text(device.name)
+                        if appState.selectedAudioOutputDeviceUID == device.uid {
+                            Spacer()
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+
+            if availableDevices.isEmpty {
+                Text("No output devices detected")
+                    .foregroundColor(.secondary)
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: "speaker.wave.2")
+                    .font(.caption2)
+                Text(currentName)
+                    .font(.caption2)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 6))
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor.opacity(0.2))
+            .cornerRadius(4)
+        }
+        .menuStyle(.borderlessButton)
+    }
+
+    private func loadDevices() {
+        availableDevices = AudioOutputManager.shared.availableOutputDevices()
+
+        // If selected device is not in the list, reset to system default
+        if !appState.selectedAudioOutputDeviceUID.isEmpty &&
+           !availableDevices.contains(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
+            appState.selectedAudioOutputDeviceUID = ""
         }
     }
 }

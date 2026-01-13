@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import Combine
 
-/// Manages the menu bar status item with dynamic icon colors
+/// Manages the menu bar status item with dynamic icon colors and pulse animation
 @MainActor
 final class StatusBarManager: NSObject {
     static let shared = StatusBarManager()
@@ -11,6 +11,12 @@ final class StatusBarManager: NSObject {
     private var popover: NSPopover?
     private var cancellables = Set<AnyCancellable>()
     private var observationTask: Task<Void, Never>?
+    private var animationTask: Task<Void, Never>?
+
+    /// Animation phase for pulsing effect (0.0 to 1.0)
+    private var animationPhase: Double = 0.0
+    /// Whether animation is currently running
+    private var isAnimating = false
 
     private override init() {
         super.init()
@@ -21,7 +27,7 @@ final class StatusBarManager: NSObject {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         // Set initial icon
-        updateIcon(for: appState)
+        updateIcon(for: appState, animated: false)
 
         // Setup button action
         if let button = statusItem?.button {
@@ -56,10 +62,54 @@ final class StatusBarManager: NSObject {
                 let newState = self.getCurrentIconState(for: appState)
                 if newState != lastState {
                     lastState = newState
-                    self.updateIcon(for: appState)
+
+                    // Start or stop animation based on state
+                    let needsAnimation = newState == 1 || newState == 3 // recording or speaking
+                    if needsAnimation && !self.isAnimating {
+                        self.startPulseAnimation(appState: appState)
+                    } else if !needsAnimation && self.isAnimating {
+                        self.stopPulseAnimation()
+                        self.updateIcon(for: appState, animated: false)
+                    } else if !needsAnimation {
+                        self.updateIcon(for: appState, animated: false)
+                    }
                 }
             }
         }
+    }
+
+    /// Start the pulse animation for recording/speaking states
+    private func startPulseAnimation(appState: AppState) {
+        guard !isAnimating else { return }
+        isAnimating = true
+        animationPhase = 0.0
+
+        animationTask?.cancel()
+        animationTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self = self, self.isAnimating else { break }
+
+                // Update animation phase using sine wave for smooth pulsing
+                // Complete cycle every ~1.2 seconds (smoother, calmer pulse)
+                self.animationPhase += 0.08
+                if self.animationPhase > .pi * 2 {
+                    self.animationPhase = 0
+                }
+
+                self.updateIcon(for: appState, animated: true)
+
+                // ~30fps animation (33ms between frames)
+                try? await Task.sleep(nanoseconds: 33_000_000)
+            }
+        }
+    }
+
+    /// Stop the pulse animation
+    private func stopPulseAnimation() {
+        isAnimating = false
+        animationTask?.cancel()
+        animationTask = nil
+        animationPhase = 0.0
     }
 
     private func getCurrentIconState(for appState: AppState) -> Int {
@@ -70,7 +120,7 @@ final class StatusBarManager: NSObject {
         return 0
     }
 
-    private func updateIcon(for appState: AppState) {
+    private func updateIcon(for appState: AppState, animated: Bool) {
         guard let button = statusItem?.button else { return }
 
         // Load the template image
@@ -80,13 +130,19 @@ final class StatusBarManager: NSObject {
         // Determine the color based on state
         let color: NSColor
         if appState.isRecording {
-            color = .systemRed
+            // Recording: Pulsing red
+            let pulseAlpha = animated ? 0.5 + 0.5 * sin(animationPhase) : 1.0
+            color = NSColor.systemRed.withAlphaComponent(CGFloat(pulseAlpha))
         } else if appState.transcriptionState == .processing {
-            color = NSColor.systemRed.withAlphaComponent(0.7)
+            // Processing: Steady lighter red
+            color = NSColor.systemRed.withAlphaComponent(0.6)
         } else if appState.ttsState == .speaking {
-            color = .systemBlue
+            // Speaking: Pulsing blue
+            let pulseAlpha = animated ? 0.5 + 0.5 * sin(animationPhase) : 1.0
+            color = NSColor.systemBlue.withAlphaComponent(CGFloat(pulseAlpha))
         } else if appState.ttsState == .loading {
-            color = NSColor.systemBlue.withAlphaComponent(0.7)
+            // Loading TTS: Steady lighter blue
+            color = NSColor.systemBlue.withAlphaComponent(0.6)
         } else {
             // Default: use template mode for system appearance
             image.isTemplate = true
@@ -140,5 +196,6 @@ final class StatusBarManager: NSObject {
 
     deinit {
         observationTask?.cancel()
+        animationTask?.cancel()
     }
 }

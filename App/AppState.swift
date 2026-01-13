@@ -159,6 +159,14 @@ final class AppState {
         }
     }
 
+    // MARK: - Audio Output Settings
+    var selectedAudioOutputDeviceUID: String = "" {  // "" = System Default
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
     /// Audio input source type (microphone, system audio, or app audio)
     var selectedAudioInputSourceType: AudioInputSourceType = .microphone {
         didSet {
@@ -511,6 +519,7 @@ final class AppState {
         if !selectedTTSLanguage.isEmpty {
             ttsService?.selectedLanguage = selectedTTSLanguage
         }
+        ttsService?.audioOutputDeviceUID = selectedAudioOutputDeviceUID
 
         Task {
             do {
@@ -712,6 +721,10 @@ final class AppState {
             selectedAudioInputDeviceUID = audioInputUID
         }
 
+        if let audioOutputUID = UserDefaults.standard.string(forKey: "selectedAudioOutputDeviceUID") {
+            selectedAudioOutputDeviceUID = audioOutputUID
+        }
+
         // Load audio source type, but reset App Audio to Microphone on startup
         // App Audio is session-only because the target app may not be running on next launch
         if let audioSourceTypeRaw = UserDefaults.standard.string(forKey: "selectedAudioInputSourceType"),
@@ -782,6 +795,7 @@ final class AppState {
         UserDefaults.standard.set(selectedSTTLanguage, forKey: "selectedSTTLanguage")
         UserDefaults.standard.set(selectedTTSLanguage, forKey: "selectedTTSLanguage")
         UserDefaults.standard.set(selectedAudioInputDeviceUID, forKey: "selectedAudioInputDeviceUID")
+        UserDefaults.standard.set(selectedAudioOutputDeviceUID, forKey: "selectedAudioOutputDeviceUID")
 
         // Save audio source type, but don't persist App Audio (save as Microphone instead)
         // App Audio is session-only because the target app may not be running on next launch

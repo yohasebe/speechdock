@@ -13,6 +13,9 @@ final class GeminiTTS: NSObject, TTSService {
     var selectedModel: String = "gemini-2.5-flash-preview-tts"
     var selectedSpeed: Double = 1.0  // Speed multiplier (uses prompt-based control)
     var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects from text)
+    var audioOutputDeviceUID: String = "" {
+        didSet { playbackController.outputDeviceUID = audioOutputDeviceUID }
+    }
 
     private(set) var lastAudioData: Data?
     var audioFileExtension: String { "m4a" }
@@ -69,7 +72,7 @@ final class GeminiTTS: NSObject, TTSService {
         request.timeoutInterval = 120
 
         // Validate voice - use default if invalid, and convert to lowercase
-        let validVoice = Self.validVoiceIds.contains(selectedVoice) ? selectedVoice.lowercased() : "zephyr"
+        let validVoice = Self.validVoiceIds.contains(selectedVoice.lowercased()) ? selectedVoice.lowercased() : "zephyr"
 
         // Prepend pace instruction to text (like monadic-chat does)
         let paceInstruction = paceInstructionForSpeed(selectedSpeed)
@@ -78,6 +81,7 @@ final class GeminiTTS: NSObject, TTSService {
         let body: [String: Any] = [
             "contents": [
                 [
+                    "role": "user",
                     "parts": [
                         ["text": textWithPace]
                     ]
@@ -113,18 +117,34 @@ final class GeminiTTS: NSObject, TTSService {
               let candidates = json["candidates"] as? [[String: Any]],
               let firstCandidate = candidates.first,
               let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let firstPart = parts.first,
-              let inlineData = firstPart["inlineData"] as? [String: Any],
-              let base64Audio = inlineData["data"] as? String,
-              let mimeType = inlineData["mimeType"] as? String else {
+              let parts = content["parts"] as? [[String: Any]] else {
             throw TTSError.apiError("Invalid response format")
         }
 
-        // Decode base64 audio
-        guard let audioData = Data(base64Encoded: base64Audio) else {
-            throw TTSError.audioError("Failed to decode audio data")
+        // Collect all audio parts (Gemini may return multiple parts for longer audio)
+        var combinedAudioData = Data()
+        var detectedMimeType = ""
+
+        for part in parts {
+            guard let inlineData = part["inlineData"] as? [String: Any],
+                  let base64Audio = inlineData["data"] as? String,
+                  let partData = Data(base64Encoded: base64Audio) else {
+                continue
+            }
+
+            if detectedMimeType.isEmpty, let mimeType = inlineData["mimeType"] as? String {
+                detectedMimeType = mimeType
+            }
+
+            combinedAudioData.append(partData)
         }
+
+        guard !combinedAudioData.isEmpty else {
+            throw TTSError.audioError("No audio data in response")
+        }
+
+        let mimeType = detectedMimeType.isEmpty ? "audio/L16;rate=24000" : detectedMimeType
+        let audioData = combinedAudioData
 
         // Handle PCM audio (L16) by adding WAV header
         let finalAudioData: Data
@@ -289,8 +309,7 @@ final class GeminiTTS: NSObject, TTSService {
     func availableModels() -> [TTSModelInfo] {
         [
             TTSModelInfo(id: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash TTS", description: "Fast, multilingual", isDefault: true),
-            TTSModelInfo(id: "gemini-2.5-flash-lite-preview-tts", name: "Gemini 2.5 Flash Lite TTS", description: "Lightweight, faster"),
-            TTSModelInfo(id: "gemini-2.0-flash-preview-tts", name: "Gemini 2.0 Flash TTS", description: "Previous generation")
+            TTSModelInfo(id: "gemini-2.5-pro-preview-tts", name: "Gemini 2.5 Pro TTS", description: "Higher quality")
         ]
     }
 

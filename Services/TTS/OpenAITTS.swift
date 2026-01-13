@@ -10,9 +10,12 @@ final class OpenAITTS: NSObject, TTSService {
     var isPaused: Bool { playbackController.isPaused }
 
     var selectedVoice: String = "alloy"
-    var selectedModel: String = "gpt-4o-mini-tts"
+    var selectedModel: String = "gpt-4o-mini-tts-2025-12-15"
     var selectedSpeed: Double = 1.0  // Speed multiplier (0.25-4.0 for tts-1/tts-1-hd)
     var selectedLanguage: String = ""  // "" = Auto (OpenAI auto-detects from text)
+    var audioOutputDeviceUID: String = "" {
+        didSet { playbackController.outputDeviceUID = audioOutputDeviceUID }
+    }
 
     private(set) var lastAudioData: Data?
     var audioFileExtension: String { "mp3" }
@@ -148,8 +151,8 @@ final class OpenAITTS: NSObject, TTSService {
 
     func availableModels() -> [TTSModelInfo] {
         [
-            TTSModelInfo(id: "gpt-4o-mini-tts", name: "GPT-4o Mini TTS", description: "Fast (no speed control)", isDefault: true),
-            TTSModelInfo(id: "gpt-4o-mini-tts-2025-12-15", name: "GPT-4o Mini TTS (Dec 2025)", description: "Latest version"),
+            TTSModelInfo(id: "gpt-4o-mini-tts-2025-12-15", name: "GPT-4o Mini TTS (Dec 2025)", description: "Latest, fast (no speed control)", isDefault: true),
+            TTSModelInfo(id: "gpt-4o-mini-tts", name: "GPT-4o Mini TTS", description: "Fast (no speed control)"),
             TTSModelInfo(id: "tts-1", name: "TTS-1", description: "Standard quality"),
             TTSModelInfo(id: "tts-1-hd", name: "TTS-1 HD", description: "High quality")
         ]

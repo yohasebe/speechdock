@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import AVFoundation
+import CoreAudio
 
 /// Shared controller for TTS audio playback and word highlighting
 /// Used by all TTS service implementations to eliminate code duplication
@@ -11,11 +12,19 @@ final class TTSAudioPlaybackController: NSObject {
     private(set) var isSpeaking = false
     private(set) var isPaused = false
     private var audioPlayer: AVAudioPlayer?
+    private var audioEngine: AVAudioEngine?
+    private var audioPlayerNode: AVAudioPlayerNode?
+    private var audioFile: AVAudioFile?
     private var currentText = ""
     private var wordRanges: [NSRange] = []
     private var wordWeights: [Double] = []
     private var highlightTimer: Timer?
     private var tempFileURL: URL?
+    private var playbackStartTime: AVAudioTime?
+    private var audioDuration: TimeInterval = 0
+
+    /// Audio output device UID (empty string = system default)
+    var outputDeviceUID: String = ""
 
     // MARK: - Callbacks
 
@@ -47,15 +56,12 @@ final class TTSAudioPlaybackController: NSObject {
 
         try data.write(to: tempURL)
 
-        audioPlayer = try AVAudioPlayer(contentsOf: tempURL)
-        audioPlayer?.delegate = self
-        audioPlayer?.prepareToPlay()
-
-        isSpeaking = true
-        isPaused = false
-        audioPlayer?.play()
-
-        startHighlightTimer()
+        // Use AVAudioEngine if custom output device is specified, otherwise use simpler AVAudioPlayer
+        if !outputDeviceUID.isEmpty {
+            try playWithAudioEngine(url: tempURL)
+        } else {
+            try playWithAudioPlayer(url: tempURL)
+        }
 
         // Schedule temp file cleanup
         let urlToClean = tempURL
@@ -65,10 +71,117 @@ final class TTSAudioPlaybackController: NSObject {
         }
     }
 
+    /// Play audio using AVAudioPlayer (simple, uses system default output)
+    private func playWithAudioPlayer(url: URL) throws {
+        audioPlayer = try AVAudioPlayer(contentsOf: url)
+        audioPlayer?.delegate = self
+        audioPlayer?.prepareToPlay()
+
+        audioDuration = audioPlayer?.duration ?? 0
+        isSpeaking = true
+        isPaused = false
+        audioPlayer?.play()
+
+        startHighlightTimer()
+    }
+
+    /// Play audio using AVAudioEngine (supports custom output device)
+    private func playWithAudioEngine(url: URL) throws {
+        let engine = AVAudioEngine()
+        let playerNode = AVAudioPlayerNode()
+
+        engine.attach(playerNode)
+
+        let file = try AVAudioFile(forReading: url)
+        audioDuration = Double(file.length) / file.processingFormat.sampleRate
+
+        engine.connect(playerNode, to: engine.mainMixerNode, format: file.processingFormat)
+
+        // Set output device if specified
+        if !outputDeviceUID.isEmpty {
+            try setOutputDevice(uid: outputDeviceUID, for: engine)
+        }
+
+        try engine.start()
+
+        audioEngine = engine
+        audioPlayerNode = playerNode
+        audioFile = file
+
+        // Schedule the entire file with .dataPlayedBack completion type
+        // This ensures the handler is called when audio has actually finished playing through hardware
+        playerNode.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) { [weak self] _ in
+            Task { @MainActor in
+                self?.audioEngineDidFinishPlaying()
+            }
+        }
+
+        isSpeaking = true
+        isPaused = false
+        playerNode.play()
+        playbackStartTime = playerNode.lastRenderTime
+
+        startHighlightTimerForEngine()
+    }
+
+    /// Set the output device for an AVAudioEngine
+    private func setOutputDevice(uid: String, for engine: AVAudioEngine) throws {
+        guard let device = AudioOutputManager.shared.device(withUID: uid) else {
+            throw AudioOutputError.deviceNotFound
+        }
+
+        guard device.id != 0 else { return }  // System default, no need to set
+
+        let outputNode = engine.outputNode
+        guard let audioUnit = outputNode.audioUnit else {
+            throw AudioOutputError.failedToSetDevice(0)
+        }
+
+        var deviceID = device.id
+        let status = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &deviceID,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+
+        guard status == noErr else {
+            throw AudioOutputError.failedToSetDevice(status)
+        }
+    }
+
+    /// Called when AVAudioEngine finishes playing
+    private func audioEngineDidFinishPlaying() {
+        highlightTimer?.invalidate()
+        highlightTimer = nil
+        stopAudioEngine()
+        isSpeaking = false
+        isPaused = false
+        onFinishSpeaking?(true)
+    }
+
+    /// Stop and clean up AVAudioEngine
+    private func stopAudioEngine() {
+        audioPlayerNode?.stop()
+        audioEngine?.stop()
+        audioPlayerNode = nil
+        audioEngine = nil
+        audioFile = nil
+        playbackStartTime = nil
+    }
+
     /// Pause playback
     func pause() {
         guard isSpeaking, !isPaused else { return }
-        audioPlayer?.pause()
+
+        if audioEngine != nil {
+            audioPlayerNode?.pause()
+        } else {
+            audioPlayer?.pause()
+        }
+
         highlightTimer?.invalidate()
         isPaused = true
     }
@@ -76,8 +189,15 @@ final class TTSAudioPlaybackController: NSObject {
     /// Resume playback
     func resume() {
         guard isSpeaking, isPaused else { return }
-        audioPlayer?.play()
-        startHighlightTimer()
+
+        if audioEngine != nil {
+            audioPlayerNode?.play()
+            startHighlightTimerForEngine()
+        } else {
+            audioPlayer?.play()
+            startHighlightTimer()
+        }
+
         isPaused = false
     }
 
@@ -85,13 +205,20 @@ final class TTSAudioPlaybackController: NSObject {
     func stopPlayback() {
         highlightTimer?.invalidate()
         highlightTimer = nil
+
+        // Stop AVAudioPlayer if in use
         audioPlayer?.stop()
         audioPlayer = nil
+
+        // Stop AVAudioEngine if in use
+        stopAudioEngine()
+
         isSpeaking = false
         isPaused = false
         currentText = ""
         wordRanges = []
         wordWeights = []
+        audioDuration = 0
     }
 
     // MARK: - Word Highlighting Timer
@@ -117,6 +244,59 @@ final class TTSAudioPlaybackController: NSObject {
                 }
 
                 let progress = player.currentTime / player.duration
+                let adjustedProgress = min(1.0, progress + lookAheadFraction)
+
+                // Find word index based on weighted progress
+                var cumulativeWeight: Double = 0
+                var wordIndex = 0
+
+                for (index, weight) in self.wordWeights.enumerated() {
+                    cumulativeWeight += weight
+                    if adjustedProgress <= cumulativeWeight {
+                        wordIndex = index
+                        break
+                    }
+                    wordIndex = index
+                }
+
+                if wordIndex >= 0 && wordIndex < self.wordRanges.count {
+                    self.onWordHighlight?(self.wordRanges[wordIndex], self.currentText)
+                }
+            }
+        }
+    }
+
+    /// Start highlight timer for AVAudioEngine playback
+    private func startHighlightTimerForEngine() {
+        guard audioDuration > 0,
+              !wordRanges.isEmpty,
+              !wordWeights.isEmpty else { return }
+
+        let updateInterval: TimeInterval = 0.03  // 30ms updates
+        let lookAheadFraction: Double = 0.015
+
+        highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
+            Task { @MainActor [weak self] in
+                guard let self = self else {
+                    timer.invalidate()
+                    return
+                }
+
+                guard let playerNode = self.audioPlayerNode,
+                      self.isSpeaking,
+                      !self.isPaused,
+                      playerNode.isPlaying else {
+                    return
+                }
+
+                // Calculate current playback time from player node
+                guard let nodeTime = playerNode.lastRenderTime,
+                      let playerTime = playerNode.playerTime(forNodeTime: nodeTime) else {
+                    return
+                }
+
+                let currentTime = Double(playerTime.sampleTime) / playerTime.sampleRate
+                let progress = currentTime / self.audioDuration
                 let adjustedProgress = min(1.0, progress + lookAheadFraction)
 
                 // Find word index based on weighted progress

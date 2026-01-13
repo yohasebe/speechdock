@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import NaturalLanguage
+import CoreAudio
 
 /// macOS native TTS using the `say` command with AVAudioPlayer for accurate timing
 /// First generates audio file, then plays it with precise word highlighting
@@ -19,6 +20,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     var selectedSpeed: Double = 1.0  // Speed multiplier (1.0 = normal, default ~175 wpm)
     @MainActor
     var selectedLanguage: String = ""  // "" = Auto (macOS uses voice-dependent language)
+    @MainActor
+    var audioOutputDeviceUID: String = ""  // "" = System Default
 
     /// Audio data from the last synthesis (M4A/AAC format)
     private(set) var lastAudioData: Data?
@@ -27,6 +30,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     var supportsSpeedControl: Bool { true }
 
     private var audioPlayer: AVAudioPlayer?
+    private var audioEngine: AVAudioEngine?
+    private var audioPlayerNode: AVAudioPlayerNode?
     private var currentText = ""
     private var wordRanges: [NSRange] = []
     private var wordWeights: [Double] = []  // Relative weight of each word for timing
@@ -129,44 +134,150 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
         // Load and play the audio file
         do {
-            audioPlayer = try AVAudioPlayer(contentsOf: audioFile)
-            audioPlayer?.delegate = self
-            audioPlayer?.prepareToPlay()
-            actualDuration = audioPlayer?.duration ?? 0
-
-            guard actualDuration > 0 else {
-                throw TTSError.audioError("Audio file has zero duration")
+            // Use AVAudioEngine if custom output device is specified
+            if !audioOutputDeviceUID.isEmpty {
+                try playWithAudioEngine(url: audioFile)
+            } else {
+                try playWithAudioPlayer(url: audioFile)
             }
-
-            speechStartTime = Date()
-            startHighlightTimer()
-            audioPlayer?.play()
         } catch {
             throw TTSError.audioError("Failed to play audio: \(error.localizedDescription)")
         }
     }
 
+    /// Play using AVAudioPlayer (system default output)
+    @MainActor
+    private func playWithAudioPlayer(url: URL) throws {
+        audioPlayer = try AVAudioPlayer(contentsOf: url)
+        audioPlayer?.delegate = self
+        audioPlayer?.prepareToPlay()
+        actualDuration = audioPlayer?.duration ?? 0
+
+        guard actualDuration > 0 else {
+            throw TTSError.audioError("Audio file has zero duration")
+        }
+
+        speechStartTime = Date()
+        startHighlightTimer()
+        audioPlayer?.play()
+    }
+
+    /// Play using AVAudioEngine (supports custom output device)
+    @MainActor
+    private func playWithAudioEngine(url: URL) throws {
+        let engine = AVAudioEngine()
+        let playerNode = AVAudioPlayerNode()
+
+        engine.attach(playerNode)
+
+        let file = try AVAudioFile(forReading: url)
+        actualDuration = Double(file.length) / file.processingFormat.sampleRate
+
+        guard actualDuration > 0 else {
+            throw TTSError.audioError("Audio file has zero duration")
+        }
+
+        engine.connect(playerNode, to: engine.mainMixerNode, format: file.processingFormat)
+
+        // Set output device
+        try setOutputDevice(uid: audioOutputDeviceUID, for: engine)
+
+        try engine.start()
+
+        audioEngine = engine
+        audioPlayerNode = playerNode
+
+        // Schedule the entire file
+        playerNode.scheduleFile(file, at: nil) { [weak self] in
+            Task { @MainActor in
+                self?.audioEngineDidFinishPlaying()
+            }
+        }
+
+        speechStartTime = Date()
+        startHighlightTimer()
+        playerNode.play()
+    }
+
+    /// Set the output device for an AVAudioEngine
+    @MainActor
+    private func setOutputDevice(uid: String, for engine: AVAudioEngine) throws {
+        guard let device = AudioOutputManager.shared.device(withUID: uid) else {
+            throw AudioOutputError.deviceNotFound
+        }
+
+        guard device.id != 0 else { return }  // System default, no need to set
+
+        let outputNode = engine.outputNode
+        guard let audioUnit = outputNode.audioUnit else {
+            throw AudioOutputError.failedToSetDevice(0)
+        }
+
+        var deviceID = device.id
+        let status = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &deviceID,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+
+        guard status == noErr else {
+            throw AudioOutputError.failedToSetDevice(status)
+        }
+    }
+
+    /// Called when AVAudioEngine finishes playing
+    @MainActor
+    private func audioEngineDidFinishPlaying() {
+        highlightTimer?.invalidate()
+        highlightTimer = nil
+        stopAudioEngine()
+        isSpeaking = false
+        isPaused = false
+        delegate?.tts(self, didFinishSpeaking: true)
+    }
+
+    /// Stop and clean up AVAudioEngine
+    @MainActor
+    private func stopAudioEngine() {
+        audioPlayerNode?.stop()
+        audioEngine?.stop()
+        audioPlayerNode = nil
+        audioEngine = nil
+    }
+
     @MainActor
     func pause() {
-        guard isSpeaking, !isPaused, let player = audioPlayer else { return }
+        guard isSpeaking, !isPaused else { return }
 
-        player.pause()
+        if audioEngine != nil {
+            audioPlayerNode?.pause()
+        } else if let player = audioPlayer {
+            player.pause()
+            pausedTime = player.currentTime
+        }
+
         isPaused = true
-        pausedTime = player.currentTime
         highlightTimer?.invalidate()
     }
 
     @MainActor
     func resume() {
-        guard isSpeaking, isPaused, let player = audioPlayer else { return }
+        guard isSpeaking, isPaused else { return }
 
-        // Adjust start time to account for paused duration
-        if let startTime = speechStartTime {
-            let pauseDuration = player.currentTime - pausedTime
-            speechStartTime = startTime.addingTimeInterval(pauseDuration)
+        if audioEngine != nil {
+            audioPlayerNode?.play()
+        } else if let player = audioPlayer {
+            // Adjust start time to account for paused duration
+            if let startTime = speechStartTime {
+                let pauseDuration = player.currentTime - pausedTime
+                speechStartTime = startTime.addingTimeInterval(pauseDuration)
+            }
+            player.play()
         }
 
-        player.play()
         isPaused = false
         startHighlightTimer()
     }
@@ -178,6 +289,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
         audioPlayer?.stop()
         audioPlayer = nil
+
+        stopAudioEngine()
 
         // Clean up temp audio file
         if let tempFile = tempAudioFile {

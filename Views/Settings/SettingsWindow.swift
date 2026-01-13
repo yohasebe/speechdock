@@ -99,6 +99,9 @@ struct GeneralSettingsView: View {
 
                 // TTS Language selection (ElevenLabs only)
                 TTSLanguagePicker(appState: appState)
+
+                // Audio Output Device selection
+                AudioOutputDevicePicker(appState: appState)
             } header: {
                 Text("Text-to-Speech")
             }
@@ -470,7 +473,11 @@ struct TTSVoicePicker: View {
     }
 
     private func voiceDisplayName(_ voice: TTSVoice) -> String {
-        if voice.language.isEmpty {
+        // Only show language suffix for ElevenLabs and macOS (where it's meaningful)
+        // OpenAI and Gemini voices don't need language suffix
+        if voice.language.isEmpty ||
+           appState.selectedTTSProvider == .openAI ||
+           appState.selectedTTSProvider == .gemini {
             return voice.name
         } else {
             return "\(voice.name) (\(voice.language))"
@@ -838,6 +845,38 @@ struct AudioInputDevicePicker: View {
         // If selected device is not in the list, reset to system default
         if !availableDevices.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
             appState.selectedAudioInputDeviceUID = ""
+        }
+    }
+}
+
+/// Audio output device picker for TTS (speaker selection)
+struct AudioOutputDevicePicker: View {
+    @Bindable var appState: AppState
+    @State private var availableDevices: [AudioOutputDevice] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Picker("Audio Output", selection: $appState.selectedAudioOutputDeviceUID) {
+                ForEach(availableDevices) { device in
+                    Text(device.name).tag(device.uid)
+                }
+            }
+
+            Text("Select the audio output device for speech playback.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .onAppear {
+            loadDevices()
+        }
+    }
+
+    private func loadDevices() {
+        availableDevices = AudioOutputManager.shared.availableOutputDevices()
+
+        // If selected device is not in the list, reset to system default
+        if !availableDevices.contains(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
+            appState.selectedAudioOutputDeviceUID = ""
         }
     }
 }

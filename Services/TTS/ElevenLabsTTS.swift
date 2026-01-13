@@ -13,6 +13,9 @@ final class ElevenLabsTTS: NSObject, TTSService {
     var selectedModel: String = "eleven_v3"
     var selectedSpeed: Double = 1.0  // Speed multiplier (ElevenLabs range: 0.5-2.0)
     var selectedLanguage: String = ""  // "" = Auto (ElevenLabs uses language_code for Turbo/Flash v2.5)
+    var audioOutputDeviceUID: String = "" {
+        didSet { playbackController.outputDeviceUID = audioOutputDeviceUID }
+    }
 
     private(set) var lastAudioData: Data?
     var audioFileExtension: String { "mp3" }

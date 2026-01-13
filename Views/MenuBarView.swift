@@ -194,6 +194,15 @@ struct MenuBarView: View {
             .scaleEffect(0.9, anchor: .leading)
             .help(ttsSpeedHelpText)
 
+            // Audio Output Device selector
+            HStack {
+                Text("Output:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                MenuBarAudioOutputSelector(appState: appState)
+                Spacer()
+            }
+
             Divider()
                 .padding(.vertical, 2)
 
@@ -399,13 +408,7 @@ struct MenuBarView: View {
         // Close the menu bar popover first
         StatusBarManager.shared.closePopover()
 
-        // Show in Dock while About window is open
-        NSApp.setActivationPolicy(.regular)
-
-        // Activate the app to bring it to front
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Open About window using WindowManager
+        // Open About window using WindowManager (handles activation policy)
         WindowManager.shared.openAboutWindow()
     }
 
@@ -424,41 +427,8 @@ struct MenuBarView: View {
         // Close the menu bar popover first
         StatusBarManager.shared.closePopover()
 
-        // Show in Dock while settings is open
-        NSApp.setActivationPolicy(.regular)
-
-        // Activate the app to bring it to front
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Open Settings window using the standard macOS API
-        if #available(macOS 14.0, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
-
-        // Ensure the settings window is brought to front after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            for window in NSApp.windows {
-                if window.title == "Settings" || window.identifier?.rawValue.contains("Settings") == true {
-                    window.makeKeyAndOrderFront(nil)
-
-                    // Set up observer to hide from Dock when settings window closes
-                    NotificationCenter.default.addObserver(
-                        forName: NSWindow.willCloseNotification,
-                        object: window,
-                        queue: .main
-                    ) { _ in
-                        // Hide from Dock when settings closes (only if About is not open)
-                        let aboutOpen = NSApp.windows.contains { $0.identifier?.rawValue == "about" && $0.isVisible }
-                        if !aboutOpen {
-                            NSApp.setActivationPolicy(.accessory)
-                        }
-                    }
-                    break
-                }
-            }
-        }
+        // Open Settings window using WindowManager (handles activation policy)
+        WindowManager.shared.openSettingsWindow()
     }
 }
 
@@ -752,5 +722,72 @@ struct MenuBarTTSVoicePicker: View {
     private func voiceDisplayName(_ voice: TTSVoice) -> String {
         // Keep it short for menu bar
         return voice.name
+    }
+}
+
+/// Audio output device selector for TTS (speaker selection)
+struct MenuBarAudioOutputSelector: View {
+    var appState: AppState
+    @State private var availableDevices: [AudioOutputDevice] = []
+
+    private var currentName: String {
+        if appState.selectedAudioOutputDeviceUID.isEmpty {
+            return "System Default"
+        }
+        if let device = availableDevices.first(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
+            return device.name
+        }
+        return "System Default"
+    }
+
+    var body: some View {
+        Menu {
+            ForEach(availableDevices) { device in
+                Button(action: {
+                    appState.selectedAudioOutputDeviceUID = device.uid
+                }) {
+                    HStack {
+                        Text(device.name)
+                        if appState.selectedAudioOutputDeviceUID == device.uid {
+                            Spacer()
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+
+            if availableDevices.isEmpty {
+                Text("No output devices detected")
+                    .foregroundColor(.secondary)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "speaker.wave.2")
+                    .font(.caption)
+                Text(currentName)
+                    .font(.caption)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8))
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.secondary.opacity(0.15))
+            .cornerRadius(4)
+        }
+        .menuStyle(.borderlessButton)
+        .onAppear {
+            loadDevices()
+        }
+    }
+
+    private func loadDevices() {
+        availableDevices = AudioOutputManager.shared.availableOutputDevices()
+
+        // If selected device is not in the list, reset to system default
+        if !appState.selectedAudioOutputDeviceUID.isEmpty &&
+           !availableDevices.contains(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
+            appState.selectedAudioOutputDeviceUID = ""
+        }
     }
 }

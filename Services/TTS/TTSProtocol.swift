@@ -28,6 +28,7 @@ protocol TTSService: AnyObject {
     var selectedModel: String { get set }
     var selectedSpeed: Double { get set }  // Speed multiplier (1.0 = normal)
     var selectedLanguage: String { get set }  // "" = Auto (only used by ElevenLabs)
+    var audioOutputDeviceUID: String { get set }  // "" = System Default
 
     /// Last generated audio data (nil for providers that don't support saving, e.g., macOS)
     var lastAudioData: Data? { get }

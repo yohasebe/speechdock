@@ -481,9 +481,6 @@ struct TranscriptionFloatingView: View {
 
                 Spacer()
 
-                // Audio input source selector
-                AudioInputSourceSelector(appState: appState)
-
                 // Provider badge
                 HStack(spacing: 4) {
                     Text("Provider:")
@@ -585,7 +582,7 @@ struct TranscriptionFloatingView: View {
             }
         }
         .padding(16)
-        .frame(minWidth: 520, idealWidth: 640, maxWidth: 800)
+        .frame(minWidth: 680, idealWidth: 780, maxWidth: 1000)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onChange(of: appState.currentTranscription) { _, newValue in
@@ -688,6 +685,9 @@ struct TranscriptionFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
+            // Audio input source selector on the left
+            AudioInputSourceSelector(appState: appState)
+
             Spacer()
 
             if case .recording = appState.transcriptionState {

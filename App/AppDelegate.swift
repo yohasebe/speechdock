@@ -99,6 +99,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupAllTempFiles()
     }
 
+    /// Prevent app from terminating when last window is closed (menu bar app)
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
+
     /// Clean up all TypeTalk temporary files (called on app termination)
     private func cleanupAllTempFiles() {
         let tempDir = FileManager.default.temporaryDirectory

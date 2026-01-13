@@ -12,16 +12,13 @@ struct TypeTalkApp: App {
         }
     }
 
+    // No SwiftUI scenes needed - all windows managed by WindowManager
+    // This prevents Settings/About from opening automatically on launch
     var body: some Scene {
+        // Empty Settings scene that never opens automatically
+        // Settings scenes don't open on launch by default, unlike WindowGroup
         Settings {
-            SettingsWindow()
-                .environment(appState)
+            EmptyView()
         }
-
-        Window("About TypeTalk", id: "about") {
-            AboutView()
-        }
-        .windowResizability(.contentSize)
-        .windowStyle(.hiddenTitleBar)
     }
 }
