@@ -26,6 +26,16 @@ Convert text to speech using:
 - **Google Gemini** - Gemini 2.5 Flash TTS, Gemini 2.5 Flash Lite TTS
 - **ElevenLabs** - Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5
 
+### Audio Input Sources
+
+TypeTalk supports multiple audio input sources for STT:
+
+- **Microphone** - Record from any connected microphone with device selection
+- **System Audio** - Capture all audio output from your Mac
+- **App Audio** - Capture audio from a specific application (e.g., browser, media player)
+
+Audio input source can be changed from the menu bar or STT panel. System Audio and App Audio require Screen Recording permission.
+
 ### Additional Features
 
 - Global keyboard shortcuts for STT and TTS
@@ -91,8 +101,20 @@ Click the TypeTalk icon in the menu bar to:
 
 - Start/stop STT recording
 - Open TTS panel
+- Select audio input source and microphone device
 - Access settings
 - View current provider status
+
+### Audio Input Selection
+
+You can select the audio input source from:
+
+1. **Menu Bar** - Click the audio source indicator to change between Microphone, System Audio, or App Audio
+2. **STT Panel** - Use the "Input:" dropdown in the panel header
+
+When Microphone is selected, you can also choose which microphone device to use if multiple are connected.
+
+Note: App Audio selection is session-only and resets to Microphone when the app restarts.
 
 ## Configuration
 
@@ -126,7 +148,7 @@ Note: Environment variables are primarily for development. For normal usage, con
 
 ### Settings
 
-- **General**: Select STT/TTS providers, models, voices, languages, and playback speed
+- **General**: Select STT/TTS providers, models, voices, languages, audio input source, and playback speed
 - **Shortcuts**: Customize global hotkeys and panel-specific shortcuts (with modifier key support)
 - **API Keys**: Manage API keys for cloud providers
 
@@ -147,7 +169,7 @@ Enable "Launch at Login" in Settings > General to automatically start TypeTalk w
 
 ### Prerequisites
 
-- Xcode 15.0 or later
+- Xcode 16.0 or later
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (optional, for project generation)
 
 ### Build Steps
@@ -189,7 +211,7 @@ TypeTalk requires the following permissions:
 
 - **Microphone**: For speech recognition
 - **Accessibility**: For global keyboard shortcuts and text insertion
-- **Screen Recording**: For window thumbnails in paste target selection
+- **Screen Recording**: For window thumbnails in paste target selection and system/app audio capture
 
 Grant these permissions in System Settings > Privacy & Security. TypeTalk will prompt you on first launch if permissions are not yet granted.
 
@@ -200,6 +222,7 @@ Grant these permissions in System Settings > Privacy & Security. TypeTalk will p
 1. Ensure microphone permission is granted
 2. Check that the selected provider has a valid API key (for cloud providers)
 3. Try switching to macOS native provider to test
+4. If using System Audio or App Audio, ensure Screen Recording permission is granted
 
 ### TTS not working
 
@@ -213,6 +236,12 @@ Grant these permissions in System Settings > Privacy & Security. TypeTalk will p
 2. Check for conflicts with other applications
 3. Try resetting shortcuts to defaults in Settings
 
+### System Audio / App Audio not working
+
+1. Ensure Screen Recording permission is granted in System Settings > Privacy & Security > Screen Recording
+2. For App Audio, make sure the target application is running and producing audio
+3. Try refreshing the app list from the audio source menu
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
@@ -223,4 +252,4 @@ Yoichiro Hasebe
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

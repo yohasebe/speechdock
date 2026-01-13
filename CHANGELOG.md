@@ -7,15 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-01-13
+
 ### Added
 - System audio capture support (capture audio from system or specific apps)
-- Audio input source selector in STT panel header
+- Audio input source selector in STT panel header and menu bar
+- Microphone device selection in menu bar and STT panel
 - Paste destination validation with warning when target window is no longer available
+- Test target with initial unit tests for KeychainService and APIKeyManager
+- CONTRIBUTING.md with development guidelines
 
 ### Changed
 - Removed `~/.typetalk.env` config file support for security reasons
 - API keys should now be stored via Settings UI (stored securely in macOS Keychain)
 - Environment variables still supported for development use
+- App Audio option removed from Settings panel (available only in menu bar and STT panel)
+- App Audio settings are now session-only (reset to Microphone on app restart)
+- Cmd+Q now closes panel instead of quitting app when STT/TTS panels are visible
+
+### Fixed
+- ElevenLabsTTS voice cache expiration check
+- Timeout protection for isTranscribing flag to prevent potential deadlock
+- applicationShouldTerminate race condition using MainActor.assumeIsolated
+- MacOSTTS timer management for immediate invalidation on deallocation
+- showTTSWindow flag synchronization issue
+- Panel close (by any method) now properly stops STT/TTS processing
+- Unsafe force cast in TextSelectionService with proper CFGetTypeID check
+- Thread.sleep replaced with non-blocking RunLoop-based waiting in AppDelegate
+- Thread safety added to KeychainService with NSLock
+- MacOSTTS Process execution made async to avoid blocking main thread
 
 ### Security
 - Debug logging now wrapped in `#if DEBUG` to prevent information leakage in production
