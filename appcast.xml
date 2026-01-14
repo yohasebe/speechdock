@@ -5,15 +5,17 @@
         <link>https://github.com/yohasebe/typetalk</link>
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
-        <!--
-        リリース時に以下の項目を更新:
-        - title: バージョン番号
-        - pubDate: リリース日時 (RFC 2822形式)
-        - sparkle:version: ビルド番号 (CFBundleVersion)
-        - sparkle:shortVersionString: バージョン文字列 (CFBundleShortVersionString)
-        - enclosure url: DMGのダウンロードURL
-        - sparkle:edSignature: sign_updateツールで生成した署名
-        - length: DMGファイルサイズ（バイト）
-        -->
+        <item>
+            <title>Version 0.1.4</title>
+            <pubDate>Wed, 14 Jan 2026 04:46:08 +0000</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/yohasebe/typetalk/releases/download/v0.1.4/TypeTalk-0.1.4.dmg"
+                sparkle:edSignature="sparkle:edSignature="mOhkmJRWITx+Y097kz+bljAS8+fH7wYG812wzwNB5enpZheJdci9g14Bi0Zd+ZhASPhyYAjuNoO1NRuCQngYDQ==" length="5230680""
+                length="5230680"
+                type="application/octet-stream"/>
+        </item>
     </channel>
 </rss>
