@@ -1,34 +1,59 @@
 import Foundation
 @preconcurrency import AVFoundation
+import NaturalLanguage
 
-/// Google Gemini TTS API implementation
+/// Google Gemini TTS API implementation with WebSocket streaming support
 @MainActor
 final class GeminiTTS: NSObject, TTSService {
     weak var delegate: TTSDelegate?
 
-    var isSpeaking: Bool { playbackController.isSpeaking }
-    var isPaused: Bool { playbackController.isPaused }
+    var isSpeaking: Bool {
+        useStreamingMode ? streamingPlayer.isSpeaking : playbackController.isSpeaking
+    }
+    var isPaused: Bool {
+        useStreamingMode ? streamingPlayer.isPaused : playbackController.isPaused
+    }
 
     var selectedVoice: String = "Zephyr"  // Default voice
     var selectedModel: String = "gemini-2.5-flash-preview-tts"
     var selectedSpeed: Double = 1.0  // Speed multiplier (uses prompt-based control)
     var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects from text)
     var audioOutputDeviceUID: String = "" {
-        didSet { playbackController.outputDeviceUID = audioOutputDeviceUID }
+        didSet {
+            playbackController.outputDeviceUID = audioOutputDeviceUID
+            streamingPlayer.outputDeviceUID = audioOutputDeviceUID
+        }
     }
 
+    /// Enable streaming mode for lower latency (default: true)
+    var useStreamingMode: Bool = true
+
     private(set) var lastAudioData: Data?
-    var audioFileExtension: String { "m4a" }
+    var audioFileExtension: String { "m4a" }  // Always M4A (converted from PCM for streaming)
 
     var supportsSpeedControl: Bool { true }
 
     private let apiKeyManager = APIKeyManager.shared
     private let playbackController = TTSAudioPlaybackController()
+    private let streamingPlayer = StreamingAudioPlayer()
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    /// WebSocket endpoint for Live API (v1alpha for BidiGenerateContent)
+    private let wsBaseURL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
+
+    /// WebSocket task for streaming
+    private var webSocketTask: URLSessionWebSocketTask?
+
+    /// Accumulated PCM data for saving (streaming mode)
+    private var accumulatedPCMData = Data()
+
+    /// Flag to track if streaming is active
+    private var isStreamingActive = false
 
     override init() {
         super.init()
         setupPlaybackController()
+        setupStreamingPlayer()
     }
 
     private func setupPlaybackController() {
@@ -46,6 +71,28 @@ final class GeminiTTS: NSObject, TTSService {
         }
     }
 
+    private func setupStreamingPlayer() {
+        streamingPlayer.onPlaybackStarted = {
+            #if DEBUG
+            print("Gemini TTS: Streaming playback started")
+            #endif
+        }
+        streamingPlayer.onPlaybackFinished = { [weak self] success in
+            guard let self = self else { return }
+            // Note: M4A conversion is handled in speakStreaming() after stream completes
+            // Don't store raw PCM here - lastAudioData will be set by the conversion Task
+            self.delegate?.tts(self, didFinishSpeaking: success)
+        }
+        streamingPlayer.onError = { [weak self] error in
+            guard let self = self else { return }
+            self.delegate?.tts(self, didFailWithError: error)
+        }
+    }
+
+    /// Character threshold per chunk for streaming mode (~50 seconds of speech to be safe)
+    /// Live API has approximately 60-second audio output limit per turn
+    private let streamingChunkLimit = 700
+
     func speak(text: String) async throws {
         guard !text.isEmpty else {
             throw TTSError.noTextProvided
@@ -57,6 +104,293 @@ final class GeminiTTS: NSObject, TTSService {
 
         stop()
 
+        if useStreamingMode {
+            try await speakStreaming(text: text, apiKey: apiKey)
+        } else {
+            try await speakNonStreaming(text: text, apiKey: apiKey)
+        }
+    }
+
+    /// WebSocket streaming playback with chunked text support
+    /// Splits long text into chunks to work around Live API's ~60 second limit
+    private func speakStreaming(text: String, apiKey: String) async throws {
+        accumulatedPCMData = Data()
+        isStreamingActive = true
+
+        // Validate voice
+        let validVoice = Self.validVoiceIds.contains(selectedVoice.lowercased()) ? selectedVoice.lowercased() : "zephyr"
+
+        // Split text into chunks if needed
+        let textChunks = splitTextIntoChunks(text, maxLength: streamingChunkLimit)
+
+        #if DEBUG
+        print("Gemini TTS: Split text into \(textChunks.count) chunks")
+        #endif
+
+        // Create WebSocket URL with API key
+        let urlString = "\(wsBaseURL)?key=\(apiKey)"
+        guard let url = URL(string: urlString) else {
+            throw TTSError.apiError("Invalid WebSocket URL")
+        }
+
+        // Create WebSocket task
+        let session = URLSession(configuration: .default)
+        let wsTask = session.webSocketTask(with: url)
+        webSocketTask = wsTask
+        wsTask.resume()
+
+        #if DEBUG
+        print("Gemini TTS: WebSocket connection started")
+        #endif
+
+        // Send setup message
+        // Use gemini-2.5-flash-native-audio for Live API with audio output
+        let setupMessage: [String: Any] = [
+            "setup": [
+                "model": "models/gemini-2.5-flash-native-audio-preview-12-2025",
+                "generationConfig": [
+                    "responseModalities": ["AUDIO"],
+                    "speechConfig": [
+                        "voiceConfig": [
+                            "prebuiltVoiceConfig": [
+                                "voiceName": validVoice
+                            ]
+                        ]
+                    ]
+                ],
+                "systemInstruction": [
+                    "parts": [
+                        ["text": "You are a text-to-speech engine. Your ONLY function is to vocalize text exactly as written. RULES: 1) Read EVERY word, character, and punctuation mark exactly as provided. 2) NEVER skip, summarize, paraphrase, or omit any part. 3) NEVER add commentary or responses. 4) Read in the same language as the input text. 5) Read numbered lists, citations, and special characters verbatim."]
+                    ]
+                ]
+            ]
+        ]
+
+        let setupData = try JSONSerialization.data(withJSONObject: setupMessage)
+        let setupString = String(data: setupData, encoding: .utf8)!
+        try await wsTask.send(.string(setupString))
+
+        // Wait for setupComplete response
+        let setupResponse = try await wsTask.receive()
+        switch setupResponse {
+        case .string(let responseText):
+            guard responseText.contains("setupComplete") else {
+                throw TTSError.apiError("Setup failed: \(responseText)")
+            }
+        case .data(let data):
+            if let responseText = String(data: data, encoding: .utf8) {
+                guard responseText.contains("setupComplete") else {
+                    throw TTSError.apiError("Setup failed: \(responseText)")
+                }
+            } else {
+                throw TTSError.apiError("Unexpected binary response during setup")
+            }
+        @unknown default:
+            throw TTSError.apiError("Unknown response type during setup")
+        }
+
+        #if DEBUG
+        print("Gemini TTS: Setup complete")
+        #endif
+
+        // Start streaming player
+        try streamingPlayer.startStreaming()
+
+        var totalChunkCount = 0
+        var totalAudioBytes = 0
+
+        // Process each text chunk
+        for (chunkIndex, chunk) in textChunks.enumerated() {
+            guard isStreamingActive else { break }
+
+            #if DEBUG
+            print("Gemini TTS: Sending chunk \(chunkIndex + 1)/\(textChunks.count) (\(chunk.count) chars)")
+            #endif
+
+            // Send text chunk with explicit verbatim instruction
+            let textToSpeak = "READ VERBATIM (do not skip or summarize):\n\n\(chunk)"
+
+            let clientContent: [String: Any] = [
+                "clientContent": [
+                    "turns": [
+                        [
+                            "role": "user",
+                            "parts": [
+                                ["text": textToSpeak]
+                            ]
+                        ]
+                    ],
+                    "turnComplete": true
+                ]
+            ]
+
+            let contentData = try JSONSerialization.data(withJSONObject: clientContent)
+            let contentString = String(data: contentData, encoding: .utf8)!
+            try await wsTask.send(.string(contentString))
+
+            // Receive audio for this chunk
+            var receivedTurnComplete = false
+
+            while isStreamingActive && !receivedTurnComplete {
+                do {
+                    let message = try await wsTask.receive()
+
+                    let jsonData: Data?
+                    switch message {
+                    case .string(let text):
+                        jsonData = text.data(using: .utf8)
+                    case .data(let data):
+                        jsonData = data
+                    @unknown default:
+                        continue
+                    }
+
+                    guard let data = jsonData,
+                          let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        continue
+                    }
+
+                    if let serverContent = json["serverContent"] as? [String: Any] {
+                        if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
+                            receivedTurnComplete = true
+                            #if DEBUG
+                            print("Gemini TTS: Chunk \(chunkIndex + 1) complete")
+                            #endif
+                        }
+
+                        if let modelTurn = serverContent["modelTurn"] as? [String: Any],
+                           let parts = modelTurn["parts"] as? [[String: Any]] {
+                            for part in parts {
+                                if let inlineData = part["inlineData"] as? [String: Any],
+                                   let base64Audio = inlineData["data"] as? String,
+                                   let audioData = Data(base64Encoded: base64Audio) {
+                                    streamingPlayer.appendData(audioData)
+                                    accumulatedPCMData.append(audioData)
+                                    totalChunkCount += 1
+                                    totalAudioBytes += audioData.count
+                                }
+                            }
+                        }
+                    }
+                } catch {
+                    if isStreamingActive {
+                        #if DEBUG
+                        print("Gemini TTS: WebSocket error: \(error)")
+                        #endif
+                    }
+                    break
+                }
+            }
+        }
+
+        // Signal end of stream
+        streamingPlayer.finishStream()
+
+        // Close WebSocket
+        wsTask.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        isStreamingActive = false
+
+        #if DEBUG
+        print("Gemini TTS: All chunks complete. Total: \(totalChunkCount) audio chunks, \(totalAudioBytes) bytes")
+        #endif
+
+        // Convert accumulated PCM to M4A for saving (await to ensure lastAudioData is ready for Save Audio)
+        if !accumulatedPCMData.isEmpty {
+            // First convert PCM to WAV (add header)
+            let wavData = AudioConverter.createWAVFromPCM(accumulatedPCMData)
+
+            // Clear accumulated PCM data to free memory before conversion
+            accumulatedPCMData = Data()
+
+            // Then convert WAV to M4A (await completion to avoid race condition with Save Audio)
+            if let m4aData = await AudioConverter.convertToAAC(inputData: wavData, inputExtension: "wav") {
+                lastAudioData = m4aData
+                #if DEBUG
+                print("Gemini TTS: Converted to M4A, size: \(m4aData.count) bytes")
+                #endif
+            } else {
+                // Fallback to WAV if M4A conversion fails
+                lastAudioData = wavData
+                #if DEBUG
+                print("Gemini TTS: M4A conversion failed, using WAV")
+                #endif
+            }
+        }
+    }
+
+    /// Split text into chunks at sentence boundaries using NLTokenizer
+    /// Ensures we never split in the middle of a sentence
+    private func splitTextIntoChunks(_ text: String, maxLength: Int) -> [String] {
+        guard text.count > maxLength else {
+            return [text]
+        }
+
+        // First, get all sentences using NLTokenizer
+        let sentences = tokenizeIntoSentences(text)
+
+        #if DEBUG
+        print("Gemini TTS: Tokenized into \(sentences.count) sentences")
+        #endif
+
+        // Group sentences into chunks that don't exceed maxLength
+        var chunks: [String] = []
+        var currentChunk = ""
+
+        for sentence in sentences {
+            let trimmedSentence = sentence.trimmingCharacters(in: .whitespaces)
+            guard !trimmedSentence.isEmpty else { continue }
+
+            // Check if adding this sentence would exceed the limit
+            let separator = currentChunk.isEmpty ? "" : " "
+            let potentialLength = currentChunk.count + separator.count + trimmedSentence.count
+
+            if potentialLength > maxLength && !currentChunk.isEmpty {
+                // Save current chunk and start new one
+                chunks.append(currentChunk)
+                currentChunk = trimmedSentence
+            } else {
+                // Add sentence to current chunk
+                if currentChunk.isEmpty {
+                    currentChunk = trimmedSentence
+                } else {
+                    currentChunk += separator + trimmedSentence
+                }
+            }
+
+            // Handle case where a single sentence exceeds maxLength
+            // (rare, but possible with very long sentences)
+            if currentChunk.count > maxLength && chunks.last != currentChunk {
+                chunks.append(currentChunk)
+                currentChunk = ""
+            }
+        }
+
+        // Don't forget the last chunk
+        if !currentChunk.isEmpty {
+            chunks.append(currentChunk)
+        }
+
+        return chunks
+    }
+
+    /// Tokenize text into sentences using Apple's NaturalLanguage framework
+    private func tokenizeIntoSentences(_ text: String) -> [String] {
+        var sentences: [String] = []
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = text
+
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            let sentence = String(text[range])
+            sentences.append(sentence)
+            return true
+        }
+
+        return sentences
+    }
+
+    /// Non-streaming playback - waits for full audio before playing
+    private func speakNonStreaming(text: String, apiKey: String) async throws {
         // Prepare text for highlighting
         playbackController.prepareText(text)
 
@@ -142,25 +476,20 @@ final class GeminiTTS: NSObject, TTSService {
         let finalAudioData: Data
         let sourceExt: String
         if mimeType.contains("L16") || mimeType.contains("pcm") {
-            finalAudioData = createWAVFromPCM(audioData, mimeType: mimeType)
+            let sampleRate = AudioConverter.extractSampleRate(from: mimeType)
+            finalAudioData = AudioConverter.createWAVFromPCM(audioData, sampleRate: sampleRate)
             sourceExt = "wav"
         } else {
             finalAudioData = audioData
             sourceExt = "wav"  // Gemini typically returns WAV-compatible format
         }
 
-        // Convert to M4A (AAC) in background for smaller file size
-        Task {
-            if let m4aData = await AudioConverter.convertToAAC(inputData: finalAudioData, inputExtension: sourceExt) {
-                await MainActor.run {
-                    self.lastAudioData = m4aData
-                }
-            } else {
-                // Fallback to original format if conversion fails
-                await MainActor.run {
-                    self.lastAudioData = finalAudioData
-                }
-            }
+        // Convert to M4A (AAC) for smaller file size - await completion for Save Audio support
+        if let m4aData = await AudioConverter.convertToAAC(inputData: finalAudioData, inputExtension: sourceExt) {
+            lastAudioData = m4aData
+        } else {
+            // Fallback to original format if conversion fails
+            lastAudioData = finalAudioData
         }
 
         // Play the audio
@@ -168,68 +497,37 @@ final class GeminiTTS: NSObject, TTSService {
     }
 
     func pause() {
-        playbackController.pause()
+        if useStreamingMode {
+            streamingPlayer.pause()
+        } else {
+            playbackController.pause()
+        }
     }
 
     func resume() {
-        playbackController.resume()
+        if useStreamingMode {
+            streamingPlayer.resume()
+        } else {
+            playbackController.resume()
+        }
     }
 
     func stop() {
+        // Stop WebSocket if active
+        isStreamingActive = false
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+
+        streamingPlayer.stop()
         playbackController.stopPlayback()
     }
 
     func clearAudioCache() {
         lastAudioData = nil
+        accumulatedPCMData = Data()
     }
 
     // MARK: - Gemini-specific Helpers
-
-    private func createWAVFromPCM(_ pcmData: Data, mimeType: String) -> Data {
-        // Extract sample rate from MIME type (e.g., "audio/L16;rate=24000")
-        var sampleRate: UInt32 = 24000
-        if let rateMatch = mimeType.range(of: "rate=") {
-            let rateStart = mimeType.index(rateMatch.upperBound, offsetBy: 0)
-            var rateEnd = rateStart
-            while rateEnd < mimeType.endIndex && mimeType[rateEnd].isNumber {
-                rateEnd = mimeType.index(after: rateEnd)
-            }
-            if let rate = UInt32(mimeType[rateStart..<rateEnd]) {
-                sampleRate = rate
-            }
-        }
-
-        let channels: UInt16 = 1
-        let bitsPerSample: UInt16 = 16
-        let byteRate = sampleRate * UInt32(channels) * UInt32(bitsPerSample / 8)
-        let blockAlign = channels * (bitsPerSample / 8)
-        let dataSize = UInt32(pcmData.count)
-        let chunkSize = 36 + dataSize
-
-        var wavData = Data()
-
-        // RIFF header
-        wavData.append(contentsOf: "RIFF".utf8)
-        wavData.append(contentsOf: withUnsafeBytes(of: chunkSize.littleEndian) { Array($0) })
-        wavData.append(contentsOf: "WAVE".utf8)
-
-        // fmt subchunk
-        wavData.append(contentsOf: "fmt ".utf8)
-        wavData.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) }) // Subchunk1Size
-        wavData.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) }) // AudioFormat (PCM)
-        wavData.append(contentsOf: withUnsafeBytes(of: channels.littleEndian) { Array($0) })
-        wavData.append(contentsOf: withUnsafeBytes(of: sampleRate.littleEndian) { Array($0) })
-        wavData.append(contentsOf: withUnsafeBytes(of: byteRate.littleEndian) { Array($0) })
-        wavData.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Array($0) })
-        wavData.append(contentsOf: withUnsafeBytes(of: bitsPerSample.littleEndian) { Array($0) })
-
-        // data subchunk
-        wavData.append(contentsOf: "data".utf8)
-        wavData.append(contentsOf: withUnsafeBytes(of: dataSize.littleEndian) { Array($0) })
-        wavData.append(pcmData)
-
-        return wavData
-    }
 
     /// Generate pace instruction for Gemini TTS based on speed setting
     /// Based on monadic-chat's implementation - always include a pace instruction

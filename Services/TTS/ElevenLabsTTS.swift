@@ -28,7 +28,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
     var useStreamingMode: Bool = true
 
     private(set) var lastAudioData: Data?
-    var audioFileExtension: String { useStreamingMode ? "pcm" : "mp3" }
+    var audioFileExtension: String { useStreamingMode ? "m4a" : "mp3" }
 
     var supportsSpeedControl: Bool { true }
 
@@ -69,10 +69,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
             guard let self = self else { return }
-            // Store accumulated PCM data for potential saving
-            if !self.accumulatedPCMData.isEmpty {
-                self.lastAudioData = self.accumulatedPCMData
-            }
+            // Note: M4A conversion is handled in speakStreaming() after stream completes
+            // Don't convert here - lastAudioData is already set by speakStreaming()
             self.delegate?.tts(self, didFinishSpeaking: success)
         }
         streamingPlayer.onError = { [weak self] error in
@@ -195,6 +193,18 @@ final class ElevenLabsTTS: NSObject, TTSService {
         #if DEBUG
         print("ElevenLabs TTS: Streaming complete, total bytes: \(accumulatedPCMData.count)")
         #endif
+
+        // Convert accumulated PCM to M4A for saving (await to ensure lastAudioData is ready for Save Audio)
+        if !accumulatedPCMData.isEmpty {
+            if let m4aData = await convertPCMToM4A(accumulatedPCMData) {
+                lastAudioData = m4aData
+                #if DEBUG
+                print("ElevenLabs TTS: Converted to M4A, size: \(m4aData.count) bytes")
+                #endif
+            }
+            // Clear accumulated PCM data to free memory (M4A is now stored in lastAudioData)
+            accumulatedPCMData = Data()
+        }
     }
 
     /// Non-streaming playback - waits for full audio before playing
@@ -403,4 +413,15 @@ final class ElevenLabsTTS: NSObject, TTSService {
         TTSVoice(id: "pNInz6obpgDQGcFmaJgB", name: "Adam", language: "american"),
         TTSVoice(id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", language: "american")
     ]
+
+    // MARK: - Audio Conversion Helpers
+
+    /// Convert PCM data to M4A (AAC) format for saving
+    private func convertPCMToM4A(_ pcmData: Data) async -> Data? {
+        // First convert PCM to WAV (add header) using shared utility
+        let wavData = AudioConverter.createWAVFromPCM(pcmData)
+
+        // Then convert WAV to M4A using AudioConverter
+        return await AudioConverter.convertToAAC(inputData: wavData, inputExtension: "wav")
+    }
 }

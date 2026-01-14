@@ -28,7 +28,7 @@ final class OpenAITTS: NSObject, TTSService {
     var useStreamingMode: Bool = true
 
     private(set) var lastAudioData: Data?
-    var audioFileExtension: String { useStreamingMode ? "pcm" : "mp3" }
+    var audioFileExtension: String { useStreamingMode ? "m4a" : "mp3" }
 
     var supportsSpeedControl: Bool {
         // gpt-4o-mini-tts models don't support speed parameter directly
@@ -75,10 +75,8 @@ final class OpenAITTS: NSObject, TTSService {
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
             guard let self = self else { return }
-            // Store accumulated PCM data for potential saving
-            if !self.accumulatedPCMData.isEmpty {
-                self.lastAudioData = self.accumulatedPCMData
-            }
+            // Note: M4A conversion is handled in speakStreaming() after stream completes
+            // Don't convert here - lastAudioData is already set by speakStreaming()
             self.delegate?.tts(self, didFinishSpeaking: success)
         }
         streamingPlayer.onError = { [weak self] error in
@@ -193,6 +191,18 @@ final class OpenAITTS: NSObject, TTSService {
         #if DEBUG
         print("OpenAI TTS: Streaming complete, total bytes: \(accumulatedPCMData.count)")
         #endif
+
+        // Convert accumulated PCM to M4A for saving (await to ensure lastAudioData is ready for Save Audio)
+        if !accumulatedPCMData.isEmpty {
+            if let m4aData = await convertPCMToM4A(accumulatedPCMData) {
+                lastAudioData = m4aData
+                #if DEBUG
+                print("OpenAI TTS: Converted to M4A, size: \(m4aData.count) bytes")
+                #endif
+            }
+            // Clear accumulated PCM data to free memory (M4A is now stored in lastAudioData)
+            accumulatedPCMData = Data()
+        }
     }
 
     /// Non-streaming playback - waits for full audio before playing
@@ -307,5 +317,16 @@ final class OpenAITTS: NSObject, TTSService {
         // OpenAI TTS supports speed from 0.25 to 4.0
         // Note: gpt-4o-mini-tts doesn't support speed parameter
         0.25...4.0
+    }
+
+    // MARK: - Audio Conversion Helpers
+
+    /// Convert PCM data to M4A (AAC) format for saving
+    private func convertPCMToM4A(_ pcmData: Data) async -> Data? {
+        // First convert PCM to WAV (add header) using shared utility
+        let wavData = AudioConverter.createWAVFromPCM(pcmData)
+
+        // Then convert WAV to M4A using AudioConverter
+        return await AudioConverter.convertToAAC(inputData: wavData, inputExtension: "wav")
     }
 }

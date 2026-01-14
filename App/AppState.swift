@@ -679,18 +679,26 @@ final class AppState {
         ttsService?.audioFileExtension ?? "mp3"
     }
 
+    /// Task for save audio operation (to allow cancellation)
+    private var saveAudioTask: Task<Void, Never>?
+
     /// Synthesize and save TTS audio
-    /// - Reuses existing audio data if text matches lastSynthesizedText
-    /// - Otherwise synthesizes new audio before saving
+    /// - Reuses existing audio data if text matches lastSynthesizedText and audio is complete
+    /// - Otherwise synthesizes new audio using non-streaming mode before saving
     func synthesizeAndSaveTTSAudio(_ text: String) {
         guard text.count >= 5 else { return }
 
-        // Check if we can reuse existing audio data
-        if text == lastSynthesizedText, let audioData = ttsService?.lastAudioData {
-            // Reuse existing audio
-            showSavePanel(with: audioData)
+        // Check if we can reuse existing audio data (must be complete, not partial streaming data)
+        if text == lastSynthesizedText,
+           let audioData = ttsService?.lastAudioData,
+           !audioData.isEmpty {
+            // Reuse existing audio - show save panel directly (no loading state needed)
+            showSavePanel(with: audioData, fileExtension: ttsAudioFileExtension)
             return
         }
+
+        // Cancel any existing save task
+        saveAudioTask?.cancel()
 
         // Need to synthesize new audio
         isSavingAudio = true
@@ -706,46 +714,94 @@ final class AppState {
             saveService.selectedLanguage = selectedTTSLanguage
         }
 
-        Task {
+        // IMPORTANT: Use non-streaming mode for save operations
+        // This ensures audio is fully generated before playback starts,
+        // allowing us to stop playback and get complete audio data
+        saveService.useStreamingMode = false
+
+        // Capture file extension before Task (MainActor isolated)
+        let fileExtension = saveService.audioFileExtension
+
+        saveAudioTask = Task { @MainActor in
+            defer {
+                // Clean up
+                saveService.stop()
+                saveService.clearAudioCache()
+            }
+
             do {
-                try await saveService.speak(text: text)
-                // Stop playback immediately (we only wanted the audio data)
+                // Apply text replacement rules before synthesis
+                let processedText = TextReplacementService.shared.applyReplacements(to: text)
+
+                // Synthesize audio (this will start playback, but we'll stop it immediately)
+                try await saveService.speak(text: processedText)
+
+                // Check if cancelled
+                if Task.isCancelled {
+                    self.isSavingAudio = false
+                    return
+                }
+
+                // Stop playback immediately - we only want the audio data, not playback
                 saveService.stop()
 
-                if let audioData = saveService.lastAudioData {
-                    // Update cache
-                    lastSynthesizedText = text
-                    // Store audio data in main service for future reuse
-                    ttsService = saveService
-                    showSavePanel(with: audioData)
+                // Check if TTS window is still open before showing save panel
+                guard self.showTTSWindow else {
+                    self.isSavingAudio = false
+                    return
+                }
+
+                // Get the audio data
+                if let audioData = saveService.lastAudioData, !audioData.isEmpty {
+                    // Update cache for potential reuse
+                    self.lastSynthesizedText = text
+                    self.isSavingAudio = false
+                    self.showSavePanel(with: audioData, fileExtension: fileExtension)
                 } else {
-                    ttsState = .error("Failed to generate audio")
+                    self.isSavingAudio = false
+                    self.ttsState = .error("Failed to generate audio")
                 }
             } catch {
-                ttsState = .error(error.localizedDescription)
+                if !Task.isCancelled {
+                    self.isSavingAudio = false
+                    self.ttsState = .error(error.localizedDescription)
+                } else {
+                    self.isSavingAudio = false
+                }
             }
-            isSavingAudio = false
         }
     }
 
+    /// Cancel any ongoing save audio operation
+    func cancelSaveAudio() {
+        saveAudioTask?.cancel()
+        saveAudioTask = nil
+        isSavingAudio = false
+    }
+
     /// Show save panel with the given audio data
-    private func showSavePanel(with audioData: Data) {
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [.audio]
-        savePanel.nameFieldStringValue = "tts_audio.\(ttsAudioFileExtension)"
-        savePanel.title = "Save Audio"
-        savePanel.message = "Choose a location to save the audio file"
-        WindowLevelCoordinator.configureSavePanel(savePanel)
+    private func showSavePanel(with audioData: Data, fileExtension: String) {
+        // Dispatch to next run loop to avoid any blocking issues
+        DispatchQueue.main.async {
+            let savePanel = NSSavePanel()
+            savePanel.allowedContentTypes = [.audio]
+            savePanel.nameFieldStringValue = "tts_audio.\(fileExtension)"
+            savePanel.title = "Save Audio"
+            savePanel.message = "Choose a location to save the audio file"
 
-        // Activate app and bring panel to front
-        NSApp.activate(ignoringOtherApps: true)
+            // Set window level high enough to appear above floating panels
+            savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.floating.rawValue) + 100)
 
-        savePanel.begin { [audioData] response in
-            if response == .OK, let url = savePanel.url {
-                do {
-                    try audioData.write(to: url)
-                } catch {
-                    print("Failed to save audio: \(error)")
+            savePanel.begin { response in
+                if response == .OK, let url = savePanel.url {
+                    do {
+                        try audioData.write(to: url)
+                        #if DEBUG
+                        print("Audio saved to: \(url.path)")
+                        #endif
+                    } catch {
+                        print("Failed to save audio: \(error)")
+                    }
                 }
             }
         }
@@ -762,6 +818,8 @@ final class AppState {
     }
 
     private func closeTTSWindow() {
+        // Cancel any ongoing save operation
+        cancelSaveAudio()
         stopTTS()
         floatingWindowManager.hideFloatingWindow()
         showTTSWindow = false

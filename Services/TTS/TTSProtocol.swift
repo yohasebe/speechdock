@@ -52,6 +52,10 @@ protocol TTSService: AnyObject {
 
     /// Returns whether speed control is supported
     var supportsSpeedControl: Bool { get }
+
+    /// Enable/disable streaming mode for providers that support it
+    /// When false, audio is fully downloaded before playback (better for save operations)
+    var useStreamingMode: Bool { get set }
 }
 
 /// Represents a TTS model option

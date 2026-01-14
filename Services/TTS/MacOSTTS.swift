@@ -23,11 +23,20 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     @MainActor
     var audioOutputDeviceUID: String = ""  // "" = System Default
 
-    /// Audio data from the last synthesis (M4A/AAC format)
+    /// Audio data from the last synthesis (M4A/AAC format, or AIFF if conversion fails)
     private(set) var lastAudioData: Data?
-    var audioFileExtension: String { "m4a" }
+
+    /// Track the actual file extension of lastAudioData
+    private var _audioFileExtension: String = "m4a"
+    var audioFileExtension: String { _audioFileExtension }
 
     var supportsSpeedControl: Bool { true }
+
+    /// MacOS TTS doesn't support streaming - always generates full audio first
+    var useStreamingMode: Bool {
+        get { false }
+        set { /* Ignored - macOS TTS always uses full synthesis */ }
+    }
 
     private var audioPlayer: AVAudioPlayer?
     private var audioEngine: AVAudioEngine?
@@ -121,14 +130,15 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         }
 
         // Convert AIFF to M4A (AAC) for smaller file size
+        // Await conversion to ensure lastAudioData is ready (important for Save Audio)
         if let aiffData = try? Data(contentsOf: audioFile) {
-            // Convert in background, don't block playback
-            Task {
-                if let m4aData = await AudioConverter.convertToAAC(inputData: aiffData, inputExtension: "aiff") {
-                    await MainActor.run {
-                        self.lastAudioData = m4aData
-                    }
-                }
+            if let m4aData = await AudioConverter.convertToAAC(inputData: aiffData, inputExtension: "aiff") {
+                lastAudioData = m4aData
+                _audioFileExtension = "m4a"
+            } else {
+                // Fallback to AIFF if conversion fails
+                lastAudioData = aiffData
+                _audioFileExtension = "aiff"
             }
         }
 
@@ -309,6 +319,7 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
     func clearAudioCache() {
         lastAudioData = nil
+        _audioFileExtension = "m4a"  // Reset to default
     }
 
     /// Detect language from text using NaturalLanguage framework

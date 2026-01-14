@@ -357,19 +357,25 @@ struct TTSFloatingView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(editableText.isEmpty || appState.isSavingAudio)
 
-                if appState.isSavingAudio {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 60)
-                } else {
-                    Button {
-                        appState.synthesizeAndSaveTTSAudio(editableText)
-                    } label: {
-                        ButtonLabelWithShortcut(title: "Save Audio", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
+                Button {
+                    appState.synthesizeAndSaveTTSAudio(editableText)
+                } label: {
+                    HStack(spacing: 4) {
+                        if appState.isSavingAudio {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                                .frame(width: 14, height: 14)
+                        } else {
+                            Image(systemName: "square.and.arrow.down")
+                        }
+                        Text("Save Audio")
+                        Text("(\(saveShortcut.displayString))")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
-                    .applyCustomShortcut(saveShortcut)
-                    .disabled(editableText.count < 5 || appState.isSavingAudio)
                 }
+                .applyCustomShortcut(saveShortcut)
+                .disabled(editableText.count < 5 || appState.isSavingAudio)
 
             case .speaking:
                 Button {
