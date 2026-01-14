@@ -110,9 +110,6 @@ struct GeneralSettingsView: View {
                 // Speed control
                 TTSSpeedSlider(appState: appState)
 
-                // Word highlight toggle
-                TTSWordHighlightToggle(appState: appState)
-
                 // TTS Language selection (ElevenLabs only)
                 TTSLanguagePicker(appState: appState)
 
@@ -813,21 +810,6 @@ struct LaunchAtLoginToggle: View {
         .onAppear {
             // Sync state on appear
             isEnabled = LaunchAtLoginService.shared.isEnabled
-        }
-    }
-}
-
-/// Toggle for TTS word highlighting
-struct TTSWordHighlightToggle: View {
-    @Bindable var appState: AppState
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Toggle("Word Highlighting", isOn: $appState.enableWordHighlight)
-
-            Text("Highlight the current word being spoken during TTS playback.")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
     }
 }

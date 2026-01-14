@@ -77,7 +77,6 @@ final class AppState {
     // MARK: - TTS State
     var ttsState: TTSState = .idle
     var ttsText = ""
-    var currentSpeakingRange: NSRange?
     var selectedTTSProvider: TTSProvider = .macOS {
         didSet {
             guard !isLoadingPreferences else { return }
@@ -122,12 +121,6 @@ final class AppState {
         }
     }
     var selectedTTSSpeed: Double = 1.0 {  // Speed multiplier (1.0 = normal)
-        didSet {
-            guard !isLoadingPreferences else { return }
-            savePreferences()
-        }
-    }
-    var enableWordHighlight: Bool = true {  // Enable word highlighting during TTS playback
         didSet {
             guard !isLoadingPreferences else { return }
             savePreferences()
@@ -609,7 +602,6 @@ final class AppState {
         #endif
         ttsText = text
         ttsState = .loading
-        currentSpeakingRange = nil
 
         // Always ensure window is shown and brought to front
         if !showTTSWindow || !floatingWindowManager.isVisible {
@@ -636,7 +628,7 @@ final class AppState {
 
         Task {
             do {
-                try await ttsService?.speak(text: text)
+                try await ttsService?.speak(text: processedText)
                 ttsState = .speaking
                 lastSynthesizedText = ttsText
             } catch {
@@ -669,7 +661,6 @@ final class AppState {
     func stopTTS() {
         stopTTSPlayback()
         ttsState = .idle
-        currentSpeakingRange = nil
         lastSynthesizedText = ""  // Clear cache reference
 
         // Ensure window state flag is in sync (in case stopTTS is called directly)
@@ -819,10 +810,6 @@ final class AppState {
             selectedTTSSpeed = UserDefaults.standard.double(forKey: "selectedTTSSpeed")
         }
 
-        if UserDefaults.standard.object(forKey: "enableWordHighlight") != nil {
-            enableWordHighlight = UserDefaults.standard.bool(forKey: "enableWordHighlight")
-        }
-
         if let sttLanguage = UserDefaults.standard.string(forKey: "selectedSTTLanguage") {
             selectedSTTLanguage = sttLanguage
         }
@@ -919,7 +906,6 @@ final class AppState {
         UserDefaults.standard.set(selectedTTSVoice, forKey: "selectedTTSVoice")
         UserDefaults.standard.set(selectedTTSModel, forKey: "selectedTTSModel")
         UserDefaults.standard.set(selectedTTSSpeed, forKey: "selectedTTSSpeed")
-        UserDefaults.standard.set(enableWordHighlight, forKey: "enableWordHighlight")
         UserDefaults.standard.set(selectedSTTLanguage, forKey: "selectedSTTLanguage")
         UserDefaults.standard.set(selectedTTSLanguage, forKey: "selectedTTSLanguage")
         UserDefaults.standard.set(selectedAudioInputDeviceUID, forKey: "selectedAudioInputDeviceUID")
@@ -1001,17 +987,15 @@ extension AppState: RealtimeSTTDelegate {
 
 extension AppState: TTSDelegate {
     func tts(_ service: TTSService, willSpeakRange range: NSRange, of text: String) {
-        currentSpeakingRange = range
+        // Word highlighting removed - streaming mode doesn't provide timing info
     }
 
     func tts(_ service: TTSService, didFinishSpeaking successfully: Bool) {
         ttsState = .idle
-        currentSpeakingRange = nil
     }
 
     func tts(_ service: TTSService, didFailWithError error: Error) {
         ttsState = .error(error.localizedDescription)
-        currentSpeakingRange = nil
     }
 }
 

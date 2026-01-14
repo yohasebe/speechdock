@@ -19,13 +19,10 @@ enum TTSState: Equatable {
 struct ScrollableTextView: NSViewRepresentable {
     @Binding var text: String
     var isEditable: Bool
-    var highlightRange: NSRange?
-    var enableHighlight: Bool
+    var highlightRange: NSRange?  // Kept for API compatibility, but not used
+    var enableHighlight: Bool  // Kept for API compatibility, but not used
     var showReplacementHighlights: Bool = true
     var fontSize: CGFloat = NSFont.systemFontSize
-
-    // Number of words to highlight before/after current word with gradient
-    private let gradientRadius = 2
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -83,69 +80,20 @@ struct ScrollableTextView: NSViewRepresentable {
             textView.selectedRanges = selectedRanges
         }
 
-        // Apply word highlighting with gradient
-        if enableHighlight, let currentRange = highlightRange, currentRange.location != NSNotFound {
-            let attrString = NSMutableAttributedString(string: textView.string)
-            let fullRange = NSRange(location: 0, length: attrString.length)
+        // Apply text styling with replacement highlights
+        let currentText = textView.string
+        let attrString = NSMutableAttributedString(string: currentText)
+        let fullRange = NSRange(location: 0, length: attrString.length)
+        attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+        attrString.addAttribute(.backgroundColor, value: NSColor.clear, range: fullRange)
+        attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: fontSize), range: fullRange)
 
-            // Reset all attributes
-            attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
-            attrString.addAttribute(.backgroundColor, value: NSColor.clear, range: fullRange)
-            attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: fontSize), range: fullRange)
-
-            // Calculate all word ranges (including trailing punctuation) and find current word index
-            let wordRanges = calculateWordRangesWithPunctuation(for: textView.string)
-            if let currentIndex = findWordIndex(for: currentRange, in: wordRanges) {
-                // Apply gradient highlighting
-                for offset in -gradientRadius...gradientRadius {
-                    let wordIndex = currentIndex + offset
-                    guard wordIndex >= 0 && wordIndex < wordRanges.count else { continue }
-
-                    let wordRange = wordRanges[wordIndex]
-                    guard wordRange.location + wordRange.length <= attrString.length else { continue }
-
-                    let distance = abs(offset)
-                    let alpha: CGFloat
-
-                    switch distance {
-                    case 0:  // Current word - full highlight
-                        alpha = 0.45
-                    case 1:  // Adjacent words - medium highlight
-                        alpha = 0.25
-                    case 2:  // 2 words away - light highlight
-                        alpha = 0.12
-                    default:
-                        alpha = 0.0
-                    }
-
-                    if alpha > 0 {
-                        attrString.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(alpha), range: wordRange)
-                    }
-                }
-            }
-
-            // Apply replacement highlights on top of word highlights
-            if showReplacementHighlights {
-                applyReplacementHighlights(to: attrString)
-            }
-
-            textView.textStorage?.setAttributedString(attrString)
-        } else if !enableHighlight || highlightRange == nil {
-            // Reset to plain text when not highlighting
-            let currentText = textView.string
-            let attrString = NSMutableAttributedString(string: currentText)
-            let fullRange = NSRange(location: 0, length: attrString.length)
-            attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
-            attrString.addAttribute(.backgroundColor, value: NSColor.clear, range: fullRange)
-            attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: fontSize), range: fullRange)
-
-            // Apply replacement highlights (underline + tooltip)
-            if showReplacementHighlights {
-                applyReplacementHighlights(to: attrString)
-            }
-
-            textView.textStorage?.setAttributedString(attrString)
+        // Apply replacement highlights (underline + tooltip)
+        if showReplacementHighlights {
+            applyReplacementHighlights(to: attrString)
         }
+
+        textView.textStorage?.setAttributedString(attrString)
     }
 
     /// Apply underline and tooltip for text replacement matches
@@ -163,85 +111,6 @@ struct ScrollableTextView: NSViewRepresentable {
             let tooltipText = "\(match.originalText) → \(match.replacementText)"
             attrString.addAttribute(.toolTip, value: tooltipText, range: match.range)
         }
-    }
-
-    /// Calculate word ranges including trailing punctuation
-    private func calculateWordRangesWithPunctuation(for text: String) -> [NSRange] {
-        var ranges: [NSRange] = []
-        let nsString = text as NSString
-
-        let tokenizer = CFStringTokenizerCreate(
-            nil,
-            text as CFString,
-            CFRangeMake(0, text.count),
-            kCFStringTokenizerUnitWord,
-            CFLocaleCopyCurrent()
-        )
-
-        var tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
-        while tokenType != [] {
-            let cfRange = CFStringTokenizerGetCurrentTokenRange(tokenizer)
-            var wordRange = NSRange(location: cfRange.location, length: cfRange.length)
-
-            // Extend range to include trailing punctuation (but not spaces)
-            var endLocation = wordRange.location + wordRange.length
-            while endLocation < nsString.length {
-                let char = nsString.character(at: endLocation)
-                let scalar = Unicode.Scalar(char)
-                // Include punctuation but stop at whitespace
-                if let s = scalar, CharacterSet.punctuationCharacters.contains(s) {
-                    endLocation += 1
-                } else {
-                    break
-                }
-            }
-            wordRange.length = endLocation - wordRange.location
-
-            ranges.append(wordRange)
-            tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
-        }
-
-        return ranges
-    }
-
-    /// Calculate word ranges using CFStringTokenizer (for matching)
-    private func calculateWordRanges(for text: String) -> [NSRange] {
-        var ranges: [NSRange] = []
-
-        let tokenizer = CFStringTokenizerCreate(
-            nil,
-            text as CFString,
-            CFRangeMake(0, text.count),
-            kCFStringTokenizerUnitWord,
-            CFLocaleCopyCurrent()
-        )
-
-        var tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
-        while tokenType != [] {
-            let cfRange = CFStringTokenizerGetCurrentTokenRange(tokenizer)
-            ranges.append(NSRange(location: cfRange.location, length: cfRange.length))
-            tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
-        }
-
-        return ranges
-    }
-
-    /// Find the index of the word that matches the given range
-    private func findWordIndex(for range: NSRange, in wordRanges: [NSRange]) -> Int? {
-        // Find exact match or closest match
-        for (index, wordRange) in wordRanges.enumerated() {
-            if wordRange.location == range.location && wordRange.length == range.length {
-                return index
-            }
-        }
-        // Fallback: find the word that contains the range start
-        for (index, wordRange) in wordRanges.enumerated() {
-            if range.location >= wordRange.location &&
-               range.location < wordRange.location + wordRange.length {
-                return index
-            }
-        }
-        return nil
     }
 
     func makeCoordinator() -> Coordinator {
@@ -430,39 +299,40 @@ struct TTSFloatingView: View {
 
     @ViewBuilder
     private var contentArea: some View {
-        ZStack {
-            // Custom scrollable text view that allows scrolling even when read-only
-            ScrollableTextView(
-                text: $editableText,
-                isEditable: !isEditorDisabled,
-                highlightRange: appState.currentSpeakingRange,
-                enableHighlight: appState.enableWordHighlight && appState.ttsState == .speaking,
-                fontSize: CGFloat(appState.panelTextFontSize)
-            )
-            .cornerRadius(8)
-            .frame(minHeight: 200, maxHeight: 400)
-            .opacity(isEditorDisabled ? 0.85 : 1.0)
-
-            // Loading overlay with animated waveform
+        VStack(spacing: 8) {
+            // Loading banner (displayed above text area)
             if case .loading = appState.ttsState {
-                TTSLoadingIndicator()
+                TTSLoadingBanner()
             }
 
-            // Error overlay
+            // Error banner (displayed above text area)
             if case .error(let message) = appState.ttsState {
-                VStack(spacing: 4) {
+                HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                     Text(message)
                         .font(.caption)
                         .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
+                        .lineLimit(2)
+                    Spacer()
                 }
-                .padding(8)
-                .background(Color(.windowBackgroundColor).opacity(0.95))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.red.opacity(0.1))
                 .cornerRadius(8)
             }
+
+            // Custom scrollable text view
+            ScrollableTextView(
+                text: $editableText,
+                isEditable: !isEditorDisabled,
+                highlightRange: nil,
+                enableHighlight: false,
+                fontSize: CGFloat(appState.panelTextFontSize)
+            )
+            .cornerRadius(8)
+            .frame(minHeight: 200, maxHeight: 400)
+            .opacity(isEditorDisabled ? 0.85 : 1.0)
         }
     }
 
@@ -574,22 +444,22 @@ struct TTSPulsingWaveformIcon: View {
     }
 }
 
-/// Animated loading indicator for TTS audio generation
-struct TTSLoadingIndicator: View {
+/// Animated loading banner for TTS audio generation (displayed above text area)
+struct TTSLoadingBanner: View {
     @State private var animationPhase: Double = 0
 
     private let barCount = 5
-    private let barWidth: CGFloat = 4
-    private let barSpacing: CGFloat = 3
-    private let minHeight: CGFloat = 8
-    private let maxHeight: CGFloat = 24
+    private let barWidth: CGFloat = 3
+    private let barSpacing: CGFloat = 2
+    private let minHeight: CGFloat = 6
+    private let maxHeight: CGFloat = 16
 
     var body: some View {
-        VStack(spacing: 8) {
+        HStack(spacing: 12) {
             // Animated waveform bars
             HStack(spacing: barSpacing) {
                 ForEach(0..<barCount, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: 1)
                         .fill(Color.blue.opacity(0.8))
                         .frame(width: barWidth, height: barHeight(for: index))
                 }
@@ -600,14 +470,15 @@ struct TTSLoadingIndicator: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
+            Spacer()
+
             ProgressView()
-                .scaleEffect(0.8)
+                .scaleEffect(0.7)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color(.windowBackgroundColor).opacity(0.95))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(8)
         .onAppear {
             startAnimation()
         }
