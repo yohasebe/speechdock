@@ -6,15 +6,15 @@
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
-            <title>Version 0.1.4</title>
-            <pubDate>Wed, 14 Jan 2026 04:46:08 +0000</pubDate>
+            <title>Version 0.1.5</title>
+            <pubDate>Wed, 14 Jan 2026 15:05:18 +0000</pubDate>
             <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+            <sparkle:shortVersionString>0.1.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/yohasebe/typetalk/releases/download/v0.1.4/TypeTalk-0.1.4.dmg"
-                sparkle:edSignature="sparkle:edSignature="mOhkmJRWITx+Y097kz+bljAS8+fH7wYG812wzwNB5enpZheJdci9g14Bi0Zd+ZhASPhyYAjuNoO1NRuCQngYDQ==" length="5230680""
-                length="5230680"
+                url="https://github.com/yohasebe/typetalk/releases/download/v0.1.5/TypeTalk-0.1.5.dmg"
+                sparkle:edSignature="sparkle:edSignature="lCX+IimgB6o2XgF44/U5lOInR0710CrsjTJiiJ7sYiScply4ORc2mt9uX2S94nakgzJC19v0qO3A3lAYnXf5Bw==" length="5297463""
+                length="5297463"
                 type="application/octet-stream"/>
         </item>
     </channel>
