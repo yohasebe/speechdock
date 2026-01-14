@@ -23,8 +23,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize and register hotkey service immediately
         hotKeyService = HotKeyService()
 
-        // Setup hotkey with AppState on main actor
+        // Setup status bar and hotkey with AppState on main actor
         Task { @MainActor in
+            // Setup status bar manager (must be done here, not in TypeTalkApp.init)
+            StatusBarManager.shared.setup(appState: AppState.shared)
+
             AppState.shared.setupHotKey(self.hotKeyService!)
         }
 

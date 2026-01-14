@@ -95,16 +95,8 @@ final class OpenAITTS: NSObject, TTSService {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TTSError.networkError("Invalid response")
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw TTSError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
-        }
+        // Perform request with retry logic for transient errors
+        let (data, _) = try await TTSAPIHelper.performRequest(request, providerName: "OpenAI")
 
         // Store audio data for saving
         lastAudioData = data

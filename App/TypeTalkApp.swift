@@ -5,20 +5,38 @@ struct TypeTalkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appState = AppState.shared
 
-    init() {
-        // Setup status bar manager with custom icon handling
-        Task { @MainActor in
-            StatusBarManager.shared.setup(appState: AppState.shared)
-        }
-    }
+    // Note: StatusBarManager setup is done in AppDelegate.applicationDidFinishLaunching
+    // to ensure proper initialization timing
 
-    // No SwiftUI scenes needed - all windows managed by WindowManager
-    // This prevents Settings/About from opening automatically on launch
     var body: some Scene {
-        // Empty Settings scene that never opens automatically
-        // Settings scenes don't open on launch by default, unlike WindowGroup
+        // Minimal scene required for menu bar app
         Settings {
             EmptyView()
+        }
+        .commands {
+            // Replace default About command to open our custom AboutWindow
+            CommandGroup(replacing: .appInfo) {
+                Button("About TypeTalk") {
+                    WindowManager.shared.openAboutWindow()
+                }
+            }
+
+            // Replace default Settings command to open our custom SettingsWindow
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    WindowManager.shared.openSettingsWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+
+            // Replace default Help command to open GitHub documentation
+            CommandGroup(replacing: .help) {
+                Button("TypeTalk Help") {
+                    if let url = URL(string: "https://github.com/yohasebe/typetalk") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
         }
     }
 }

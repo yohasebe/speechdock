@@ -174,3 +174,99 @@ enum TTSFactory {
         }
     }
 }
+
+// MARK: - API Retry Helper
+
+/// Helper for API requests with retry logic for transient errors (503, 429, etc.)
+enum TTSAPIHelper {
+    /// HTTP status codes that should trigger a retry
+    private static let retryableStatusCodes: Set<Int> = [429, 500, 502, 503, 504]
+
+    /// Maximum number of retry attempts
+    private static let maxRetries = 3
+
+    /// Perform an API request with automatic retry for transient errors
+    /// - Parameters:
+    ///   - request: The URLRequest to perform
+    ///   - providerName: Name of the TTS provider (for error messages)
+    /// - Returns: Tuple of (data, HTTPURLResponse)
+    /// - Throws: TTSError if all retries fail
+    static func performRequest(_ request: URLRequest, providerName: String) async throws -> (Data, HTTPURLResponse) {
+        var lastError: Error?
+        var lastStatusCode: Int?
+        var lastResponseBody: String?
+
+        for attempt in 0..<maxRetries {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw TTSError.networkError("Invalid response")
+                }
+
+                // Success
+                if httpResponse.statusCode == 200 {
+                    return (data, httpResponse)
+                }
+
+                // Check if we should retry
+                if retryableStatusCodes.contains(httpResponse.statusCode) {
+                    lastStatusCode = httpResponse.statusCode
+                    lastResponseBody = String(data: data, encoding: .utf8)
+
+                    // Don't sleep on the last attempt
+                    if attempt < maxRetries - 1 {
+                        // Exponential backoff: 1s, 2s, 4s
+                        let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
+                        try await Task.sleep(nanoseconds: delay)
+                        #if DEBUG
+                        print("\(providerName) TTS: Retry \(attempt + 1)/\(maxRetries) after HTTP \(httpResponse.statusCode)")
+                        #endif
+                        continue
+                    }
+                }
+
+                // Non-retryable error or max retries exceeded
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw TTSError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
+
+            } catch let error as TTSError {
+                throw error
+            } catch {
+                // Network errors might be transient, retry them too
+                lastError = error
+
+                if attempt < maxRetries - 1 {
+                    let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
+                    try await Task.sleep(nanoseconds: delay)
+                    #if DEBUG
+                    print("\(providerName) TTS: Retry \(attempt + 1)/\(maxRetries) after error: \(error.localizedDescription)")
+                    #endif
+                    continue
+                }
+            }
+        }
+
+        // All retries exhausted
+        if let statusCode = lastStatusCode {
+            let userMessage: String
+            switch statusCode {
+            case 429:
+                userMessage = "Rate limit exceeded. Please wait a moment and try again."
+            case 503:
+                userMessage = "Service temporarily unavailable. Please try again later."
+            case 500, 502, 504:
+                userMessage = "Server error. Please try again later."
+            default:
+                userMessage = "HTTP \(statusCode): \(lastResponseBody ?? "Unknown error")"
+            }
+            throw TTSError.apiError(userMessage)
+        }
+
+        if let error = lastError {
+            throw TTSError.networkError(error.localizedDescription)
+        }
+
+        throw TTSError.networkError("Request failed after \(maxRetries) attempts")
+    }
+}

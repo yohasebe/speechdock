@@ -101,6 +101,7 @@ final class WindowService {
     }
 
     /// Get list of all visible windows (excluding TypeTalk's own windows)
+    /// Note: Thumbnails are NOT generated here for performance. Call generateThumbnailAsync separately.
     func getAvailableWindows() -> [WindowInfo] {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         guard let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
@@ -195,10 +196,7 @@ final class WindowService {
                 appIcon: nil
             )
 
-            // Generate thumbnail (may be nil if screen recording permission is not granted)
-            windowInfo.thumbnail = generateThumbnail(for: windowID, bounds: bounds)
-
-            // Get app icon
+            // Get app icon (lightweight operation)
             if let app = NSRunningApplication(processIdentifier: ownerPID) {
                 windowInfo.appIcon = app.icon
             }
@@ -210,6 +208,33 @@ final class WindowService {
         windows.sort { ($0.ownerName, $0.windowTitle) < ($1.ownerName, $1.windowTitle) }
 
         return windows
+    }
+
+    /// Generate thumbnail for a specific window asynchronously
+    /// Call this from a background task to avoid blocking main thread
+    nonisolated func generateThumbnailAsync(for windowID: CGWindowID, bounds: CGRect) async -> NSImage? {
+        // Run on a background thread
+        return await Task.detached(priority: .userInitiated) {
+            guard let cgImage = CGWindowListCreateImage(
+                bounds,
+                .optionIncludingWindow,
+                windowID,
+                [.boundsIgnoreFraming, .nominalResolution]
+            ) else {
+                return nil
+            }
+
+            // Scale down for thumbnail
+            let maxSize: CGFloat = 200
+            let scale = min(maxSize / bounds.width, maxSize / bounds.height, 1.0)
+            let thumbnailSize = NSSize(
+                width: bounds.width * scale,
+                height: bounds.height * scale
+            )
+
+            let image = NSImage(cgImage: cgImage, size: thumbnailSize)
+            return image
+        }.value
     }
 
     /// Generate a thumbnail for a window

@@ -17,7 +17,6 @@ final class TTSAudioPlaybackController: NSObject {
     private var audioFile: AVAudioFile?
     private var currentText = ""
     private var wordRanges: [NSRange] = []
-    private var wordWeights: [Double] = []
     private var highlightTimer: Timer?
     private var tempFileURL: URL?
     private var playbackStartTime: AVAudioTime?
@@ -34,17 +33,25 @@ final class TTSAudioPlaybackController: NSObject {
 
     // MARK: - Public Methods
 
-    /// Prepare text for playback (calculates word ranges and weights)
+    /// Prepare text for playback (calculates word ranges)
     func prepareText(_ text: String) {
         currentText = text
         wordRanges = Self.calculateWordRanges(for: text)
-        wordWeights = Self.calculateWordWeights(for: text, ranges: wordRanges)
     }
 
     /// Play audio data with the given file extension
     func playAudio(data: Data, fileExtension: String) throws {
-        // Stop any existing playback
-        stopPlayback()
+        // Stop any existing playback but preserve prepared text data
+        highlightTimer?.invalidate()
+        highlightTimer = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
+        stopAudioEngine()
+        cleanupTempFile()
+        isSpeaking = false
+        isPaused = false
+        audioDuration = 0
+        // Note: currentText, wordRanges are preserved from prepareText()
 
         // Save to temp file
         tempFileURL = FileManager.default.temporaryDirectory
@@ -109,7 +116,6 @@ final class TTSAudioPlaybackController: NSObject {
         audioFile = file
 
         // Schedule the entire file with .dataPlayedBack completion type
-        // This ensures the handler is called when audio has actually finished playing through hardware
         playerNode.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) { [weak self] _ in
             Task { @MainActor in
                 self?.audioEngineDidFinishPlaying()
@@ -220,7 +226,6 @@ final class TTSAudioPlaybackController: NSObject {
         isPaused = false
         currentText = ""
         wordRanges = []
-        wordWeights = []
         audioDuration = 0
     }
 
@@ -232,16 +237,14 @@ final class TTSAudioPlaybackController: NSObject {
         }
     }
 
-    // MARK: - Word Highlighting Timer
+    // MARK: - Word Highlighting Timer (Simple linear progress)
 
     private func startHighlightTimer() {
         guard let player = audioPlayer,
               player.duration > 0,
-              !wordRanges.isEmpty,
-              !wordWeights.isEmpty else { return }
+              !wordRanges.isEmpty else { return }
 
-        let updateInterval: TimeInterval = 0.03  // 30ms updates
-        let lookAheadFraction: Double = 0.015
+        let updateInterval: TimeInterval = 0.05  // 50ms updates
 
         highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
@@ -255,23 +258,11 @@ final class TTSAudioPlaybackController: NSObject {
                 }
 
                 let progress = player.currentTime / player.duration
-                let adjustedProgress = min(1.0, progress + lookAheadFraction)
+                let wordIndex = Int(progress * Double(self.wordRanges.count))
+                let clampedIndex = min(wordIndex, self.wordRanges.count - 1)
 
-                // Find word index based on weighted progress
-                var cumulativeWeight: Double = 0
-                var wordIndex = 0
-
-                for (index, weight) in self.wordWeights.enumerated() {
-                    cumulativeWeight += weight
-                    if adjustedProgress <= cumulativeWeight {
-                        wordIndex = index
-                        break
-                    }
-                    wordIndex = index
-                }
-
-                if wordIndex >= 0 && wordIndex < self.wordRanges.count {
-                    self.onWordHighlight?(self.wordRanges[wordIndex], self.currentText)
+                if clampedIndex >= 0 {
+                    self.onWordHighlight?(self.wordRanges[clampedIndex], self.currentText)
                 }
             }
         }
@@ -280,11 +271,9 @@ final class TTSAudioPlaybackController: NSObject {
     /// Start highlight timer for AVAudioEngine playback
     private func startHighlightTimerForEngine() {
         guard audioDuration > 0,
-              !wordRanges.isEmpty,
-              !wordWeights.isEmpty else { return }
+              !wordRanges.isEmpty else { return }
 
-        let updateInterval: TimeInterval = 0.03  // 30ms updates
-        let lookAheadFraction: Double = 0.015
+        let updateInterval: TimeInterval = 0.05  // 50ms updates
 
         highlightTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
@@ -308,23 +297,11 @@ final class TTSAudioPlaybackController: NSObject {
 
                 let currentTime = Double(playerTime.sampleTime) / playerTime.sampleRate
                 let progress = currentTime / self.audioDuration
-                let adjustedProgress = min(1.0, progress + lookAheadFraction)
+                let wordIndex = Int(progress * Double(self.wordRanges.count))
+                let clampedIndex = min(wordIndex, self.wordRanges.count - 1)
 
-                // Find word index based on weighted progress
-                var cumulativeWeight: Double = 0
-                var wordIndex = 0
-
-                for (index, weight) in self.wordWeights.enumerated() {
-                    cumulativeWeight += weight
-                    if adjustedProgress <= cumulativeWeight {
-                        wordIndex = index
-                        break
-                    }
-                    wordIndex = index
-                }
-
-                if wordIndex >= 0 && wordIndex < self.wordRanges.count {
-                    self.onWordHighlight?(self.wordRanges[wordIndex], self.currentText)
+                if clampedIndex >= 0 {
+                    self.onWordHighlight?(self.wordRanges[clampedIndex], self.currentText)
                 }
             }
         }
@@ -333,104 +310,23 @@ final class TTSAudioPlaybackController: NSObject {
     // MARK: - Static Text Analysis Methods
 
     /// Calculate word ranges for the given text
-    /// Uses CFStringTokenizer for Japanese support with whitespace fallback
+    /// Simple whitespace-based splitting
     static func calculateWordRanges(for text: String) -> [NSRange] {
         var ranges: [NSRange] = []
+        let nsString = text as NSString
 
-        // Use CFStringTokenizer for better Japanese support
-        let tokenizer = CFStringTokenizerCreate(
-            nil,
-            text as CFString,
-            CFRangeMake(0, text.count),
-            kCFStringTokenizerUnitWord,
-            CFLocaleCopyCurrent()
-        )
+        var currentIndex = 0
+        let components = text.components(separatedBy: .whitespacesAndNewlines)
 
-        var tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
-        while tokenType != [] {
-            let range = CFStringTokenizerGetCurrentTokenRange(tokenizer)
-            ranges.append(NSRange(location: range.location, length: range.length))
-            tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
-        }
-
-        // Fallback: split by whitespace if no tokens found
-        if ranges.isEmpty {
-            var currentIndex = 0
-            let components = text.components(separatedBy: .whitespacesAndNewlines)
-            for component in components where !component.isEmpty {
-                if let range = text.range(of: component, range: text.index(text.startIndex, offsetBy: currentIndex)..<text.endIndex) {
-                    let nsRange = NSRange(range, in: text)
-                    ranges.append(nsRange)
-                    currentIndex = nsRange.upperBound
-                }
+        for component in components where !component.isEmpty {
+            if let range = text.range(of: component, range: text.index(text.startIndex, offsetBy: currentIndex)..<text.endIndex) {
+                let nsRange = NSRange(range, in: text)
+                ranges.append(nsRange)
+                currentIndex = nsRange.upperBound
             }
         }
 
         return ranges
-    }
-
-    /// Calculate word weights for timing estimation
-    /// Accounts for Japanese/English differences and punctuation pauses
-    static func calculateWordWeights(for text: String, ranges: [NSRange]) -> [Double] {
-        guard !ranges.isEmpty else { return [] }
-
-        let nsString = text as NSString
-        var weights: [Double] = []
-
-        // Simple language detection
-        let japaneseRange = text.range(of: "\\p{Script=Han}|\\p{Script=Hiragana}|\\p{Script=Katakana}", options: .regularExpression)
-        let isJapanese = japaneseRange != nil
-
-        for (index, range) in ranges.enumerated() {
-            let word = nsString.substring(with: range)
-            var weight: Double
-
-            if isJapanese {
-                let kanjiCount = word.unicodeScalars.filter { $0.value >= 0x4E00 && $0.value <= 0x9FFF }.count
-                weight = Double(word.count) + Double(kanjiCount) * 0.2
-            } else {
-                // Syllable approximation for English
-                let vowels = CharacterSet(charactersIn: "aeiouAEIOU")
-                var syllables = 0
-                var previousWasVowel = false
-
-                for char in word.unicodeScalars {
-                    let isVowel = vowels.contains(char)
-                    if isVowel && !previousWasVowel {
-                        syllables += 1
-                    }
-                    previousWasVowel = isVowel
-                }
-                weight = max(1.0, Double(syllables))
-            }
-
-            // Add punctuation pause weights
-            let endLocation = range.location + range.length
-            if endLocation < nsString.length {
-                let remainingLength = min(3, nsString.length - endLocation)
-                let followingChars = nsString.substring(with: NSRange(location: endLocation, length: remainingLength))
-
-                if followingChars.contains(where: { ".!?。！？\n".contains($0) }) {
-                    weight += isJapanese ? 1.5 : 2.0
-                } else if followingChars.contains(where: { ",;:、；：".contains($0) }) {
-                    weight += isJapanese ? 0.8 : 1.0
-                }
-            }
-
-            if index == ranges.count - 1 {
-                weight += 0.5
-            }
-
-            weights.append(weight)
-        }
-
-        // Normalize weights
-        let totalWeight = weights.reduce(0, +)
-        if totalWeight > 0 {
-            weights = weights.map { $0 / totalWeight }
-        }
-
-        return weights
     }
 }
 

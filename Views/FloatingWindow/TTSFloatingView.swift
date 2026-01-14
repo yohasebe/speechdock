@@ -468,8 +468,9 @@ struct TTSFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
-            // Audio output selector on the left
+            // Audio output selector on the left (disabled during playback)
             TTSAudioOutputSelector(appState: appState)
+                .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
 
             Spacer()
 
@@ -494,10 +495,10 @@ struct TTSFloatingView: View {
                     Button {
                         appState.synthesizeAndSaveTTSAudio(editableText)
                     } label: {
-                        ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
+                        ButtonLabelWithShortcut(title: "Save Audio", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
                     }
                     .applyCustomShortcut(saveShortcut)
-                    .disabled(!appState.canSaveTTSAudio(for: editableText))
+                    .disabled(editableText.count < 5 || appState.isSavingAudio)
                 }
 
             case .speaking:

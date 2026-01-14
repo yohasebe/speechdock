@@ -3,10 +3,19 @@ import Carbon.HIToolbox
 
 /// Button label with icon and keyboard shortcut text
 struct ButtonLabelWithShortcut: View {
+    @Environment(\.isEnabled) private var isEnabled
     let title: String
     let shortcut: String
     var icon: String? = nil
     var isProminent: Bool = false
+
+    private var shortcutColor: Color {
+        if !isEnabled {
+            // When disabled, use secondary color regardless of prominent state
+            return .secondary
+        }
+        return isProminent ? .white.opacity(0.8) : .secondary
+    }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -18,7 +27,7 @@ struct ButtonLabelWithShortcut: View {
                 .font(.body)
             Text(shortcut)
                 .font(.caption)
-                .foregroundColor(isProminent ? .white.opacity(0.8) : .secondary)
+                .foregroundColor(shortcutColor)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 3)
@@ -48,20 +57,12 @@ struct WindowSelectorButton: View {
                     .foregroundColor(.secondary)
 
                 if let selected = floatingWindowManager.selectedWindow {
-                    // App icon
+                    // App icon (larger, no thumbnail)
                     if let appIcon = selected.appIcon {
                         Image(nsImage: appIcon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 16, height: 16)
-                    }
-                    // Window thumbnail
-                    if let thumbnail = selected.thumbnail {
-                        Image(nsImage: thumbnail)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 20)
-                            .cornerRadius(2)
+                            .frame(width: 24, height: 24)
                     }
                     Text(selected.displayName)
                         .font(.caption)
@@ -112,35 +113,43 @@ struct WindowSelectorDropdown: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Thumbnail preview bubble (always show container for consistent width)
-            VStack(spacing: 4) {
-                if let window = focusedWindow, let thumbnail = window.thumbnail {
-                    Image(nsImage: thumbnail)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 160, height: 120)
-                        .cornerRadius(8)
-                        .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
-                    Text(window.ownerName)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                } else {
-                    // No thumbnail - show placeholder
-                    Image(systemName: "macwindow")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.5))
-                        .frame(width: 160, height: 120)
-                    Text("No Preview")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+        VStack(spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                // Thumbnail preview bubble (50% width)
+                VStack(spacing: 4) {
+                    if let window = focusedWindow {
+                        if let thumbnail = window.thumbnail {
+                            Image(nsImage: thumbnail)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: .infinity, maxHeight: 180)
+                                .cornerRadius(8)
+                                .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
+                        } else {
+                            // Loading placeholder
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: 180)
+                        }
+                        Text(window.ownerName)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        // No window selected - show placeholder
+                        Image(systemName: "macwindow")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .frame(maxWidth: .infinity, maxHeight: 180)
+                        Text("No Preview")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                 }
-            }
-            .padding(8)
-            .background(Color(.windowBackgroundColor))
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                .frame(maxWidth: .infinity)
+                .padding(8)
+                .background(Color(.windowBackgroundColor))
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
 
             // Dropdown list
             ScrollViewReader { proxy in
@@ -168,12 +177,19 @@ struct WindowSelectorDropdown: View {
                     }
                     .padding(8)
                 }
-                .frame(maxHeight: 300)
+                .frame(maxWidth: .infinity, maxHeight: 300)
                 .background(Color(.windowBackgroundColor))
                 .cornerRadius(8)
                 .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                 .focusable()
                 .focused($isListFocused)
+                .onChange(of: focusedIndex) { _, newIndex in
+                    // Load thumbnail for focused window if not yet loaded
+                    if newIndex < floatingWindowManager.availableWindows.count {
+                        let window = floatingWindowManager.availableWindows[newIndex]
+                        floatingWindowManager.loadThumbnailIfNeeded(for: window.id)
+                    }
+                }
                 .onKeyPress(.upArrow) {
                     moveFocus(by: -1, proxy: proxy)
                     return .handled
@@ -198,6 +214,11 @@ struct WindowSelectorDropdown: View {
                     } else {
                         focusedIndex = 0
                     }
+                    // Load thumbnail for initially focused window
+                    if focusedIndex < floatingWindowManager.availableWindows.count {
+                        let window = floatingWindowManager.availableWindows[focusedIndex]
+                        floatingWindowManager.loadThumbnailIfNeeded(for: window.id)
+                    }
                     // Focus the list for keyboard navigation
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         isListFocused = true
@@ -212,6 +233,17 @@ struct WindowSelectorDropdown: View {
                     }
                 }
             }
+        }
+
+            // Keyboard navigation hint
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.arrow.down")
+                    .font(.caption2)
+                Text("Use arrow keys to preview")
+                    .font(.caption2)
+            }
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 4)
         }
     }
 
@@ -266,30 +298,17 @@ struct WindowRowView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // App icon
+            // App icon (larger, no inline thumbnail - preview shown on left side)
             if let appIcon = window.appIcon {
                 Image(nsImage: appIcon)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 28, height: 28)
             } else {
                 Image(systemName: "app.fill")
-                    .frame(width: 20, height: 20)
+                    .font(.system(size: 24))
+                    .frame(width: 28, height: 28)
                     .foregroundColor(.secondary)
-            }
-
-            // Window thumbnail
-            if let thumbnail = window.thumbnail {
-                Image(nsImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 40, height: 30)
-                    .cornerRadius(3)
-                    .shadow(radius: 1)
-            } else {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 30)
             }
 
             VStack(alignment: .leading, spacing: 1) {
@@ -319,7 +338,7 @@ struct WindowRowView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .frame(height: 46)
+        .frame(height: 42)
         .background(backgroundColor)
         .cornerRadius(4)
         .contentShape(Rectangle())
@@ -736,8 +755,9 @@ struct TranscriptionFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
-            // Audio input source selector on the left
+            // Audio input source selector on the left (disabled during recording)
             AudioInputSourceSelector(appState: appState)
+                .disabled(appState.isRecording)
 
             Spacer()
 
@@ -783,7 +803,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     saveTextToFile()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
+                    ButtonLabelWithShortcut(title: "Save Text", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
                 }
                 .applyCustomShortcut(saveShortcut)
                 .disabled(editedText.isEmpty)

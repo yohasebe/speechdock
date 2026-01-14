@@ -315,30 +315,34 @@ final class AppState {
             ttsText = ""
         }
 
-        isRecording = true
         errorMessage = nil
-        transcriptionState = .recording
         currentTranscription = ""
 
-        // Start duration timer
-        recordingDuration = 0
-        recordingStartTime = Date()
-        durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self, let startTime = self.recordingStartTime else { return }
-                self.recordingDuration = Date().timeIntervalSince(startTime)
-            }
-        }
-
-        // Only show floating window if not already visible
-        // This prevents resetting @State variables when resuming recording
-        if !showFloatingWindow {
-            showFloatingWindowWithState()
-        }
-
-        // Start realtime STT
+        // Start realtime STT FIRST to ensure audio capture begins immediately
         Task {
             await startRealtimeSTT()
+
+            // After audio capture has started, update UI state on main thread
+            await MainActor.run {
+                isRecording = true
+                transcriptionState = .recording
+
+                // Start duration timer
+                recordingDuration = 0
+                recordingStartTime = Date()
+                durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                    Task { @MainActor in
+                        guard let self = self, let startTime = self.recordingStartTime else { return }
+                        self.recordingDuration = Date().timeIntervalSince(startTime)
+                    }
+                }
+
+                // Only show floating window if not already visible
+                // This prevents resetting @State variables when resuming recording
+                if !showFloatingWindow {
+                    showFloatingWindowWithState()
+                }
+            }
         }
     }
 
@@ -596,9 +600,8 @@ final class AppState {
             cancelRecording()
         }
 
-        // Stop any existing TTS but don't reset everything
-        ttsService?.stop()
-        ttsService = nil
+        // Stop any existing TTS
+        stopTTSPlayback()
 
         #if DEBUG
         print("TTS: Setting ttsText, current value length: \(ttsText.count), new value length: \(text.count)")
@@ -609,15 +612,16 @@ final class AppState {
         currentSpeakingRange = nil
 
         // Always ensure window is shown and brought to front
-        // Check actual visibility, not just the flag (which may be out of sync)
         if !showTTSWindow || !floatingWindowManager.isVisible {
             showTTSFloatingWindow()
         } else {
-            // Window already visible, but ensure it's at front
             floatingWindowManager.bringToFront()
         }
 
-        // Create TTS service and start speaking
+        // Apply text replacement rules before speaking
+        let processedText = TextReplacementService.shared.applyReplacements(to: text)
+
+        // Start TTS playback
         ttsService = TTSFactory.makeService(for: selectedTTSProvider)
         ttsService?.delegate = self
         ttsService?.selectedVoice = selectedTTSVoice
@@ -632,12 +636,9 @@ final class AppState {
 
         Task {
             do {
-                // Apply text replacement rules before speaking
-                let processedText = TextReplacementService.shared.applyReplacements(to: text)
-                try await ttsService?.speak(text: processedText)
+                try await ttsService?.speak(text: text)
                 ttsState = .speaking
-                // Record synthesized text for cache
-                lastSynthesizedText = text
+                lastSynthesizedText = ttsText
             } catch {
                 #if DEBUG
                 print("TTS: Error occurred: \(error)")
@@ -649,7 +650,6 @@ final class AppState {
 
     func pauseResumeTTS() {
         guard let service = ttsService else { return }
-
         if service.isPaused {
             service.resume()
             ttsState = .speaking
@@ -659,10 +659,15 @@ final class AppState {
         }
     }
 
-    func stopTTS() {
+    /// Stop TTS playback without resetting UI state (used internally)
+    private func stopTTSPlayback() {
         ttsService?.stop()
         ttsService?.clearAudioCache()
         ttsService = nil
+    }
+
+    func stopTTS() {
+        stopTTSPlayback()
         ttsState = .idle
         currentSpeakingRange = nil
         lastSynthesizedText = ""  // Clear cache reference

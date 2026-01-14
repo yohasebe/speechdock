@@ -140,6 +140,51 @@ final class FloatingWindowManager: ObservableObject {
                 selectedWindow = availableWindows.first
             }
         }
+
+        // Start loading thumbnails asynchronously
+        loadThumbnailsAsync()
+    }
+
+    /// Load thumbnails for all available windows asynchronously
+    private func loadThumbnailsAsync() {
+        for (index, window) in availableWindows.enumerated() {
+            // Skip if thumbnail already loaded
+            guard window.thumbnail == nil else { continue }
+
+            Task {
+                let thumbnail = await WindowService.shared.generateThumbnailAsync(
+                    for: window.id,
+                    bounds: window.bounds
+                )
+                // Update on main thread
+                await MainActor.run {
+                    // Check if window still exists at this index
+                    guard index < self.availableWindows.count,
+                          self.availableWindows[index].id == window.id else { return }
+                    self.availableWindows[index].thumbnail = thumbnail
+                }
+            }
+        }
+    }
+
+    /// Load thumbnail for a specific window if not already loaded
+    func loadThumbnailIfNeeded(for windowID: CGWindowID) {
+        guard let index = availableWindows.firstIndex(where: { $0.id == windowID }),
+              availableWindows[index].thumbnail == nil else { return }
+
+        let window = availableWindows[index]
+        Task {
+            let thumbnail = await WindowService.shared.generateThumbnailAsync(
+                for: window.id,
+                bounds: window.bounds
+            )
+            await MainActor.run {
+                // Check if window still exists at this index
+                guard index < self.availableWindows.count,
+                      self.availableWindows[index].id == windowID else { return }
+                self.availableWindows[index].thumbnail = thumbnail
+            }
+        }
     }
 
     /// Select a specific window for text insertion

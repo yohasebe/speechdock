@@ -102,7 +102,7 @@ struct MenuBarView: View {
                 .labelsHidden()
                 .scaleEffect(0.9, anchor: .leading)
             }
-            .disabled(!appState.hasMicrophonePermission)
+            .disabled(!appState.hasMicrophonePermission || appState.isRecording)
 
             // Audio Input Source selector
             HStack {
@@ -112,7 +112,7 @@ struct MenuBarView: View {
                 MenuBarAudioInputSelector(appState: appState)
                 Spacer()
             }
-            .disabled(!appState.hasMicrophonePermission)
+            .disabled(!appState.hasMicrophonePermission || appState.isRecording)
 
             Divider()
                 .padding(.vertical, 2)
@@ -166,12 +166,15 @@ struct MenuBarView: View {
                 .labelsHidden()
                 .scaleEffect(0.9, anchor: .leading)
             }
+            .disabled(isTTSActive)
 
             // TTS Model picker (compact)
             MenuBarTTSModelPicker(appState: appState)
+                .disabled(isTTSActive)
 
             // TTS Voice picker (compact)
             MenuBarTTSVoicePicker(appState: appState)
+                .disabled(isTTSActive)
 
             // TTS Speed slider (compact)
             HStack(spacing: 4) {
@@ -193,6 +196,7 @@ struct MenuBarView: View {
             }
             .scaleEffect(0.9, anchor: .leading)
             .help(ttsSpeedHelpText)
+            .disabled(isTTSActive)
 
             // Audio Output Device selector
             HStack {
@@ -202,6 +206,7 @@ struct MenuBarView: View {
                 MenuBarAudioOutputSelector(appState: appState)
                 Spacer()
             }
+            .disabled(isTTSActive)
 
             Divider()
                 .padding(.vertical, 2)
@@ -287,6 +292,11 @@ struct MenuBarView: View {
     private var ttsSpeedRange: ClosedRange<Double> {
         // Use standard range for UI
         0.5...2.0
+    }
+
+    // Check if TTS is currently active (speaking or loading)
+    private var isTTSActive: Bool {
+        appState.ttsState == .speaking || appState.ttsState == .loading
     }
 
     // Available STT providers (only those with API keys or not requiring them)

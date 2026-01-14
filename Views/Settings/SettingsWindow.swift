@@ -825,7 +825,7 @@ struct TTSWordHighlightToggle: View {
         VStack(alignment: .leading, spacing: 4) {
             Toggle("Word Highlighting", isOn: $appState.enableWordHighlight)
 
-            Text("Highlight the current word being spoken during TTS playback")
+            Text("Highlight the current word being spoken during TTS playback.")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
