@@ -15,6 +15,9 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio
     from: 0.7.9
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.0
 
 targets:
   TypeTalk:
@@ -49,6 +52,7 @@ targets:
       - package: HotKey
       - package: WhisperKit
       - package: FluidAudio
+      - package: Sparkle
 
   TypeTalkTests:
     type: bundle.unit-test

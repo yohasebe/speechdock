@@ -69,18 +69,47 @@ struct TTSModelInfo: Identifiable, Hashable {
     }
 }
 
+/// Voice quality tier for TTS voices (primarily for macOS system voices)
+enum VoiceQuality: Int, Comparable, Hashable {
+    case standard = 0
+    case enhanced = 1
+    case premium = 2
+
+    static func < (lhs: VoiceQuality, rhs: VoiceQuality) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .standard: return ""
+        case .enhanced: return "Enhanced"
+        case .premium: return "Premium"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .standard: return "circle"
+        case .enhanced: return "star.leadinghalf.filled"
+        case .premium: return "star.fill"
+        }
+    }
+}
+
 /// Represents a TTS voice
 struct TTSVoice: Identifiable, Hashable {
     let id: String
     let name: String
     let language: String
     let isDefault: Bool
+    let quality: VoiceQuality
 
-    init(id: String, name: String, language: String = "", isDefault: Bool = false) {
+    init(id: String, name: String, language: String = "", isDefault: Bool = false, quality: VoiceQuality = .standard) {
         self.id = id
         self.name = name
         self.language = language
         self.isDefault = isDefault
+        self.quality = quality
     }
 }
 

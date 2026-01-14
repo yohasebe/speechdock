@@ -79,6 +79,69 @@ jobs:
           chmod +x scripts/notarize.sh
           ./scripts/notarize.sh
 
+      - name: Download Sparkle
+        run: |
+          curl -L -o /tmp/Sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.6.0/Sparkle-2.6.0.tar.xz
+          mkdir -p /tmp/Sparkle
+          tar -xf /tmp/Sparkle.tar.xz -C /tmp/Sparkle
+
+      - name: Sign DMG for Sparkle and update appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          # Get DMG filename and info
+          DMG_FILE=$(ls TypeTalk-*.dmg)
+          DMG_SIZE=$(stat -f%z "$DMG_FILE")
+          VERSION=$(cat VERSION)
+          BUILD_NUMBER=$(grep -A1 'CFBundleVersion' Resources/Info.plist | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          PUB_DATE=$(date -R)
+
+          # Create temporary file with private key
+          echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.txt
+
+          # Sign the DMG
+          SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f /tmp/sparkle_key.txt | head -1)
+
+          # Clean up key file
+          rm /tmp/sparkle_key.txt
+
+          # Update appcast.xml
+          cat > appcast.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <channel>
+                  <title>TypeTalk Updates</title>
+                  <link>https://github.com/yohasebe/typetalk</link>
+                  <description>Most recent changes with links to updates.</description>
+                  <language>en</language>
+                  <item>
+                      <title>Version ${VERSION}</title>
+                      <pubDate>${PUB_DATE}</pubDate>
+                      <sparkle:version>${BUILD_NUMBER}</sparkle:version>
+                      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                      <enclosure
+                          url="https://github.com/yohasebe/typetalk/releases/download/v${VERSION}/${DMG_FILE}"
+                          sparkle:edSignature="${SIGNATURE}"
+                          length="${DMG_SIZE}"
+                          type="application/octet-stream"/>
+                  </item>
+              </channel>
+          </rss>
+          EOF
+
+          echo "Signed DMG: $DMG_FILE"
+          echo "Signature: $SIGNATURE"
+          echo "Size: $DMG_SIZE bytes"
+
+      - name: Commit and push appcast.xml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git commit -m "Update appcast.xml for v$(cat VERSION)"
+          git push origin HEAD:main
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

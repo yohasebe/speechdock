@@ -22,6 +22,7 @@ struct ScrollableTextView: NSViewRepresentable {
     var highlightRange: NSRange?
     var enableHighlight: Bool
     var showReplacementHighlights: Bool = true
+    var fontSize: CGFloat = NSFont.systemFontSize
 
     // Number of words to highlight before/after current word with gradient
     private let gradientRadius = 2
@@ -33,7 +34,7 @@ struct ScrollableTextView: NSViewRepresentable {
         textView.isEditable = isEditable
         textView.isSelectable = true
         textView.allowsUndo = true
-        textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        textView.font = NSFont.systemFont(ofSize: fontSize)
         textView.backgroundColor = NSColor.textBackgroundColor
         textView.textContainerInset = NSSize(width: 8, height: 8)
         textView.isRichText = false
@@ -57,6 +58,7 @@ struct ScrollableTextView: NSViewRepresentable {
         scrollView.backgroundColor = NSColor.textBackgroundColor
 
         context.coordinator.textView = textView
+        context.coordinator.fontSize = fontSize
 
         return scrollView
     }
@@ -66,6 +68,13 @@ struct ScrollableTextView: NSViewRepresentable {
 
         // Update editable state
         textView.isEditable = isEditable
+
+        // Update font size if changed
+        let currentFontSize = context.coordinator.fontSize
+        if currentFontSize != fontSize {
+            textView.font = NSFont.systemFont(ofSize: fontSize)
+            context.coordinator.fontSize = fontSize
+        }
 
         // Update text only if it changed externally
         if textView.string != text {
@@ -82,7 +91,7 @@ struct ScrollableTextView: NSViewRepresentable {
             // Reset all attributes
             attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
             attrString.addAttribute(.backgroundColor, value: NSColor.clear, range: fullRange)
-            attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: NSFont.systemFontSize), range: fullRange)
+            attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: fontSize), range: fullRange)
 
             // Calculate all word ranges (including trailing punctuation) and find current word index
             let wordRanges = calculateWordRangesWithPunctuation(for: textView.string)
@@ -128,7 +137,7 @@ struct ScrollableTextView: NSViewRepresentable {
             let fullRange = NSRange(location: 0, length: attrString.length)
             attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
             attrString.addAttribute(.backgroundColor, value: NSColor.clear, range: fullRange)
-            attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: NSFont.systemFontSize), range: fullRange)
+            attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: fontSize), range: fullRange)
 
             // Apply replacement highlights (underline + tooltip)
             if showReplacementHighlights {
@@ -242,9 +251,11 @@ struct ScrollableTextView: NSViewRepresentable {
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: ScrollableTextView
         weak var textView: NSTextView?
+        var fontSize: CGFloat = NSFont.systemFontSize
 
         init(_ parent: ScrollableTextView) {
             self.parent = parent
+            self.fontSize = parent.fontSize
         }
 
         func textDidChange(_ notification: Notification) {
@@ -295,7 +306,8 @@ struct TTSFloatingView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Close (\(closeShortcut.displayString))")
+                .keyboardShortcut("w", modifiers: .command)
+                .help("Close (⌘W)")
 
                 statusIcon
                 Text(headerText)
@@ -319,7 +331,7 @@ struct TTSFloatingView: View {
             actionButtons
         }
         .padding(16)
-        .frame(minWidth: 680, idealWidth: 780, maxWidth: 1000)
+        .frame(minWidth: 720, idealWidth: 800, maxWidth: 1000)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onAppear {
@@ -424,7 +436,8 @@ struct TTSFloatingView: View {
                 text: $editableText,
                 isEditable: !isEditorDisabled,
                 highlightRange: appState.currentSpeakingRange,
-                enableHighlight: appState.enableWordHighlight && appState.ttsState == .speaking
+                enableHighlight: appState.enableWordHighlight && appState.ttsState == .speaking,
+                fontSize: CGFloat(appState.panelTextFontSize)
             )
             .cornerRadius(8)
             .frame(minHeight: 200, maxHeight: 400)
@@ -467,7 +480,7 @@ struct TTSFloatingView: View {
                         appState.startTTSWithText(editableText)
                     }
                 } label: {
-                    ButtonLabelWithShortcut(title: "Speak", shortcut: "(\(speakShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Speak", shortcut: "(\(speakShortcut.displayString))", icon: "speaker.wave.2.fill", isProminent: true)
                 }
                 .applyCustomShortcut(speakShortcut)
                 .buttonStyle(.borderedProminent)
@@ -481,7 +494,7 @@ struct TTSFloatingView: View {
                     Button {
                         appState.synthesizeAndSaveTTSAudio(editableText)
                     } label: {
-                        ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))")
+                        ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
                     }
                     .applyCustomShortcut(saveShortcut)
                     .disabled(!appState.canSaveTTSAudio(for: editableText))
@@ -491,14 +504,14 @@ struct TTSFloatingView: View {
                 Button {
                     appState.pauseResumeTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Pause", shortcut: "(\(speakShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Pause", shortcut: "(\(speakShortcut.displayString))", icon: "pause.fill")
                 }
                 .applyCustomShortcut(speakShortcut)
 
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))", icon: "stop.fill", isProminent: true)
                 }
                 .applyCustomShortcut(stopShortcut)
                 .buttonStyle(.borderedProminent)
@@ -507,7 +520,7 @@ struct TTSFloatingView: View {
                 Button {
                     appState.pauseResumeTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Resume", shortcut: "(\(speakShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Resume", shortcut: "(\(speakShortcut.displayString))", icon: "play.fill", isProminent: true)
                 }
                 .applyCustomShortcut(speakShortcut)
                 .buttonStyle(.borderedProminent)
@@ -515,7 +528,7 @@ struct TTSFloatingView: View {
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))", icon: "stop.fill")
                 }
                 .applyCustomShortcut(stopShortcut)
 
@@ -523,7 +536,7 @@ struct TTSFloatingView: View {
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(\(stopShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(\(stopShortcut.displayString))", icon: "xmark.circle")
                 }
                 .applyCustomShortcut(stopShortcut)
             }
@@ -666,21 +679,22 @@ struct TTSAudioOutputSelector: View {
                     .foregroundColor(.secondary)
             }
         } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 Image(systemName: "speaker.wave.2")
-                    .font(.caption2)
+                    .font(.caption)
                 Text(currentName)
                     .font(.caption2)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 6))
+                    .font(.system(size: 8))
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(Color.accentColor.opacity(0.2))
             .cornerRadius(4)
         }
         .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 
     private func loadDevices() {

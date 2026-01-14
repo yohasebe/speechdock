@@ -549,40 +549,51 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         return voices
     }
 
-    /// Fetch voices from system (slow operation)
+    /// Fetch voices from system using AVSpeechSynthesisVoice API
     @MainActor
     private func fetchVoicesFromSystem() -> [TTSVoice] {
         var voices: [TTSVoice] = []
 
         // Add auto-detect option
-        voices.append(TTSVoice(id: "", name: "Auto (detect language)", language: "", isDefault: true))
+        voices.append(TTSVoice(id: "", name: "Auto (detect language)", language: "", isDefault: true, quality: .standard))
 
-        // Get available voices from `say -v ?`
-        let voiceList = getAvailableVoices()
+        // Get available voices from AVSpeechSynthesisVoice API
+        let systemVoices = AVSpeechSynthesisVoice.speechVoices()
 
-        for line in voiceList {
-            // Parse voice line format: "Voice Name    language_code  # description"
-            let parts = line.split(separator: "#", maxSplits: 1).first?.trimmingCharacters(in: .whitespaces) ?? ""
-            guard !parts.isEmpty else { continue }
+        for voice in systemVoices {
+            // Map AVSpeechSynthesisVoiceQuality to our VoiceQuality
+            let quality: VoiceQuality
+            switch voice.quality {
+            case .premium:
+                quality = .premium
+            case .enhanced:
+                quality = .enhanced
+            default:
+                quality = .standard
+            }
 
-            // Extract voice name (everything before the language code)
-            let components = parts.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-            guard components.count >= 2 else { continue }
-
-            // Language code is the last component before #
-            let languageCode = components.last ?? ""
-
-            // Voice name is everything except the last component
-            let voiceName = components.dropLast().joined(separator: " ")
-
-            guard !voiceName.isEmpty else { continue }
+            // Extract voice name for say command (identifier format: com.apple.voice.compact.ja-JP.Kyoko)
+            // The voice name for say command is the last component
+            let voiceName = voice.name
 
             voices.append(TTSVoice(
                 id: voiceName,
                 name: voiceName,
-                language: languageCode,
-                isDefault: false
+                language: voice.language,
+                isDefault: false,
+                quality: quality
             ))
+        }
+
+        // Sort by quality (premium first), then by language, then by name
+        voices = [voices[0]] + voices.dropFirst().sorted { lhs, rhs in
+            if lhs.quality != rhs.quality {
+                return lhs.quality > rhs.quality  // Higher quality first
+            }
+            if lhs.language != rhs.language {
+                return lhs.language < rhs.language  // Alphabetical by language
+            }
+            return lhs.name < rhs.name  // Alphabetical by name
         }
 
         return voices

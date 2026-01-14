@@ -4,9 +4,6 @@ import AppKit
 final class TextSelectionService {
     static let shared = TextSelectionService()
 
-    /// Lock to prevent concurrent selection operations
-    private let selectionLock = NSLock()
-
     /// Maximum time to wait for copy operation (seconds)
     private let maxCopyWaitTime: TimeInterval = 0.3
 
@@ -17,7 +14,7 @@ final class TextSelectionService {
 
     /// Gets the currently selected text from the frontmost application
     /// Tries accessibility API first, then falls back to clipboard-based approach
-    func getSelectedText() -> String? {
+    func getSelectedText() async -> String? {
         // Try accessibility API first (more reliable, less intrusive)
         if let text = getSelectedTextViaAccessibility() {
             #if DEBUG
@@ -27,7 +24,7 @@ final class TextSelectionService {
         }
 
         // Fall back to clipboard-based approach with proper synchronization
-        let clipboardText = getSelectedTextViaClipboard()
+        let clipboardText = await getSelectedTextViaClipboard()
         #if DEBUG
         if let text = clipboardText {
             print("TextSelectionService: Got text via Clipboard fallback, length: \(text.count)")
@@ -39,10 +36,10 @@ final class TextSelectionService {
     }
 
     /// Get selected text using clipboard-based approach with race condition protection
-    private func getSelectedTextViaClipboard() -> String? {
-        selectionLock.lock()
-        defer { selectionLock.unlock() }
-
+    /// Uses async/await to avoid blocking the main thread during polling
+    @MainActor
+    private func getSelectedTextViaClipboard() async -> String? {
+        // Use actor isolation instead of lock for async context
         let clipboardService = ClipboardService.shared
         let pasteboard = NSPasteboard.general
 
@@ -57,9 +54,10 @@ final class TextSelectionService {
         // Simulate Cmd+C to copy selection
         copySelectionWithAppleScript()
 
-        // Poll for clipboard change with timeout
+        // Poll for clipboard change with timeout using async sleep
         var selectedText: String? = nil
         let startTime = Date()
+        let pollIntervalNanoseconds = UInt64(pollInterval * 1_000_000_000)
 
         while Date().timeIntervalSince(startTime) < maxCopyWaitTime {
             if pasteboard.changeCount != clearedChangeCount {
@@ -67,7 +65,8 @@ final class TextSelectionService {
                 selectedText = pasteboard.string(forType: .string)
                 break
             }
-            Thread.sleep(forTimeInterval: pollInterval)
+            // Use Task.sleep instead of Thread.sleep to avoid blocking
+            try? await Task.sleep(nanoseconds: pollIntervalNanoseconds)
         }
 
         // Restore original clipboard contents if not modified by another app

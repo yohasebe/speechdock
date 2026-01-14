@@ -10,6 +10,7 @@ struct WindowInfo: Identifiable, Hashable {
     let bounds: CGRect
     let isOnScreen: Bool
     var thumbnail: NSImage?
+    var appIcon: NSImage?
 
     var displayName: String {
         if windowTitle.isEmpty || windowTitle == ownerName {
@@ -190,11 +191,17 @@ final class WindowService {
                 windowTitle: windowTitle,
                 bounds: bounds,
                 isOnScreen: isOnScreen,
-                thumbnail: nil
+                thumbnail: nil,
+                appIcon: nil
             )
 
             // Generate thumbnail (may be nil if screen recording permission is not granted)
             windowInfo.thumbnail = generateThumbnail(for: windowID, bounds: bounds)
+
+            // Get app icon
+            if let app = NSRunningApplication(processIdentifier: ownerPID) {
+                windowInfo.appIcon = app.icon
+            }
 
             windows.append(windowInfo)
         }
@@ -260,6 +267,9 @@ final class WindowService {
             return false
         }
 
+        // Check if the window is minimized and unminiaturize it first
+        unminiaturizeWindowIfNeeded(windowInfo)
+
         // Activate the app
         let activated = app.activate(options: [.activateIgnoringOtherApps])
 
@@ -269,6 +279,43 @@ final class WindowService {
         }
 
         return activated
+    }
+
+    /// Check if a window is minimized and unminiaturize it
+    private func unminiaturizeWindowIfNeeded(_ windowInfo: WindowInfo) {
+        let appElement = AXUIElementCreateApplication(windowInfo.ownerPID)
+
+        var windowsValue: AnyObject?
+        guard AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsValue) == .success,
+              let windows = windowsValue as? [AXUIElement] else {
+            return
+        }
+
+        // Find and unminiaturize matching windows
+        for window in windows {
+            var titleValue: AnyObject?
+            var minimizedValue: AnyObject?
+
+            // Check if this window matches by title
+            let titleMatches: Bool
+            if AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleValue) == .success,
+               let title = titleValue as? String {
+                titleMatches = (title == windowInfo.windowTitle || windowInfo.windowTitle.isEmpty)
+            } else {
+                titleMatches = windowInfo.windowTitle.isEmpty
+            }
+
+            if titleMatches {
+                // Check if minimized
+                if AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedValue) == .success,
+                   let isMinimized = minimizedValue as? Bool,
+                   isMinimized {
+                    // Unminiaturize the window
+                    AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, false as CFTypeRef)
+                }
+                return
+            }
+        }
     }
 
     /// Raise a specific window using Accessibility API

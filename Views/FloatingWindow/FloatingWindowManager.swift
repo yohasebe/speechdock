@@ -17,11 +17,29 @@ enum PasteDestinationStatus {
 
 @MainActor
 final class FloatingWindowManager: ObservableObject {
+    // MARK: - Window Dimension Constants
+    // These dimensions are tuned for typical content size and screen real estate
+
+    /// STT panel initial size (accommodates text area, window selector, and buttons)
+    private static let sttWindowSize = NSSize(width: 540, height: 340)
+
+    /// TTS panel initial size (slightly taller for text input and controls)
+    private static let ttsWindowSize = NSSize(width: 540, height: 380)
+
+    /// Minimum window size (ensures all controls remain visible)
+    private static let windowMinSize = NSSize(width: 440, height: 200)
+
+    /// Maximum window size (prevents overly large panels)
+    private static let windowMaxSize = NSSize(width: 900, height: 600)
+
+    // MARK: - Properties
+
     private var floatingWindow: NSWindow?
     private var previousApp: NSRunningApplication?
     @Published var isVisible = false
     private var windowBecameKeyObserver: NSObjectProtocol?
     private var windowWillCloseObserver: NSObjectProtocol?
+    private var keyboardEventMonitor: Any?
     private var storedOnCancel: (() -> Void)?
     private var storedOnClose: (() -> Void)?
 
@@ -84,6 +102,9 @@ final class FloatingWindowManager: ObservableObject {
 
         // Activate window with retry (needed for apps launched via `open` command)
         activateWindowWithRetry()
+
+        // Set up Cmd+W keyboard shortcut handler (SwiftUI shortcuts don't work in borderless windows)
+        setupKeyboardEventMonitor()
     }
 
     /// Refresh the list of available windows
@@ -190,26 +211,19 @@ final class FloatingWindowManager: ObservableObject {
 
     private func createFloatingWindow() {
         floatingWindow = KeyableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 340),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            contentRect: NSRect(origin: .zero, size: Self.sttWindowSize),
+            styleMask: [.borderless, .resizable],
             backing: .buffered,
             defer: false
         )
 
-        // Use a level above popUpMenu to ensure panels appear above menu bar popover
-        floatingWindow?.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 1)
+        // Use dynamic level (will be set when showing)
+        floatingWindow?.level = WindowLevelCoordinator.shared.nextPanelLevel()
         floatingWindow?.isReleasedWhenClosed = false
-        floatingWindow?.titlebarAppearsTransparent = true
-        floatingWindow?.titleVisibility = .hidden
         floatingWindow?.backgroundColor = .clear
         floatingWindow?.isOpaque = false
         floatingWindow?.hasShadow = true
         floatingWindow?.isMovableByWindowBackground = true
-
-        // Hide standard window buttons (traffic lights)
-        floatingWindow?.standardWindowButton(.closeButton)?.isHidden = true
-        floatingWindow?.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        floatingWindow?.standardWindowButton(.zoomButton)?.isHidden = true
     }
 
     private func positionNearMouse() {
@@ -244,28 +258,21 @@ final class FloatingWindowManager: ObservableObject {
 
         // Create resizable window for TTS that can accept keyboard input
         let window = KeyableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 380),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            contentRect: NSRect(origin: .zero, size: Self.ttsWindowSize),
+            styleMask: [.borderless, .resizable],
             backing: .buffered,
             defer: false
         )
 
-        // Use a level above popUpMenu to ensure panels appear above menu bar popover
-        window.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 1)
+        // Use dynamic level (ensures this panel appears on top)
+        window.level = WindowLevelCoordinator.shared.nextPanelLevel()
         window.isReleasedWhenClosed = false
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = true
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 440, height: 200)
-        window.maxSize = NSSize(width: 900, height: 600)
-
-        // Hide standard window buttons (traffic lights)
-        window.standardWindowButton(.closeButton)?.isHidden = true
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
+        window.minSize = Self.windowMinSize
+        window.maxSize = Self.windowMaxSize
 
         floatingWindow = window
 
@@ -300,6 +307,9 @@ final class FloatingWindowManager: ObservableObject {
 
         // Activate window with retry (needed for apps launched via `open` command)
         activateWindowWithRetry()
+
+        // Set up Cmd+W keyboard shortcut handler (SwiftUI shortcuts don't work in borderless windows)
+        setupKeyboardEventMonitor()
     }
 
     /// Retry activation until window becomes key
@@ -426,12 +436,71 @@ final class FloatingWindowManager: ObservableObject {
         }
     }
 
+    /// Set up keyboard event monitor to handle Cmd+W for closing panels
+    /// SwiftUI's .keyboardShortcut doesn't work reliably in borderless windows
+    private func setupKeyboardEventMonitor() {
+        // Remove any existing monitor
+        removeKeyboardEventMonitor()
+
+        keyboardEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self else { return event }
+
+            // Check for Cmd+W (keyCode 13 = 'w')
+            if event.modifierFlags.contains(.command) && event.keyCode == 13 {
+                // Only handle if our window is key
+                if self.floatingWindow?.isKeyWindow == true {
+                    self.closePanel()
+                    return nil  // Consume the event
+                }
+            }
+
+            return event
+        }
+    }
+
+    /// Remove the keyboard event monitor
+    private func removeKeyboardEventMonitor() {
+        if let monitor = keyboardEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyboardEventMonitor = nil
+        }
+    }
+
+    /// Close the panel and stop any active STT/TTS processing
+    func closePanel() {
+        // Stop STT recording if active
+        if let onCancel = storedOnCancel {
+            onCancel()
+        }
+
+        // Stop TTS playback if active
+        if let onClose = storedOnClose {
+            onClose()
+        }
+
+        // Additional safety: directly stop via AppState
+        if let appState = currentAppState {
+            if appState.isRecording {
+                appState.cancelRecording()
+            }
+            if appState.ttsState == .speaking || appState.ttsState == .loading {
+                appState.stopTTS()
+            }
+        }
+
+        // Hide the window
+        hideFloatingWindow()
+    }
+
     /// Bring the floating window to the front
     func bringToFront() {
         guard let window = floatingWindow else { return }
 
         // Ensure we're a regular app so we can become key
         NSApp.setActivationPolicy(.regular)
+
+        // Update level to appear on top of other panels
+        window.level = WindowLevelCoordinator.shared.nextPanelLevel()
 
         // Bring window to front
         window.orderFrontRegardless()
@@ -463,6 +532,9 @@ final class FloatingWindowManager: ObservableObject {
             windowWillCloseObserver = nil
         }
 
+        // Remove keyboard event monitor
+        removeKeyboardEventMonitor()
+
         // Clear stored callbacks (already handled or not needed)
         storedOnCancel = nil
         storedOnClose = nil
@@ -470,6 +542,9 @@ final class FloatingWindowManager: ObservableObject {
 
         floatingWindow?.orderOut(nil)
         isVisible = false
+
+        // Reset window level coordinator when panel is closed
+        WindowLevelCoordinator.shared.reset()
 
         // Restore focus to the previous app (unless we already activated a selected window)
         if !skipActivation, let previousApp = previousApp {

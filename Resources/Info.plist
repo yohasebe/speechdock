@@ -30,5 +30,13 @@
     <string>TypeTalk needs screen recording access to show window thumbnails when selecting a paste target.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+
+    <!-- Sparkle Auto-Update Configuration -->
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/yohasebe/typetalk/main/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>MAa/lGpJrjLYjp2nTFS1HgMEyPaazjwbxyVsQqtIZ9A=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
 </dict>
 </plist>

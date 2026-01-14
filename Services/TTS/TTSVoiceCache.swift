@@ -8,9 +8,29 @@ final class TTSVoiceCache {
     private let defaults = UserDefaults.standard
     private let cacheKeyPrefix = "ttsVoiceCache_"
     private let cacheTimestampPrefix = "ttsVoiceCacheTime_"
+    private let cacheVersionKey = "ttsVoiceCacheVersion"
+    private let currentCacheVersion = 2  // Increment when cache format changes
     private let cacheExpirationInterval: TimeInterval = 24 * 60 * 60  // 24 hours
 
-    private init() {}
+    private init() {
+        // Clear cache if version changed (e.g., added quality property)
+        migrateIfNeeded()
+    }
+
+    /// Clear all caches if version changed
+    private func migrateIfNeeded() {
+        let storedVersion = defaults.integer(forKey: cacheVersionKey)
+        if storedVersion < currentCacheVersion {
+            // Clear all provider caches
+            for provider in TTSProvider.allCases {
+                clearCache(for: provider)
+            }
+            defaults.set(currentCacheVersion, forKey: cacheVersionKey)
+            #if DEBUG
+            print("TTSVoiceCache: Migrated from version \(storedVersion) to \(currentCacheVersion)")
+            #endif
+        }
+    }
 
     /// Get cached voices for a provider
     func getCachedVoices(for provider: TTSProvider) -> [TTSVoice]? {
@@ -21,7 +41,15 @@ final class TTSVoiceCache {
             return nil
         }
 
-        return cached.map { TTSVoice(id: $0.id, name: $0.name, language: $0.language, isDefault: $0.isDefault) }
+        return cached.map {
+            TTSVoice(
+                id: $0.id,
+                name: $0.name,
+                language: $0.language,
+                isDefault: $0.isDefault,
+                quality: VoiceQuality(rawValue: $0.qualityRawValue) ?? .standard
+            )
+        }
     }
 
     /// Save voices to cache
@@ -29,7 +57,15 @@ final class TTSVoiceCache {
         let key = cacheKeyPrefix + provider.rawValue
         let timestampKey = cacheTimestampPrefix + provider.rawValue
 
-        let cached = voices.map { CachedVoice(id: $0.id, name: $0.name, language: $0.language, isDefault: $0.isDefault) }
+        let cached = voices.map {
+            CachedVoice(
+                id: $0.id,
+                name: $0.name,
+                language: $0.language,
+                isDefault: $0.isDefault,
+                qualityRawValue: $0.quality.rawValue
+            )
+        }
 
         do {
             let data = try JSONEncoder().encode(cached)
@@ -69,4 +105,23 @@ private struct CachedVoice: Codable {
     let name: String
     let language: String
     let isDefault: Bool
+    let qualityRawValue: Int
+
+    // Support decoding old cache format without quality
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        language = try container.decode(String.self, forKey: .language)
+        isDefault = try container.decode(Bool.self, forKey: .isDefault)
+        qualityRawValue = try container.decodeIfPresent(Int.self, forKey: .qualityRawValue) ?? 0
+    }
+
+    init(id: String, name: String, language: String, isDefault: Bool, qualityRawValue: Int) {
+        self.id = id
+        self.name = name
+        self.language = language
+        self.isDefault = isDefault
+        self.qualityRawValue = qualityRawValue
+    }
 }

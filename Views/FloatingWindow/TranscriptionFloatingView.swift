@@ -1,21 +1,27 @@
 import SwiftUI
 import Carbon.HIToolbox
 
-/// Button label with keyboard shortcut text - larger size for better visibility
+/// Button label with icon and keyboard shortcut text
 struct ButtonLabelWithShortcut: View {
     let title: String
     let shortcut: String
+    var icon: String? = nil
+    var isProminent: Bool = false
 
     var body: some View {
         HStack(spacing: 4) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.body)
+            }
             Text(title)
                 .font(.body)
             Text(shortcut)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(isProminent ? .white.opacity(0.8) : .secondary)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 3)
     }
 }
 
@@ -42,6 +48,14 @@ struct WindowSelectorButton: View {
                     .foregroundColor(.secondary)
 
                 if let selected = floatingWindowManager.selectedWindow {
+                    // App icon
+                    if let appIcon = selected.appIcon {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 16)
+                    }
+                    // Window thumbnail
                     if let thumbnail = selected.thumbnail {
                         Image(nsImage: thumbnail)
                             .resizable()
@@ -252,6 +266,19 @@ struct WindowRowView: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            // App icon
+            if let appIcon = window.appIcon {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 20, height: 20)
+            } else {
+                Image(systemName: "app.fill")
+                    .frame(width: 20, height: 20)
+                    .foregroundColor(.secondary)
+            }
+
+            // Window thumbnail
             if let thumbnail = window.thumbnail {
                 Image(nsImage: thumbnail)
                     .resizable()
@@ -453,6 +480,7 @@ struct TranscriptionFloatingView: View {
     @State private var baseText: String = ""  // Text to preserve when resuming recording
     @State private var isWindowSelectorExpanded: Bool = false
     @State private var dropdownId: UUID = UUID()  // Force recreate dropdown when opened
+    @State private var showCopiedFeedback: Bool = false
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
     @StateObject private var audioLevelMonitor = AudioLevelMonitor.shared
 
@@ -478,7 +506,8 @@ struct TranscriptionFloatingView: View {
                 }
                 .buttonStyle(.plain)
                 .applyCustomShortcut(cancelShortcut)
-                .help("Cancel (\(cancelShortcut.displayString))")
+                .keyboardShortcut("w", modifiers: .command)
+                .help("Close (⌘W)")
 
                 statusIcon
                 Text(headerText)
@@ -551,7 +580,8 @@ struct TranscriptionFloatingView: View {
                     isEditable: true,
                     highlightRange: nil,
                     enableHighlight: false,
-                    showReplacementHighlights: true
+                    showReplacementHighlights: true,
+                    fontSize: CGFloat(appState.panelTextFontSize)
                 )
                 .background(Color(.textBackgroundColor))
                 .cornerRadius(8)
@@ -607,7 +637,7 @@ struct TranscriptionFloatingView: View {
             }
         }
         .padding(16)
-        .frame(minWidth: 680, idealWidth: 780, maxWidth: 1000)
+        .frame(minWidth: 720, idealWidth: 800, maxWidth: 1000)
         .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
         .cornerRadius(12)
         .onChange(of: appState.currentTranscription) { _, newValue in
@@ -716,7 +746,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     AppState.shared.toggleRecording()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))", icon: "stop.fill", isProminent: true)
                 }
                 .applyCustomShortcut(stopShortcut)
                 .buttonStyle(.borderedProminent)
@@ -725,14 +755,18 @@ struct TranscriptionFloatingView: View {
                     Button {
                         copyTextToClipboard()
                     } label: {
-                        ButtonLabelWithShortcut(title: "Copy", shortcut: "(⌘⇧C)")
+                        ButtonLabelWithShortcut(
+                            title: showCopiedFeedback ? "Copied!" : "Copy",
+                            shortcut: showCopiedFeedback ? "" : "(⌘⇧C)",
+                            icon: showCopiedFeedback ? "checkmark" : "doc.on.doc"
+                        )
                     }
                     .keyboardShortcut("c", modifiers: [.command, .shift])
 
                     Button {
                         AppState.shared.stopRecordingAndInsert(editedText)
                     } label: {
-                        ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))")
+                        ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
                     }
                     .applyCustomShortcut(pasteShortcut)
                 }
@@ -741,7 +775,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     startRecordingWithAppend()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Record", shortcut: "(\(recordShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Record", shortcut: "(\(recordShortcut.displayString))", icon: "mic.fill", isProminent: true)
                 }
                 .applyCustomShortcut(recordShortcut)
                 .buttonStyle(.borderedProminent)
@@ -749,7 +783,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     saveTextToFile()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Save", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
                 }
                 .applyCustomShortcut(saveShortcut)
                 .disabled(editedText.isEmpty)
@@ -757,7 +791,11 @@ struct TranscriptionFloatingView: View {
                 Button {
                     copyTextToClipboard()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Copy", shortcut: "(⌘⇧C)")
+                    ButtonLabelWithShortcut(
+                        title: showCopiedFeedback ? "Copied!" : "Copy",
+                        shortcut: showCopiedFeedback ? "" : "(⌘⇧C)",
+                        icon: showCopiedFeedback ? "checkmark" : "doc.on.doc"
+                    )
                 }
                 .keyboardShortcut("c", modifiers: [.command, .shift])
                 .disabled(editedText.isEmpty)
@@ -765,7 +803,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     onConfirm(editedText)
                 } label: {
-                    ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))")
+                    ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
                 }
                 .applyCustomShortcut(pasteShortcut)
                 .disabled(editedText.isEmpty)
@@ -778,6 +816,16 @@ struct TranscriptionFloatingView: View {
         guard !editedText.isEmpty else { return }
         let processedText = TextReplacementService.shared.applyReplacements(to: editedText)
         ClipboardService.shared.copyToClipboard(processedText)
+
+        // Show "Copied!" feedback
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showCopiedFeedback = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCopiedFeedback = false
+            }
+        }
     }
 
     /// Save transcribed text to a file using NSSavePanel
@@ -787,11 +835,7 @@ struct TranscriptionFloatingView: View {
         savePanel.nameFieldStringValue = "transcription.txt"
         savePanel.title = "Save Transcription"
         savePanel.message = "Choose a location to save the transcribed text"
-        // Use a level higher than floating panels (popUpMenu + 1 = 102) so dialog appears above them
-        savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 2)
-        // Set a reasonable size for the save panel
-        savePanel.contentMinSize = NSSize(width: 400, height: 250)
-        savePanel.setContentSize(NSSize(width: 500, height: 350))
+        WindowLevelCoordinator.configureSavePanel(savePanel)
 
         // Activate app and bring panel to front
         NSApp.activate(ignoringOtherApps: true)
@@ -856,6 +900,7 @@ struct AudioInputSourceSelector: View {
             Text("Input:")
                 .font(.caption2)
                 .foregroundColor(.secondary)
+                .fixedSize()
             inputMenu
         }
     }
@@ -918,6 +963,12 @@ struct AudioInputSourceSelector: View {
                             appState.selectedAudioAppBundleID = app.bundleID
                         }) {
                             HStack {
+                                if let icon = app.icon {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 12, height: 12)
+                                }
                                 Text(app.name)
                                 if appState.selectedAudioInputSourceType == .applicationAudio &&
                                    appState.selectedAudioAppBundleID == app.bundleID {
@@ -950,12 +1001,13 @@ struct AudioInputSourceSelector: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8))
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(sourceBackgroundColor)
             .cornerRadius(4)
         }
         .menuStyle(.borderlessButton)
+        .fixedSize()
         .onAppear {
             loadMicrophones()
             Task {

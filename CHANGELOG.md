@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-01-14
+
 ### Added
+- Auto-update support via Sparkle framework (checks for updates on startup)
+- "Check for Updates..." menu item in menu bar
+- Configurable font size for STT/TTS panel text areas (Settings > Appearance)
 - VAD auto-stop settings configurable in Settings UI (minimum recording time, silence duration)
 - Transcription loading overlay for Local Whisper, OpenAI, and Gemini providers
 - Local Whisper STT provider using WhisperKit for on-device transcription
+- Hover effect for menu bar action buttons (Start Recording, Read Selected Text)
 
 ### Changed
 - Close button moved to top-left in STT and TTS panels
@@ -19,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Japanese/Chinese/Korean spacing in Gemini transcription (spurious spaces removed)
 - 5-second audio capture delay in Local Whisper, OpenAI, and Gemini (VAD initialization now non-blocking)
+- Speed slider alignment in Settings panel (Slow/Fast labels)
+- Redundant labels in Settings sliders
 
 ## [0.1.3] - 2026-01-13
 

@@ -185,13 +185,18 @@ final class StatusBarManager: NSObject {
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
 
-            // Make the popover's window key to receive keyboard events
-            popover.contentViewController?.view.window?.makeKey()
+            // Set the popover's window level to appear on top of other panels
+            if let popoverWindow = popover.contentViewController?.view.window {
+                popoverWindow.level = WindowLevelCoordinator.shared.nextPanelLevel()
+                popoverWindow.makeKey()
+            }
         }
     }
 
     func closePopover() {
         popover?.performClose(nil)
+        // Reset window level coordinator when popover is closed
+        WindowLevelCoordinator.shared.reset()
     }
 
     deinit {

@@ -85,7 +85,7 @@ struct MenuBarView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(MenuBarActionButtonStyle())
             .disabled(appState.isProcessing || !appState.hasMicrophonePermission)
 
             // STT Provider picker (compact)
@@ -149,7 +149,7 @@ struct MenuBarView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(MenuBarActionButtonStyle())
             .disabled(appState.ttsState == .speaking || appState.ttsState == .loading || !appState.hasAccessibilityPermission)
 
             // TTS Provider picker (compact)
@@ -238,6 +238,10 @@ struct MenuBarView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+
+                // Check for Updates
+                CheckForUpdatesView()
+                    .buttonStyle(.plain)
 
                 // Settings
                 Button(action: {
@@ -530,6 +534,12 @@ struct MenuBarAudioInputSelector: View {
                             appState.selectedAudioAppBundleID = app.bundleID
                         }) {
                             HStack {
+                                if let icon = app.icon {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 12, height: 12)
+                                }
                                 Text(app.name)
                                 if appState.selectedAudioInputSourceType == .applicationAudio &&
                                    appState.selectedAudioAppBundleID == app.bundleID {
@@ -788,6 +798,36 @@ struct MenuBarAudioOutputSelector: View {
         if !appState.selectedAudioOutputDeviceUID.isEmpty &&
            !availableDevices.contains(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
             appState.selectedAudioOutputDeviceUID = ""
+        }
+    }
+}
+
+// MARK: - Menu Bar Action Button Style
+
+/// Custom button style with hover effect for menu bar action buttons
+struct MenuBarActionButtonStyle: ButtonStyle {
+    @State private var isHovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(backgroundColor(isPressed: configuration.isPressed))
+            )
+            .onHover { hovering in
+                isHovering = hovering
+            }
+    }
+
+    private func backgroundColor(isPressed: Bool) -> Color {
+        if isPressed {
+            return Color.primary.opacity(0.15)
+        } else if isHovering {
+            return Color.primary.opacity(0.08)
+        } else {
+            return Color.clear
         }
     }
 }

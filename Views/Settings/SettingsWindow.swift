@@ -74,6 +74,9 @@ struct GeneralSettingsView: View {
 
                 // VAD Auto-Stop settings (only for Gemini, OpenAI, LocalWhisper)
                 VADAutoStopSettings(appState: appState)
+
+                // STT Panel behavior settings
+                STTPanelBehaviorSettings(appState: appState)
             } header: {
                 Text("Speech-to-Text")
             }
@@ -117,6 +120,13 @@ struct GeneralSettingsView: View {
                 AudioOutputDevicePicker(appState: appState)
             } header: {
                 Text("Text-to-Speech")
+            }
+
+            // Appearance Section
+            Section {
+                PanelAppearanceSettings(appState: appState)
+            } header: {
+                Text("Appearance")
             }
 
             // Startup Section
@@ -418,9 +428,25 @@ struct TTSVoicePicker: View {
     var body: some View {
         HStack {
             Picker("Voice", selection: $appState.selectedTTSVoice) {
-                ForEach(availableVoices) { voice in
-                    Text(voiceDisplayName(voice))
-                        .tag(voice.id)
+                if appState.selectedTTSProvider == .macOS {
+                    // macOS: Show voices grouped by quality with section headers
+                    ForEach(voicesWithSections, id: \.id) { item in
+                        if item.isSection {
+                            Divider()
+                            Text(item.sectionTitle)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else if let voice = item.voice {
+                            Text(voiceDisplayName(voice))
+                                .tag(voice.id)
+                        }
+                    }
+                } else {
+                    // Other providers: Simple list
+                    ForEach(availableVoices) { voice in
+                        Text(voiceDisplayName(voice))
+                            .tag(voice.id)
+                    }
                 }
             }
 
@@ -448,6 +474,58 @@ struct TTSVoicePicker: View {
             loadVoices()
             refreshVoicesInBackgroundIfNeeded()
         }
+    }
+
+    /// Voice item or section header for grouped display
+    private struct VoiceListItem: Identifiable {
+        let id: String
+        let voice: TTSVoice?
+        let isSection: Bool
+        let sectionTitle: String
+
+        static func section(_ title: String) -> VoiceListItem {
+            VoiceListItem(id: "section_\(title)", voice: nil, isSection: true, sectionTitle: title)
+        }
+
+        static func voice(_ voice: TTSVoice) -> VoiceListItem {
+            VoiceListItem(id: voice.id, voice: voice, isSection: false, sectionTitle: "")
+        }
+    }
+
+    /// Check if there are multiple quality tiers (to decide whether to show separators)
+    private var hasMultipleQualityTiers: Bool {
+        let nonDefaultVoices = availableVoices.filter { !$0.isDefault }
+        let qualities = Set(nonDefaultVoices.map { $0.quality })
+        return qualities.count > 1
+    }
+
+    /// Generate voice list with section headers for quality tiers
+    private var voicesWithSections: [VoiceListItem] {
+        var items: [VoiceListItem] = []
+        var currentQuality: VoiceQuality?
+
+        // Only show separators if there are multiple quality tiers
+        let showSeparators = hasMultipleQualityTiers
+
+        for voice in availableVoices {
+            // Add section header when quality changes (skip for Auto voice)
+            if showSeparators && !voice.isDefault && voice.quality != currentQuality {
+                currentQuality = voice.quality
+                let title: String
+                switch voice.quality {
+                case .premium:
+                    title = "── Premium ──"
+                case .enhanced:
+                    title = "── Enhanced ──"
+                case .standard:
+                    title = "── Standard ──"
+                }
+                items.append(.section(title))
+            }
+            items.append(.voice(voice))
+        }
+
+        return items
     }
 
     private func loadVoices() {
@@ -650,22 +728,24 @@ struct TTSSpeedSlider: View {
                     .font(.caption)
             }
 
-            HStack {
-                Text("Slow")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-
+            HStack(spacing: 8) {
                 Slider(
                     value: $appState.selectedTTSSpeed,
                     in: speedRange,
                     step: 0.1
-                )
+                ) {
+                    EmptyView()
+                } minimumValueLabel: {
+                    Text("Slow")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } maximumValueLabel: {
+                    Text("Fast")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
                 .disabled(!supportsSpeed)
                 .help(speedTooltip)
-
-                Text("Fast")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
 
                 Button("Reset") {
                     appState.selectedTTSSpeed = 1.0
@@ -768,11 +848,18 @@ struct STTLanguagePicker: View {
                     Text(lang.displayName).tag(lang.rawValue)
                 }
             }
+            .onAppear {
+                // Ensure valid selection on appear
+                ensureValidLanguageSelection()
+            }
             .onChange(of: appState.selectedRealtimeProvider) { _, newProvider in
                 // Reset to default language if current selection is not supported
                 let supported = LanguageCode.supportedLanguages(for: newProvider)
                 if let currentLang = LanguageCode(rawValue: appState.selectedSTTLanguage),
                    !supported.contains(currentLang) {
+                    appState.selectedSTTLanguage = LanguageCode.defaultLanguage(for: newProvider).rawValue
+                } else if appState.selectedSTTLanguage.isEmpty && !LanguageCode.supportsAutoDetection(for: newProvider) {
+                    // Auto ("") not supported, switch to default
                     appState.selectedSTTLanguage = LanguageCode.defaultLanguage(for: newProvider).rawValue
                 }
             }
@@ -781,6 +868,21 @@ struct STTLanguagePicker: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+    }
+
+    /// Ensure the current language selection is valid for the provider
+    private func ensureValidLanguageSelection() {
+        let supported = supportedLanguages
+
+        // Check if current selection is valid
+        if let currentLang = LanguageCode(rawValue: appState.selectedSTTLanguage) {
+            if supported.contains(currentLang) {
+                return  // Selection is valid
+            }
+        }
+
+        // Current selection is invalid (e.g., Auto for macOS), reset to default
+        appState.selectedSTTLanguage = LanguageCode.defaultLanguage(for: appState.selectedRealtimeProvider).rawValue
     }
 
     private var languageHelpText: String {
@@ -1018,6 +1120,74 @@ struct VADAutoStopSettings: View {
                 }
             }
             .padding(.top, 4)
+        }
+    }
+}
+
+/// STT Panel behavior settings
+struct STTPanelBehaviorSettings: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Panel Behavior")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Toggle(isOn: $appState.closePanelAfterPaste) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Close panel after paste")
+                    Text("When enabled, the STT panel closes automatically after pasting text.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+}
+
+/// Panel appearance settings (font size for STT/TTS panels)
+struct PanelAppearanceSettings: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Text Font Size")
+                Spacer()
+                Text("\(Int(appState.panelTextFontSize)) pt")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+
+            HStack(spacing: 8) {
+                Slider(
+                    value: $appState.panelTextFontSize,
+                    in: 10...24,
+                    step: 1
+                ) {
+                    EmptyView()
+                } minimumValueLabel: {
+                    Text("A")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                } maximumValueLabel: {
+                    Text("A")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                }
+
+                Button("Reset") {
+                    appState.panelTextFontSize = 13.0
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+            }
+
+            Text("Font size for text in STT and TTS panels.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
         }
     }
 }

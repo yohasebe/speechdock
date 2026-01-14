@@ -222,13 +222,23 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                 if let detectedLang = json["language_code"] as? String {
                     print("ElevenLabsRealtimeSTT: Detected language = '\(detectedLang)', text = '\(text.prefix(50))...'")
                 }
+                print("ElevenLabsRealtimeSTT: Committed text received: '\(text.prefix(100))...'")
+                print("ElevenLabsRealtimeSTT: Current committedText: '\(committedText.suffix(100))...'")
                 #endif
-                // Accumulate committed text
+
+                // Deduplicate: check if this text is already part of our committed text
+                // This handles cases where ElevenLabs resends previously committed text
                 if committedText.isEmpty {
                     committedText = text
-                } else {
+                } else if !committedText.hasSuffix(text) && !committedText.contains(text) {
+                    // Only append if this text is genuinely new
                     committedText += " " + text
+                } else {
+                    #if DEBUG
+                    print("ElevenLabsRealtimeSTT: Skipped duplicate committed text")
+                    #endif
                 }
+
                 // Clear partial text since it's now committed
                 currentPartialText = ""
                 // Show accumulated text as partial result (final is only sent when stopping)
@@ -300,6 +310,9 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             let outputFrameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
 
             guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outputFrameCapacity) else {
+                #if DEBUG
+                print("ElevenLabsRealtimeSTT: Failed to create output buffer (capacity: \(outputFrameCapacity))")
+                #endif
                 return
             }
 
@@ -309,7 +322,12 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                 return buffer
             }
 
-            guard status != .error, error == nil else { return }
+            if status == .error || error != nil {
+                #if DEBUG
+                print("ElevenLabsRealtimeSTT: Audio conversion failed - status: \(status.rawValue), error: \(error?.localizedDescription ?? "none")")
+                #endif
+                return
+            }
 
             pcmData = bufferToData(outputBuffer)
         } else if buffer.format.commonFormat == .pcmFormatInt16 {
@@ -320,7 +338,12 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             pcmData = convertFloatBufferToInt16Data(buffer)
         }
 
-        guard !pcmData.isEmpty else { return }
+        if pcmData.isEmpty {
+            #if DEBUG
+            print("ElevenLabsRealtimeSTT: Empty PCM data after conversion")
+            #endif
+            return
+        }
 
         // Send as base64 encoded audio chunk
         let base64Audio = pcmData.base64EncodedString()

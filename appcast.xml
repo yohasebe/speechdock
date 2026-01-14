@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>TypeTalk Updates</title>
+        <link>https://github.com/yohasebe/typetalk</link>
+        <description>Most recent changes with links to updates.</description>
+        <language>en</language>
+        <!--
+        リリース時に以下の項目を更新:
+        - title: バージョン番号
+        - pubDate: リリース日時 (RFC 2822形式)
+        - sparkle:version: ビルド番号 (CFBundleVersion)
+        - sparkle:shortVersionString: バージョン文字列 (CFBundleShortVersionString)
+        - enclosure url: DMGのダウンロードURL
+        - sparkle:edSignature: sign_updateツールで生成した署名
+        - length: DMGファイルサイズ（バイト）
+        -->
+    </channel>
+</rss>

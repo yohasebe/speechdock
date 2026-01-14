@@ -109,14 +109,40 @@ Implementations: `MacOSTTS`, `OpenAITTS`, `GeminiTTS`, `ElevenLabsTTS`
 
 ### Window Level Hierarchy
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `.floating` | 3 | Settings window |
-| `.popUpMenu` | 101 | Menu bar popover |
-| `popUpMenu + 1` | 102 | STT/TTS panels |
-| `popUpMenu + 2` | 103 | Save dialogs |
+Window levels are managed dynamically by `WindowLevelCoordinator`:
 
-Design: Panels appear above menu bar popover; save dialogs appear above panels.
+| Component | Level | Behavior |
+|-----------|-------|----------|
+| Settings window | `.floating` (3) | Standard floating level |
+| Menu bar popover | Dynamic (`popUpMenu + n`) | Incremented when shown |
+| STT/TTS panels | Dynamic (`popUpMenu + n`) | Incremented when shown |
+| Save dialogs | `popUpMenu + 500` | Always on top |
+
+**Design principle:** The most recently shown panel appears on top.
+- When STT/TTS panel is shown while menu bar popover is open, the panel appears on top
+- When menu bar icon is clicked while STT/TTS panel is showing, the popover appears on top
+- Save dialogs always appear above all panels
+
+**Implementation details:**
+- `WindowLevelCoordinator.nextPanelLevel()` increments and returns the next level
+- `WindowLevelCoordinator.reset()` is called when panels close to prevent unbounded level growth
+- Safety limit of 100 increments before wrapping (rarely triggered due to reset)
+- Use `WindowLevelCoordinator.configureSavePanel()` to ensure save dialogs appear above panels
+
+### Window Activation
+
+When activating a paste target window:
+- Minimized windows are automatically unminiaturized via Accessibility API
+- `WindowService.unminiaturizeWindowIfNeeded()` checks `kAXMinimizedAttribute` and sets it to false
+- Requires Accessibility permission to work
+
+### Startup Optimizations
+
+Background prefetch operations run at startup to improve responsiveness:
+- `prefetchAvailableAppsInBackground()` - Preloads App Audio applications and their icons
+- `refreshVoiceCachesInBackground()` - Preloads ElevenLabs voice list if cache expired
+
+These operations are non-blocking and don't affect startup time.
 
 ---
 
@@ -139,12 +165,15 @@ Persisted settings (UserDefaults):
 | Audio Input Source | `selectedAudioInputSourceType` |
 | Microphone Device | `selectedAudioInputDeviceUID` |
 | Audio Output Device | `selectedAudioOutputDeviceUID` |
-| Launch at Login | `launchAtLogin` |
 | VAD Min Recording Time | `vadMinimumRecordingTime` |
 | VAD Silence Duration | `vadSilenceDuration` |
+| Close Panel After Paste | `closePanelAfterPaste` |
 
 Session-only settings (NOT persisted):
 - `selectedAudioAppBundleID` - App Audio resets to Microphone on restart
+
+System-managed settings (NOT stored in UserDefaults):
+- `Launch at Login` - Managed by macOS ServiceManagement framework (SMAppService), requires macOS 13.0+
 
 ### STT Language Support
 
@@ -271,6 +300,12 @@ Cmd+Q behavior:
 - Panel visible: closes panel only
 - No panel: quits app
 
+STT Panel paste behavior (`closePanelAfterPaste` setting):
+- **false (default)**: Panel stays open after paste, returns focus to panel
+- **true**: Panel closes after paste (original behavior)
+
+This setting allows users to paste multiple transcriptions without reopening the panel.
+
 ### Thread Safety
 
 Timer management pattern:
@@ -316,7 +351,9 @@ func save(key: String, data: Data) throws {
 
 ### Cache Management
 
-TTS Voice Cache:
+#### TTS Voice Cache
+
+Voice data is cached per provider with automatic expiration:
 
 ```swift
 if let cached = TTSVoiceCache.shared.getCachedVoices(for: provider),
@@ -327,10 +364,44 @@ if let cached = TTSVoiceCache.shared.getCachedVoices(for: provider),
 return Self.defaultVoices
 ```
 
-Temporary files:
+**Cache properties:**
+- Expiration: 24 hours
+- Storage: UserDefaults
+- Version: Incremented when cache format changes (triggers automatic migration)
+
+**Voice quality storage:**
+- `VoiceQuality` enum (`standard`, `enhanced`, `premium`) is stored as `qualityRawValue` (Int)
+- Cache version 2 added quality property; older caches are cleared on upgrade
+- Decoding fallback: Missing `qualityRawValue` defaults to 0 (standard)
+
+**Background cache refresh:**
+- `refreshVoiceCachesInBackground()` preloads ElevenLabs voices at startup if cache expired
+- Non-blocking operation to maintain fast startup
+
+#### Temporary Files
+
 - Location: System temp directory
 - Pattern: `tts_*.wav`, `tts_*.mp3`
 - Cleanup: 5 minutes after creation
+
+### ElevenLabs STT Deduplication
+
+ElevenLabs Scribe API may resend previously committed text in subsequent `committed_transcript` messages. The `ElevenLabsRealtimeSTT` class handles this with deduplication logic:
+
+```swift
+if committedText.isEmpty {
+    committedText = text
+} else if !committedText.hasSuffix(text) && !committedText.contains(text) {
+    committedText += " " + text
+}
+// else: skip duplicate
+```
+
+**Important notes:**
+- `hasSuffix` catches exact suffix matches
+- `contains` catches when the entire text was already received
+- Case-sensitive comparison (intentional)
+- Partial overlaps like "world again" when committed has "world" are NOT deduplicated
 
 ---
 
@@ -369,8 +440,115 @@ xcodegen generate
 4. Build release: `./scripts/build.sh`
 5. Create DMG: `./scripts/create-dmg.sh`
 6. Notarize: `./scripts/notarize.sh`
-7. Create GitHub release with tag (e.g., `v0.1.4`)
-8. Upload DMG
+7. Update appcast.xml with new version info
+8. Create GitHub release with tag (e.g., `v0.1.4`)
+9. Upload DMG
+
+### Auto-Update (Sparkle)
+
+TypeTalk uses [Sparkle 2](https://sparkle-project.org/) for auto-updates. Updates are distributed via GitHub Releases.
+
+#### Initial Setup (One-time)
+
+**1. Generate EdDSA Key Pair**
+
+```bash
+# Install Sparkle tools (if not already installed via package)
+# The generate_keys tool is included in Sparkle.framework
+
+# Generate key pair
+./Sparkle.framework/Versions/B/Resources/generate_keys
+
+# This outputs:
+# - Private key (keep secret, store as GitHub secret)
+# - Public key (add to Info.plist as SUPublicEDKey)
+```
+
+**Important:** Store the private key securely. You'll need it for signing updates.
+
+**2. Configure Info.plist**
+
+Add the following keys to `Resources/Info.plist`:
+
+```xml
+<!-- Sparkle Auto-Update Configuration -->
+<key>SUFeedURL</key>
+<string>https://raw.githubusercontent.com/yohasebe/typetalk/main/appcast.xml</string>
+<key>SUPublicEDKey</key>
+<string>YOUR_PUBLIC_KEY_HERE</string>
+<key>SUEnableAutomaticChecks</key>
+<true/>
+```
+
+**3. Create appcast.xml**
+
+Create `appcast.xml` in the repository root:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>TypeTalk Updates</title>
+        <link>https://github.com/yohasebe/typetalk</link>
+        <description>Most recent changes with links to updates.</description>
+        <language>en</language>
+        <item>
+            <title>Version 0.1.4</title>
+            <pubDate>Mon, 13 Jan 2026 12:00:00 +0000</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/yohasebe/typetalk/releases/download/v0.1.4/TypeTalk.dmg"
+                sparkle:edSignature="SIGNATURE_HERE"
+                length="FILE_SIZE_IN_BYTES"
+                type="application/octet-stream"/>
+        </item>
+    </channel>
+</rss>
+```
+
+#### Signing Updates
+
+For each release, sign the DMG file:
+
+```bash
+# Sign the DMG
+./Sparkle.framework/Versions/B/Resources/sign_update TypeTalk.dmg
+
+# This outputs the EdDSA signature to use in appcast.xml
+```
+
+#### GitHub Actions Integration
+
+Add to your release workflow:
+
+```yaml
+- name: Sign update for Sparkle
+  run: |
+    # Download Sparkle tools or use cached version
+    SIGNATURE=$(./sign_update TypeTalk.dmg --ed-key-file ${{ secrets.SPARKLE_PRIVATE_KEY }})
+    echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
+
+- name: Update appcast.xml
+  run: |
+    # Update appcast.xml with new version info and signature
+    # Consider using a script to automate this
+```
+
+#### GitHub Secrets Required
+
+| Secret | Description |
+|--------|-------------|
+| `SPARKLE_PRIVATE_KEY` | EdDSA private key for signing updates |
+
+#### How It Works
+
+1. App checks `SUFeedURL` on startup (if `SUEnableAutomaticChecks` is true)
+2. Sparkle compares app version with latest version in appcast.xml
+3. If newer version available, user is prompted to update
+4. Signature is verified using `SUPublicEDKey` before installation
+5. User can also manually check via "Check for Updates..." menu item
 
 ---
 
@@ -402,6 +580,17 @@ SwiftUI TextEditor requires explicit focus handling:
 2. Find NSTextView in view hierarchy
 3. Call `window.makeFirstResponder(textView)`
 
+### Panel Button Sizing
+
+The `ButtonLabelWithShortcut` component in STT/TTS panels uses specific padding values:
+
+```swift
+.padding(.horizontal, 4)
+.padding(.vertical, 3)
+```
+
+**Important:** Do not change these values. They have been carefully tuned for proper visual balance.
+
 ### AVAudioEngine Completion Handler
 
 Use `.dataPlayedBack` completion type to ensure handler is called after audio finishes playing:
@@ -414,4 +603,4 @@ playerNode.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) 
 
 ---
 
-*Last updated: 2026-01-13*
+*Last updated: 2026-01-14*

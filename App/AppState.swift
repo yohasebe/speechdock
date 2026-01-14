@@ -217,6 +217,22 @@ final class AppState {
         }
     }
 
+    /// Whether to close STT panel after pasting text (default: false = keep panel open)
+    var closePanelAfterPaste: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Font size for STT/TTS panel text areas (default: 13 = system font size)
+    var panelTextFontSize: Double = 13.0 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
     // MARK: - Permission Status
     var hasMicrophonePermission: Bool = false
     var hasAccessibilityPermission: Bool = false
@@ -249,6 +265,7 @@ final class AppState {
     private init() {
         loadPreferences()
         refreshVoiceCachesInBackground()
+        prefetchAvailableAppsInBackground()
         updatePermissionStatus()
     }
 
@@ -262,6 +279,14 @@ final class AppState {
             if shouldRefreshElevenLabs {
                 await ElevenLabsTTS.fetchAndCacheVoices()
             }
+        }
+    }
+
+    /// Prefetch available apps for App Audio in background (non-blocking)
+    /// This preloads SCShareableContent and app icons to avoid delay on first menu open
+    private func prefetchAvailableAppsInBackground() {
+        Task {
+            await systemAudioCaptureService.refreshAvailableApps()
         }
     }
 
@@ -463,8 +488,10 @@ final class AppState {
         if floatingWindowManager.clipboardOnly {
             // Just copy to clipboard, no paste
             ClipboardService.shared.copyToClipboard(processedText)
-            floatingWindowManager.hideFloatingWindow(skipActivation: false)
-            showFloatingWindow = false
+            if closePanelAfterPaste {
+                floatingWindowManager.hideFloatingWindow(skipActivation: false)
+                showFloatingWindow = false
+            }
             transcriptionState = .idle
             return
         }
@@ -480,15 +507,34 @@ final class AppState {
         // Activate the selected window before hiding
         let activated = floatingWindowManager.activateSelectedWindow()
 
-        // Skip activation in hideFloatingWindow since we already activated the target window
-        floatingWindowManager.hideFloatingWindow(skipActivation: activated)
-        showFloatingWindow = false
-        transcriptionState = .idle
+        if closePanelAfterPaste {
+            // Close panel and paste (original behavior)
+            floatingWindowManager.hideFloatingWindow(skipActivation: activated)
+            showFloatingWindow = false
+            transcriptionState = .idle
 
-        // Delay paste to allow window to close and focus to switch
-        let delay = activated ? 0.4 : 0.3  // Slightly longer delay when switching windows
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            ClipboardService.shared.copyAndPaste(processedText)
+            // Delay paste to allow window to close and focus to switch
+            let delay = activated ? 0.4 : 0.3
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                ClipboardService.shared.copyAndPaste(processedText)
+            }
+        } else {
+            // Keep panel open: paste and return focus to panel
+            transcriptionState = .idle
+
+            // Temporarily hide panel to allow paste
+            floatingWindowManager.temporarilyHideWindow()
+
+            // Delay paste to allow focus to switch
+            let delay = activated ? 0.3 : 0.2
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                ClipboardService.shared.copyAndPaste(processedText)
+
+                // Bring panel back after paste completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self?.floatingWindowManager.bringToFront()
+                }
+            }
         }
     }
 
@@ -512,23 +558,24 @@ final class AppState {
             cancelRecording()
         }
 
-        // Get selected text from frontmost app
-        // Note: This runs on main thread synchronously
-        let selectedText = TextSelectionService.shared.getSelectedText()
+        // Get selected text from frontmost app asynchronously
+        Task {
+            let selectedText = await TextSelectionService.shared.getSelectedText()
 
-        if let selectedText = selectedText, !selectedText.isEmpty {
-            #if DEBUG
-            print("TTS: Got selected text, length: \(selectedText.count), content: '\(selectedText.prefix(200))'")
-            #endif
-            startTTSWithText(selectedText)
-        } else {
-            #if DEBUG
-            print("TTS: No selected text, showing manual input window")
-            #endif
-            // Show TTS window for manual input
-            ttsText = ""
-            ttsState = .idle
-            showTTSFloatingWindow()
+            if let selectedText = selectedText, !selectedText.isEmpty {
+                #if DEBUG
+                print("TTS: Got selected text, length: \(selectedText.count), content: '\(selectedText.prefix(200))'")
+                #endif
+                startTTSWithText(selectedText)
+            } else {
+                #if DEBUG
+                print("TTS: No selected text, showing manual input window")
+                #endif
+                // Show TTS window for manual input
+                ttsText = ""
+                ttsState = .idle
+                showTTSFloatingWindow()
+            }
         }
     }
 
@@ -692,11 +739,7 @@ final class AppState {
         savePanel.nameFieldStringValue = "tts_audio.\(ttsAudioFileExtension)"
         savePanel.title = "Save Audio"
         savePanel.message = "Choose a location to save the audio file"
-        // Use a level higher than floating panels (popUpMenu + 1 = 102) so dialog appears above them
-        savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.popUpMenu.rawValue) + 2)
-        // Set a reasonable size for the save panel
-        savePanel.contentMinSize = NSSize(width: 400, height: 250)
-        savePanel.setContentSize(NSSize(width: 500, height: 350))
+        WindowLevelCoordinator.configureSavePanel(savePanel)
 
         // Activate app and bring panel to front
         NSApp.activate(ignoringOtherApps: true)
@@ -812,6 +855,12 @@ final class AppState {
         if UserDefaults.standard.object(forKey: "vadSilenceDuration") != nil {
             vadSilenceDuration = UserDefaults.standard.double(forKey: "vadSilenceDuration")
         }
+        if UserDefaults.standard.object(forKey: "closePanelAfterPaste") != nil {
+            closePanelAfterPaste = UserDefaults.standard.bool(forKey: "closePanelAfterPaste")
+        }
+        if UserDefaults.standard.object(forKey: "panelTextFontSize") != nil {
+            panelTextFontSize = UserDefaults.standard.double(forKey: "panelTextFontSize")
+        }
 
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
@@ -881,6 +930,12 @@ final class AppState {
         // VAD auto-stop settings
         UserDefaults.standard.set(vadMinimumRecordingTime, forKey: "vadMinimumRecordingTime")
         UserDefaults.standard.set(vadSilenceDuration, forKey: "vadSilenceDuration")
+
+        // STT panel behavior
+        UserDefaults.standard.set(closePanelAfterPaste, forKey: "closePanelAfterPaste")
+
+        // Panel text appearance
+        UserDefaults.standard.set(panelTextFontSize, forKey: "panelTextFontSize")
 
         // Note: selectedAudioAppBundleID is not saved - it's session-only
     }
