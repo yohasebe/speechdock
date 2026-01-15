@@ -6,6 +6,8 @@
 
 A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) with support for multiple providers.
 
+**Ready to use immediately after installation** - No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers and Local Whisper are optional enhancements.
+
 English | [日本語](README_ja.md)
 
 ## Features
@@ -61,12 +63,16 @@ Uses macOS Vision Framework for text recognition. Requires Screen Recording perm
 - Language selection for STT and TTS
 - Speed control for TTS playback
 - Voice and model selection per provider
+- VAD (Voice Activity Detection) auto-stop for hands-free recording
+- Text replacement rules for STT output correction
+- Automatic updates via Sparkle
 - Launch at login option
 
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
-- API keys for cloud providers (OpenAI, Google Gemini, or ElevenLabs)
+- Apple Silicon Mac (M1/M2/M3/M4)
+- API keys for cloud providers are **optional** (required only if using OpenAI, Google Gemini, or ElevenLabs)
 
 ## Installation
 
@@ -88,6 +94,21 @@ To use cloud providers, you need to configure API keys:
    - **ElevenLabs**: [ElevenLabs Settings](https://elevenlabs.io/app/settings/api-keys)
 
 API keys are securely stored in macOS Keychain.
+
+### Local Whisper (Optional)
+
+Local Whisper runs speech recognition entirely on your Mac without sending audio to the cloud. Models are downloaded on first use:
+
+| Model | Size | Description |
+|-------|------|-------------|
+| Tiny | ~39 MB | Fastest, lower accuracy |
+| Base | ~74 MB | Fast, basic accuracy |
+| Small | ~244 MB | Balanced speed/accuracy |
+| Medium | ~769 MB | High accuracy |
+| Large v3 Turbo | ~800 MB | Fast + accurate (recommended) |
+| Large v2/v3 | ~1.5 GB | Best accuracy, slower |
+
+Models are stored in `~/Library/Caches/com.typetalk.app/` and can be deleted to free disk space.
 
 ### Permissions
 
@@ -162,6 +183,7 @@ Select audio output device from **Settings**, **Menu Bar**, or **TTS Panel** to 
 
 - **General**: Select STT/TTS providers, models, voices, languages, and playback speed
 - **Shortcuts**: Customize global hotkeys and panel shortcuts
+- **Text Replacement**: Define rules to automatically correct or replace text in STT output
 - **API Keys**: Manage API keys for cloud providers
 
 ### Language Selection
@@ -208,6 +230,14 @@ Enable **Launch at Login** in **Settings** > **General** to start TypeTalk autom
 1. Grant Screen Recording permission in System Settings
 2. Ensure the text in the selected region is clear and readable
 3. Try selecting a larger region around the text
+
+## Privacy & Security
+
+- **API Keys**: Stored securely in macOS Keychain, never transmitted except to the respective provider
+- **macOS Native**: Audio processed entirely on-device, no data sent externally
+- **Local Whisper**: Audio processed entirely on-device, no data sent externally
+- **Cloud Providers**: Audio sent to provider APIs (OpenAI, Google, ElevenLabs) for processing according to their privacy policies
+- **No Telemetry**: TypeTalk does not collect or transmit usage data
 
 ## License
 

@@ -6,6 +6,8 @@
 
 複数のプロバイダに対応した、macOS メニューバー常駐型の音声認識（STT）・音声合成（TTS）アプリケーションです。
 
+**インストール後すぐに使用可能** - APIキーや追加ダウンロードは不要です。macOS標準のSTT/TTSがすぐに動作します。クラウドプロバイダやLocal Whisperはオプションの拡張機能です。
+
 [English](README.md) | 日本語
 
 ## 機能
@@ -61,12 +63,16 @@ macOS Vision Frameworkを使用してテキスト認識を行います。画面�
 - STT/TTS用言語選択
 - TTS再生速度調整
 - プロバイダごとの音声・モデル選択
+- VAD（音声検出）による自動録音停止（ハンズフリー操作）
+- STT出力のテキスト置換ルール
+- Sparkleによる自動アップデート
 - ログイン時に起動オプション
 
 ## 必要環境
 
 - macOS 14.0（Sonoma）以降
-- クラウドプロバイダ用APIキー（OpenAI、Google Gemini、ElevenLabs）
+- Apple Silicon Mac（M1/M2/M3/M4）
+- クラウドプロバイダ用APIキーは**オプション**（OpenAI、Google Gemini、ElevenLabsを使用する場合のみ必要）
 
 ## インストール
 
@@ -88,6 +94,21 @@ macOS Vision Frameworkを使用してテキスト認識を行います。画面�
    - **ElevenLabs**: [ElevenLabs Settings](https://elevenlabs.io/app/settings/api-keys)
 
 APIキーはmacOSキーチェーンに安全に保存されます。
+
+### Local Whisper（オプション）
+
+Local Whisperは音声をクラウドに送信せず、完全にMac上で音声認識を実行します。モデルは初回使用時にダウンロードされます：
+
+| モデル | サイズ | 説明 |
+|--------|--------|------|
+| Tiny | 約39 MB | 最速、精度は低め |
+| Base | 約74 MB | 高速、基本的な精度 |
+| Small | 約244 MB | 速度と精度のバランス |
+| Medium | 約769 MB | 高精度 |
+| Large v3 Turbo | 約800 MB | 高速＋高精度（推奨） |
+| Large v2/v3 | 約1.5 GB | 最高精度、低速 |
+
+モデルは `~/Library/Caches/com.typetalk.app/` に保存され、削除してディスク容量を解放できます。
 
 ### 権限
 
@@ -162,6 +183,7 @@ TypeTalkには以下の権限が必要です：
 
 - **General**: STT/TTSプロバイダ、モデル、音声、言語、再生速度の選択
 - **Shortcuts**: グローバルホットキーとパネルショートカットのカスタマイズ
+- **Text Replacement**: STT出力のテキスト自動修正・置換ルールの定義
 - **API Keys**: クラウドプロバイダのAPIキー管理
 
 ### 言語選択
@@ -208,6 +230,14 @@ STTとTTSの両方で言語選択が可能です：
 1. システム設定で画面収録権限を付与
 2. 選択した領域のテキストが鮮明で読みやすいか確認
 3. テキスト周辺のより広い領域を選択してみる
+
+## プライバシーとセキュリティ
+
+- **APIキー**: macOSキーチェーンに安全に保存され、各プロバイダへの送信以外には使用されません
+- **macOS Native**: 音声は完全にデバイス上で処理され、外部に送信されません
+- **Local Whisper**: 音声は完全にデバイス上で処理され、外部に送信されません
+- **クラウドプロバイダ**: 音声はプロバイダのAPI（OpenAI、Google、ElevenLabs）に送信され、各社のプライバシーポリシーに従って処理されます
+- **テレメトリなし**: TypeTalkは使用データの収集・送信を行いません
 
 ## ライセンス
 
