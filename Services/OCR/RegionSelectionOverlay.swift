@@ -16,7 +16,6 @@ class RegionSelectionOverlay: NSWindow {
     // MARK: - Private Properties
 
     private var selectionView: SelectionView!
-    private var overlayWindows: [NSWindow] = []
 
     // MARK: - Initialization
 
@@ -73,19 +72,19 @@ class RegionSelectionOverlay: NSWindow {
         // Activate the app to ensure we receive mouse events immediately
         NSApp.activate(ignoringOtherApps: true)
 
-        // Create overlay windows for each screen
-        for screen in NSScreen.screens {
-            if screen == NSScreen.main {
-                // Use main window for primary screen
-                self.setFrame(screen.frame, display: true)
-                self.makeKeyAndOrderFront(nil)
-            } else {
-                // Create additional windows for other screens
-                let overlay = createOverlayWindow(for: screen)
-                overlayWindows.append(overlay)
-                overlay.orderFront(nil)
-            }
+        // Get combined frame of all screens
+        let allScreensFrame = NSScreen.screens.reduce(CGRect.zero) { result, screen in
+            result.union(screen.frame)
         }
+
+        // Set window to cover all screens
+        self.setFrame(allScreensFrame, display: true)
+
+        // Update selection view frame to match window
+        selectionView.frame = NSRect(origin: .zero, size: allScreensFrame.size)
+
+        // Show main window
+        self.makeKeyAndOrderFront(nil)
 
         // Set crosshair cursor
         NSCursor.crosshair.push()
@@ -95,19 +94,13 @@ class RegionSelectionOverlay: NSWindow {
         self.makeFirstResponder(selectionView)
 
         #if DEBUG
-        print("RegionSelectionOverlay: Selection started")
+        print("RegionSelectionOverlay: Selection started, frame: \(allScreensFrame)")
         #endif
     }
 
     /// Close the overlay and clean up
     func endSelection() {
         NSCursor.pop()
-
-        // Close additional overlay windows
-        for window in overlayWindows {
-            window.close()
-        }
-        overlayWindows.removeAll()
 
         // Close main window
         self.orderOut(nil)
@@ -118,22 +111,6 @@ class RegionSelectionOverlay: NSWindow {
     }
 
     // MARK: - Private Methods
-
-    private func createOverlayWindow(for screen: NSScreen) -> NSWindow {
-        let window = NSWindow(
-            contentRect: screen.frame,
-            styleMask: .borderless,
-            backing: .buffered,
-            defer: false
-        )
-        window.isOpaque = false
-        window.backgroundColor = NSColor.black.withAlphaComponent(0.3)
-        window.level = .screenSaver
-        window.ignoresMouseEvents = true
-        window.hasShadow = false
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        return window
-    }
 
     private func handleSelectionComplete(_ rect: CGRect) {
         endSelection()
