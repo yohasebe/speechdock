@@ -269,10 +269,6 @@ final class FloatingWindowManager: ObservableObject {
         destinationAlertMessage = ""
     }
 
-    private func createFloatingWindow() {
-        floatingWindow = createWindow(style: .floating, title: "Transcription", size: Self.sttWindowSize)
-    }
-
     /// Create a window with the specified style
     private func createWindow(style: PanelStyle, title: String, size: NSSize) -> KeyableWindow {
         let styleMask: NSWindow.StyleMask
