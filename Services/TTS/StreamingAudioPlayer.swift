@@ -112,7 +112,8 @@ final class StreamingAudioPlayer {
         playerNode = player
         state = .playing
 
-        onPlaybackStarted?()
+        // Note: onPlaybackStarted is now called after pre-roll buffering completes
+        // to ensure the "Generating Audio..." message stays visible until actual audio plays
     }
 
     /// Append PCM data chunk from streaming response
@@ -135,6 +136,8 @@ final class StreamingAudioPlayer {
                     scheduleBuffer(from: Data(chunk))
                     pendingData.removeFirst(minBufferBytes)
                 }
+                // Notify that actual playback is starting (after pre-roll buffer is scheduled)
+                onPlaybackStarted?()
             }
             return
         }
@@ -164,6 +167,8 @@ final class StreamingAudioPlayer {
                 scheduleBuffer(from: Data(chunk))
                 pendingData.removeFirst(minBufferBytes)
             }
+            // Notify that actual playback is starting
+            onPlaybackStarted?()
         }
 
         // Schedule any remaining data (less than minBufferBytes)
