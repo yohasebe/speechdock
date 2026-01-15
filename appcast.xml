@@ -7,14 +7,14 @@
         <language>en</language>
         <item>
             <title>Version 0.1.6</title>
-            <pubDate>Thu, 15 Jan 2026 05:14:53 +0000</pubDate>
+            <pubDate>Thu, 15 Jan 2026 11:20:45 +0000</pubDate>
             <sparkle:version>1</sparkle:version>
             <sparkle:shortVersionString>0.1.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/yohasebe/typetalk/releases/download/v0.1.6/TypeTalk-0.1.6.dmg"
-                sparkle:edSignature="sparkle:edSignature="Lu7Em4UQUtKwcFUdu16+TeFT1kSMTvdVo4v8/xlhERfED9rJxIGLXInrPEmGYuC7G/wM0N8JTaDGdONnu5D7Cg==" length="5379453""
-                length="5379453"
+                sparkle:edSignature="sparkle:edSignature="UsqEvGtWldvbQcc2YJ85tW44tjcV8e99tKD0mxVutzqXtblGukArtFzzkP3sYMryYY824SS5FKL8HRN7Gfx8Dw==" length="5382603""
+                length="5382603"
                 type="application/octet-stream"/>
         </item>
     </channel>
