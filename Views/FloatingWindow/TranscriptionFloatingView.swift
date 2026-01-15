@@ -43,7 +43,7 @@ struct WindowSelectorButton: View {
                     .foregroundColor(.accentColor)
                     .font(.caption)
 
-                Text("Paste to:")
+                Text("Paste Target:")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -506,18 +506,40 @@ struct TranscriptionFloatingView: View {
     private var targetSelectShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttTargetSelect) }
     private var cancelShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttCancel) }
 
+    // Panel style helpers
+    private var isFloatingStyle: Bool { appState.panelStyle == .floating }
+    private var panelCornerRadius: CGFloat { isFloatingStyle ? 12 : 0 }
+
+    @ViewBuilder
+    private var panelBackground: some View {
+        if isFloatingStyle {
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+        } else {
+            Color(NSColor.windowBackgroundColor)
+        }
+    }
+
+    /// Border overlay for text area
+    private var textAreaBorder: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             // Header
             HStack {
-                Button(action: onCancel) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                // Only show close button in floating mode (standard window has title bar close button)
+                if isFloatingStyle {
+                    Button(action: onCancel) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .applyCustomShortcut(cancelShortcut)
+                    .keyboardShortcut("w", modifiers: .command)
+                    .help("Close (⌘W)")
                 }
-                .buttonStyle(.plain)
-                .applyCustomShortcut(cancelShortcut)
-                .keyboardShortcut("w", modifiers: .command)
-                .help("Close (⌘W)")
 
                 statusIcon
                 Text(headerText)
@@ -595,6 +617,7 @@ struct TranscriptionFloatingView: View {
                 )
                 .background(Color(.textBackgroundColor))
                 .cornerRadius(8)
+                .overlay(textAreaBorder)
                 .frame(minHeight: 180, maxHeight: 350)
                 .overlay(
                     // Placeholder text when empty and recording
@@ -648,8 +671,8 @@ struct TranscriptionFloatingView: View {
         }
         .padding(16)
         .frame(minWidth: 720, idealWidth: 800, maxWidth: 1000)
-        .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
-        .cornerRadius(12)
+        .background(panelBackground)
+        .cornerRadius(panelCornerRadius)
         .onChange(of: appState.currentTranscription) { _, newValue in
             // Append new transcription to base text
             if baseText.isEmpty {
@@ -722,7 +745,7 @@ struct TranscriptionFloatingView: View {
         case .processing:
             return "Processing..."
         case .result:
-            return "Done"
+            return "Ready"  // User can continue recording or paste
         case .error:
             return "Error"
         case .idle:

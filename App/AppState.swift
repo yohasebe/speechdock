@@ -21,6 +21,19 @@ enum TranscriptionState: Equatable {
     }
 }
 
+/// Panel window style for STT/TTS panels
+enum PanelStyle: String, CaseIterable {
+    case floating = "floating"
+    case standardWindow = "standardWindow"
+
+    var displayName: String {
+        switch self {
+        case .floating: return "Floating"
+        case .standardWindow: return "Standard Window"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AppState {
@@ -237,6 +250,14 @@ final class AppState {
 
     /// Whether to automatically start speaking when TTS panel opens with text (default: false = wait for user action)
     var ttsAutoSpeak: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Panel window style (floating or standard window)
+    var panelStyle: PanelStyle = .floating {
         didSet {
             guard !isLoadingPreferences else { return }
             savePreferences()
@@ -1043,6 +1064,12 @@ final class AppState {
             ttsAutoSpeak = UserDefaults.standard.bool(forKey: "ttsAutoSpeak")
         }
 
+        // Panel style
+        if let panelStyleRaw = UserDefaults.standard.string(forKey: "panelStyle"),
+           let style = PanelStyle(rawValue: panelStyleRaw) {
+            panelStyle = style
+        }
+
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
     }
@@ -1120,6 +1147,9 @@ final class AppState {
         // Auto-start settings
         UserDefaults.standard.set(sttAutoStart, forKey: "sttAutoStart")
         UserDefaults.standard.set(ttsAutoSpeak, forKey: "ttsAutoSpeak")
+
+        // Panel style
+        UserDefaults.standard.set(panelStyle.rawValue, forKey: "panelStyle")
 
         // Note: selectedAudioAppBundleID is not saved - it's session-only
     }

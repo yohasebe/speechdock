@@ -163,20 +163,42 @@ struct TTSFloatingView: View {
         }
     }
 
+    // Panel style helpers
+    private var isFloatingStyle: Bool { appState.panelStyle == .floating }
+    private var panelCornerRadius: CGFloat { isFloatingStyle ? 12 : 0 }
+
+    @ViewBuilder
+    private var panelBackground: some View {
+        if isFloatingStyle {
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+        } else {
+            Color(NSColor.windowBackgroundColor)
+        }
+    }
+
+    /// Border overlay for text area
+    private var textAreaBorder: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             // Header
             HStack {
-                Button(action: {
-                    appState.stopTTS()
-                    onClose()
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                // Only show close button in floating mode (standard window has title bar close button)
+                if isFloatingStyle {
+                    Button(action: {
+                        appState.stopTTS()
+                        onClose()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut("w", modifiers: .command)
+                    .help("Close (⌘W)")
                 }
-                .buttonStyle(.plain)
-                .keyboardShortcut("w", modifiers: .command)
-                .help("Close (⌘W)")
 
                 statusIcon
                 Text(headerText)
@@ -201,8 +223,8 @@ struct TTSFloatingView: View {
         }
         .padding(16)
         .frame(minWidth: 720, idealWidth: 800, maxWidth: 1000)
-        .background(VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow))
-        .cornerRadius(12)
+        .background(panelBackground)
+        .cornerRadius(panelCornerRadius)
         .onAppear {
             #if DEBUG
             print("TTSFloatingView: onAppear - setting editableText from ttsText, length: \(appState.ttsText.count)")
@@ -331,6 +353,7 @@ struct TTSFloatingView: View {
                 fontSize: CGFloat(appState.panelTextFontSize)
             )
             .cornerRadius(8)
+            .overlay(textAreaBorder)
             .frame(minHeight: 200, maxHeight: 400)
             .opacity(isEditorDisabled ? 0.85 : 1.0)
         }

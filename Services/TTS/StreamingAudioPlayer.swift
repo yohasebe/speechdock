@@ -45,6 +45,14 @@ final class StreamingAudioPlayer {
     /// 24000 samples/sec * 2 bytes/sample * 0.1 sec = 4800 bytes (~100ms of audio)
     private let minBufferBytes = 4800
 
+    /// Pre-roll buffer threshold: accumulate this much data before starting playback
+    /// This prevents buffer underrun from network latency variations
+    /// 24000 samples/sec * 2 bytes/sample * 0.4 sec = 19200 bytes (~400ms of audio)
+    private let preRollBufferBytes = 19200
+
+    /// Flag indicating whether pre-roll buffering is complete
+    private var preRollComplete = false
+
     /// Track scheduled buffers for completion detection
     private var scheduledBufferCount = 0
     private var completedBufferCount = 0
@@ -82,6 +90,7 @@ final class StreamingAudioPlayer {
         scheduledBufferCount = 0
         completedBufferCount = 0
         streamEnded = false
+        preRollComplete = false
         totalSamplesScheduled = 0
 
         // Setup audio engine
@@ -112,7 +121,25 @@ final class StreamingAudioPlayer {
 
         pendingData.append(data)
 
-        // Schedule buffer if we have enough data
+        // Pre-roll buffering: wait until we have enough data before starting to schedule
+        // This prevents buffer underrun from network latency variations
+        if !preRollComplete {
+            if pendingData.count >= preRollBufferBytes {
+                preRollComplete = true
+                #if DEBUG
+                print("StreamingAudioPlayer: Pre-roll complete, accumulated \(pendingData.count) bytes (~\(pendingData.count / 48)ms)")
+                #endif
+                // Schedule all accumulated data in chunks
+                while pendingData.count >= minBufferBytes {
+                    let chunk = pendingData.prefix(minBufferBytes)
+                    scheduleBuffer(from: Data(chunk))
+                    pendingData.removeFirst(minBufferBytes)
+                }
+            }
+            return
+        }
+
+        // Normal buffering: schedule buffer if we have enough data
         if pendingData.count >= minBufferBytes {
             scheduleBuffer(from: pendingData)
             pendingData = Data()
@@ -125,7 +152,21 @@ final class StreamingAudioPlayer {
 
         streamEnded = true
 
-        // Schedule any remaining data
+        // If pre-roll wasn't complete (short audio), schedule all accumulated data now
+        if !preRollComplete && !pendingData.isEmpty {
+            #if DEBUG
+            print("StreamingAudioPlayer: Stream ended before pre-roll complete, scheduling \(pendingData.count) bytes")
+            #endif
+            preRollComplete = true
+            // Schedule in chunks
+            while pendingData.count >= minBufferBytes {
+                let chunk = pendingData.prefix(minBufferBytes)
+                scheduleBuffer(from: Data(chunk))
+                pendingData.removeFirst(minBufferBytes)
+            }
+        }
+
+        // Schedule any remaining data (less than minBufferBytes)
         if !pendingData.isEmpty {
             scheduleBuffer(from: pendingData)
             pendingData = Data()
@@ -163,6 +204,7 @@ final class StreamingAudioPlayer {
         scheduledBufferCount = 0
         completedBufferCount = 0
         streamEnded = false
+        preRollComplete = false
         totalSamplesScheduled = 0
 
         state = .idle

@@ -1215,5 +1215,22 @@ struct PanelAppearanceSettings: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
+
+        Picker("Panel Style", selection: $appState.panelStyle) {
+            ForEach(PanelStyle.allCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+            }
+        }
+        .onChange(of: appState.panelStyle) { _, _ in
+            // Close any open panel when style changes to avoid rendering issues
+            // The panel will reopen with the new style when user opens it again
+            if appState.floatingWindowManager.isVisible {
+                appState.floatingWindowManager.closePanel()
+            }
+        }
+
+        Text("Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time.")
+            .font(.caption2)
+            .foregroundColor(.secondary)
     }
 }

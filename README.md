@@ -56,8 +56,9 @@ Uses macOS Vision Framework for text recognition. Requires Screen Recording perm
 
 - Global keyboard shortcuts for STT and TTS
 - Customizable panel shortcuts with modifier key support
-- Floating window for real-time transcription with paste target selection
-- Floating window for TTS with text editing and word highlighting
+- Panel windows for real-time transcription with paste target selection
+- Panel windows for TTS with text editing and word highlighting
+- Panel style selection: Floating (always-on-top) or Standard Window
 - Audio output device selection for TTS
 - Save synthesized audio to file (M4A/MP3 format)
 - Language selection for STT and TTS
@@ -181,10 +182,19 @@ Select audio output device from **Settings**, **Menu Bar**, or **TTS Panel** to 
 
 ### Settings
 
-- **General**: Select STT/TTS providers, models, voices, languages, and playback speed
+- **General**: Select STT/TTS providers, models, voices, languages, playback speed, and panel style
 - **Shortcuts**: Customize global hotkeys and panel shortcuts
 - **Text Replacement**: Define rules to automatically correct or replace text in STT output
 - **API Keys**: Manage API keys for cloud providers
+
+### Panel Style
+
+Choose between two panel styles in **Settings** > **General**:
+
+- **Floating**: Always-on-top borderless panels that can be dragged from anywhere
+- **Standard Window**: Regular macOS windows with title bar, can be minimized
+
+Note: Only one panel (STT or TTS) can be open at a time. Opening one will close the other.
 
 ### Language Selection
 

@@ -43,6 +43,15 @@ final class FloatingWindowManager: ObservableObject {
     private var storedOnCancel: (() -> Void)?
     private var storedOnClose: (() -> Void)?
 
+    /// Current window style (used for bringToFront behavior)
+    private var currentWindowStyle: PanelStyle = .floating
+
+    /// Shared window frame for STT/TTS panels (persisted across panel switches)
+    private var sharedWindowFrame: NSRect?
+
+    /// UserDefaults key for persisting window frame
+    private static let windowFrameKey = "panelWindowFrame"
+
     /// Weak reference to AppState for stopping STT/TTS on window close
     private weak var currentAppState: AppState?
 
@@ -62,9 +71,15 @@ final class FloatingWindowManager: ObservableObject {
         onConfirm: @escaping (String) -> Void,
         onCancel: @escaping () -> Void
     ) {
-        if floatingWindow == nil {
-            createFloatingWindow()
-        }
+        // Save frame before closing existing window
+        saveWindowFrame()
+
+        // Close any existing window first and recreate with current style
+        floatingWindow?.orderOut(nil)
+        floatingWindow = nil
+
+        currentWindowStyle = appState.panelStyle
+        floatingWindow = createWindow(style: appState.panelStyle, title: "Transcription", size: Self.sttWindowSize)
 
         // Store cancel callback and appState for use when window is closed externally
         storedOnCancel = onCancel
@@ -83,7 +98,7 @@ final class FloatingWindowManager: ObservableObject {
         refreshAvailableWindows()
 
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
-        positionNearMouse()
+        restoreWindowFrame()
 
         // Set up observer to handle window close (stop recording if active)
         setupWindowCloseObserver()
@@ -255,23 +270,81 @@ final class FloatingWindowManager: ObservableObject {
     }
 
     private func createFloatingWindow() {
-        floatingWindow = KeyableWindow(
-            contentRect: NSRect(origin: .zero, size: Self.sttWindowSize),
-            styleMask: [.borderless, .resizable],
+        floatingWindow = createWindow(style: .floating, title: "Transcription", size: Self.sttWindowSize)
+    }
+
+    /// Create a window with the specified style
+    private func createWindow(style: PanelStyle, title: String, size: NSSize) -> KeyableWindow {
+        let styleMask: NSWindow.StyleMask
+        let level: NSWindow.Level
+        let movableByBackground: Bool
+
+        switch style {
+        case .floating:
+            styleMask = [.borderless, .resizable]
+            level = WindowLevelCoordinator.shared.nextPanelLevel()
+            movableByBackground = true
+        case .standardWindow:
+            styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            level = .normal
+            movableByBackground = false
+        }
+
+        let window = KeyableWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: styleMask,
             backing: .buffered,
             defer: false
         )
 
-        // Use dynamic level (will be set when showing)
-        floatingWindow?.level = WindowLevelCoordinator.shared.nextPanelLevel()
-        floatingWindow?.isReleasedWhenClosed = false
-        floatingWindow?.backgroundColor = .clear
-        floatingWindow?.isOpaque = false
-        floatingWindow?.hasShadow = true
-        floatingWindow?.isMovableByWindowBackground = true
+        window.level = level
+        window.isReleasedWhenClosed = false
+        window.hasShadow = true
+        window.isMovableByWindowBackground = movableByBackground
+        window.title = title  // Visible in standard window mode
+        window.minSize = Self.windowMinSize
+        window.maxSize = Self.windowMaxSize
+
+        // For floating mode, make background transparent
+        if style == .floating {
+            window.backgroundColor = .clear
+            window.isOpaque = false
+        }
+
+        return window
     }
 
-    private func positionNearMouse() {
+    /// Save the current window frame for sharing between STT/TTS panels
+    private func saveWindowFrame() {
+        guard let window = floatingWindow else { return }
+        sharedWindowFrame = window.frame
+
+        // Persist to UserDefaults
+        let frameString = NSStringFromRect(window.frame)
+        UserDefaults.standard.set(frameString, forKey: Self.windowFrameKey)
+    }
+
+    /// Restore the shared window frame, or center if none saved
+    private func restoreWindowFrame() {
+        guard let window = floatingWindow else { return }
+
+        // Try to use in-memory frame first, then UserDefaults
+        if sharedWindowFrame == nil {
+            if let frameString = UserDefaults.standard.string(forKey: Self.windowFrameKey) {
+                sharedWindowFrame = NSRectFromString(frameString)
+            }
+        }
+
+        if let frame = sharedWindowFrame {
+            // Validate the frame is still on a visible screen
+            let screenFrame = NSScreen.main?.visibleFrame ?? NSRect.zero
+            if screenFrame.intersects(frame) {
+                window.setFrame(frame, display: true)
+                return
+            }
+        }
+
+        // Fall back to centering
         centerWindow()
     }
 
@@ -297,29 +370,16 @@ final class FloatingWindowManager: ObservableObject {
         storedOnClose = onClose
         currentAppState = appState
 
+        // Save frame before closing existing window
+        saveWindowFrame()
+
         // Close any existing window first
         floatingWindow?.orderOut(nil)
         floatingWindow = nil
 
-        // Create resizable window for TTS that can accept keyboard input
-        let window = KeyableWindow(
-            contentRect: NSRect(origin: .zero, size: Self.ttsWindowSize),
-            styleMask: [.borderless, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-
-        // Use dynamic level (ensures this panel appears on top)
-        window.level = WindowLevelCoordinator.shared.nextPanelLevel()
-        window.isReleasedWhenClosed = false
-        window.backgroundColor = .clear
-        window.isOpaque = false
-        window.hasShadow = true
-        window.isMovableByWindowBackground = true
-        window.minSize = Self.windowMinSize
-        window.maxSize = Self.windowMaxSize
-
-        floatingWindow = window
+        // Create window with current style from settings
+        currentWindowStyle = appState.panelStyle
+        floatingWindow = createWindow(style: appState.panelStyle, title: "Text to Speech", size: Self.ttsWindowSize)
 
         let contentView = TTSFloatingView(
             appState: appState,
@@ -330,7 +390,7 @@ final class FloatingWindowManager: ObservableObject {
         previousApp = NSWorkspace.shared.frontmostApplication
 
         floatingWindow?.contentView = NSHostingView(rootView: contentView)
-        positionNearMouse()
+        restoreWindowFrame()
 
         // Set up observer to handle window close (stop TTS if active)
         setupWindowCloseObserver()
@@ -544,8 +604,10 @@ final class FloatingWindowManager: ObservableObject {
         // Ensure we're a regular app so we can become key
         NSApp.setActivationPolicy(.regular)
 
-        // Update level to appear on top of other panels
-        window.level = WindowLevelCoordinator.shared.nextPanelLevel()
+        // Update level to appear on top of other panels (only for floating style)
+        if currentWindowStyle == .floating {
+            window.level = WindowLevelCoordinator.shared.nextPanelLevel()
+        }
 
         // Bring window to front
         window.orderFrontRegardless()
@@ -567,6 +629,9 @@ final class FloatingWindowManager: ObservableObject {
     }
 
     func hideFloatingWindow(skipActivation: Bool = false) {
+        // Save window frame before closing for sharing between STT/TTS
+        saveWindowFrame()
+
         // Clean up observers
         if let observer = windowBecameKeyObserver {
             NotificationCenter.default.removeObserver(observer)
