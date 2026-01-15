@@ -99,9 +99,9 @@ final class GeminiTTS: NSObject, TTSService {
     }
 
     /// Character threshold per chunk for streaming mode
-    /// Smaller chunks help avoid premature turnComplete issue (known Gemini Live API bug)
-    /// Note: Non-ASCII text (Japanese, etc.) produces longer audio per character than English
-    private let streamingChunkLimit = 200
+    /// Set to 0 to disable chunking (send all text at once)
+    /// Note: Gemini Live API has ~60 second audio limit per turn, so very long texts may need chunking
+    private let streamingChunkLimit = 0  // Disabled - send all text at once
 
     func speak(text: String) async throws {
         guard !text.isEmpty else {
@@ -311,6 +311,12 @@ final class GeminiTTS: NSObject, TTSService {
             if !isStreamingActive {
                 break
             }
+
+            // Brief pause between chunks to allow any in-flight audio to be delivered
+            // and give the server time to process the next request
+            if chunkIndex < textChunks.count - 1 && isStreamingActive {
+                try await Task.sleep(nanoseconds: 100_000_000)  // 100ms pause
+            }
         }
 
         // Signal end of stream
@@ -355,8 +361,9 @@ final class GeminiTTS: NSObject, TTSService {
 
     /// Split text into chunks at sentence boundaries using NLTokenizer
     /// Ensures we never split in the middle of a sentence
+    /// If maxLength is 0, returns the entire text as a single chunk (no splitting)
     private func splitTextIntoChunks(_ text: String, maxLength: Int) -> [String] {
-        guard text.count > maxLength else {
+        guard maxLength > 0, text.count > maxLength else {
             return [text]
         }
 
