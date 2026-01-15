@@ -93,6 +93,56 @@ end
 desc "Restart app (quit and run debug)"
 task :restart => [:quit, "run:debug"]
 
+namespace :install do
+  desc "Build and install to /Applications (Release)"
+  task :release => "build:release" do
+    app_path = find_built_app("Release")
+    if app_path
+      install_app(app_path)
+    else
+      puts "Error: Could not find built app"
+      exit 1
+    end
+  end
+
+  desc "Build and install to /Applications (Debug)"
+  task :debug => "build:debug" do
+    app_path = find_built_app("Debug")
+    if app_path
+      install_app(app_path)
+    else
+      puts "Error: Could not find built app"
+      exit 1
+    end
+  end
+
+  def install_app(app_path)
+    dest = "/Applications/#{APP_NAME}.app"
+
+    # Quit running app first
+    puts "Quitting #{APP_NAME} if running..."
+    system "pkill -x #{APP_NAME}"
+    sleep 1
+
+    # Remove existing installation
+    if File.exist?(dest)
+      puts "Removing existing installation..."
+      FileUtils.rm_rf(dest)
+    end
+
+    # Copy new build
+    puts "Installing to #{dest}..."
+    FileUtils.cp_r(app_path, dest)
+
+    puts "Installation complete!"
+    puts ""
+    puts "To launch: open -a #{APP_NAME}"
+  end
+end
+
+desc "Alias for install:release"
+task :install => "install:release"
+
 namespace :release do
   desc "Create DMG for distribution"
   task :dmg => "build:release" do
@@ -229,6 +279,11 @@ task :help do
   puts "Run tasks:"
   puts "  rake run:debug     # Run Debug"
   puts "  rake run:release   # Run Release"
+  puts ""
+  puts "Install tasks:"
+  puts "  rake install          # Build Release and install to /Applications"
+  puts "  rake install:release  # Build Release and install to /Applications"
+  puts "  rake install:debug    # Build Debug and install to /Applications"
   puts ""
   puts "Release tasks:"
   puts "  rake release:dmg      # Create DMG"

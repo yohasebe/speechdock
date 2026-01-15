@@ -98,9 +98,10 @@ final class GeminiTTS: NSObject, TTSService {
         }
     }
 
-    /// Character threshold per chunk for streaming mode (~50 seconds of speech to be safe)
-    /// Live API has approximately 60-second audio output limit per turn
-    private let streamingChunkLimit = 700
+    /// Character threshold per chunk for streaming mode
+    /// Smaller chunks help avoid premature turnComplete issue (known Gemini Live API bug)
+    /// Note: Non-ASCII text (Japanese, etc.) produces longer audio per character than English
+    private let streamingChunkLimit = 200
 
     func speak(text: String) async throws {
         guard !text.isEmpty else {
@@ -131,10 +132,6 @@ final class GeminiTTS: NSObject, TTSService {
 
         // Split text into chunks if needed
         let textChunks = splitTextIntoChunks(text, maxLength: streamingChunkLimit)
-
-        #if DEBUG
-        print("Gemini TTS: Split text into \(textChunks.count) chunks")
-        #endif
 
         // Create WebSocket URL with API key
         let urlString = "\(wsBaseURL)?key=\(apiKey)"
@@ -239,6 +236,8 @@ final class GeminiTTS: NSObject, TTSService {
 
             // Receive audio for this chunk
             var receivedTurnComplete = false
+            var chunkAudioBytes = 0
+            var chunkAudioPackets = 0
 
             while isStreamingActive && !receivedTurnComplete {
                 do {
@@ -260,44 +259,68 @@ final class GeminiTTS: NSObject, TTSService {
                     }
 
                     if let serverContent = json["serverContent"] as? [String: Any] {
-                        if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
-                            receivedTurnComplete = true
-                            #if DEBUG
-                            print("Gemini TTS: Chunk \(chunkIndex + 1) complete")
-                            #endif
-                        }
-
+                        // Process audio data first (before checking turnComplete)
                         if let modelTurn = serverContent["modelTurn"] as? [String: Any],
                            let parts = modelTurn["parts"] as? [[String: Any]] {
                             for part in parts {
                                 if let inlineData = part["inlineData"] as? [String: Any],
                                    let base64Audio = inlineData["data"] as? String,
-                                   let audioData = Data(base64Encoded: base64Audio) {
+                                   var audioData = Data(base64Encoded: base64Audio) {
+                                    // Check mime type - L16 is big-endian, need to convert to little-endian
+                                    if let mimeType = inlineData["mimeType"] as? String,
+                                       mimeType.contains("L16") {
+                                        audioData = convertBigEndianToLittleEndian(audioData)
+                                    }
                                     streamingPlayer.appendData(audioData)
                                     accumulatedPCMData.append(audioData)
                                     totalChunkCount += 1
                                     totalAudioBytes += audioData.count
+                                    chunkAudioBytes += audioData.count
+                                    chunkAudioPackets += 1
                                 }
                             }
+                        }
+
+                        // Check turnComplete after processing audio
+                        if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
+                            receivedTurnComplete = true
                         }
                     }
                 } catch {
                     if isStreamingActive {
                         #if DEBUG
-                        print("Gemini TTS: WebSocket error: \(error)")
+                        print("Gemini TTS: WebSocket receive error: \(error.localizedDescription)")
                         #endif
+                        // Mark streaming as inactive to stop processing
+                        isStreamingActive = false
+                        // Close WebSocket immediately on error
+                        wsTask.cancel(with: .abnormalClosure, reason: nil)
+                        webSocketTask = nil
                     }
                     break
                 }
+            }
+
+            #if DEBUG
+            if chunkAudioBytes == 0 {
+                print("Gemini TTS: WARNING - No audio received for chunk \(chunkIndex + 1)!")
+            }
+            #endif
+
+            // Exit for loop if streaming was stopped due to error
+            if !isStreamingActive {
+                break
             }
         }
 
         // Signal end of stream
         streamingPlayer.finishStream()
 
-        // Close WebSocket
-        wsTask.cancel(with: .normalClosure, reason: nil)
-        webSocketTask = nil
+        // Close WebSocket if still open
+        if webSocketTask != nil {
+            wsTask.cancel(with: .normalClosure, reason: nil)
+            webSocketTask = nil
+        }
         isStreamingActive = false
 
         #if DEBUG
@@ -339,10 +362,6 @@ final class GeminiTTS: NSObject, TTSService {
 
         // First, get all sentences using NLTokenizer
         let sentences = tokenizeIntoSentences(text)
-
-        #if DEBUG
-        print("Gemini TTS: Tokenized into \(sentences.count) sentences")
-        #endif
 
         // Group sentences into chunks that don't exceed maxLength
         var chunks: [String] = []
@@ -625,5 +644,21 @@ final class GeminiTTS: NSObject, TTSService {
         // Gemini uses prompt-based pace control
         // We map speed values to pace instructions
         0.5...2.0
+    }
+
+    // MARK: - Audio Processing Helpers
+
+    /// Convert 16-bit PCM audio from big-endian (L16/network order) to little-endian (native)
+    private func convertBigEndianToLittleEndian(_ data: Data) -> Data {
+        var result = Data(capacity: data.count)
+        data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
+            let int16Buffer = buffer.bindMemory(to: UInt16.self)
+            for sample in int16Buffer {
+                // Swap bytes: big-endian to little-endian
+                let swapped = sample.byteSwapped
+                withUnsafeBytes(of: swapped) { result.append(contentsOf: $0) }
+            }
+        }
+        return result
     }
 }
