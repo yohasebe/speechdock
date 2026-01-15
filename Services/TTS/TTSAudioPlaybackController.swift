@@ -27,6 +27,7 @@ final class TTSAudioPlaybackController: NSObject {
 
     // MARK: - Callbacks
 
+    var onPlaybackStarted: (() -> Void)?
     var onWordHighlight: ((NSRange, String) -> Void)?
     var onFinishSpeaking: ((Bool) -> Void)?
     var onError: ((Error) -> Void)?
@@ -89,6 +90,9 @@ final class TTSAudioPlaybackController: NSObject {
         isPaused = false
         audioPlayer?.play()
 
+        // Notify that playback has started
+        onPlaybackStarted?()
+
         startHighlightTimer()
     }
 
@@ -126,6 +130,9 @@ final class TTSAudioPlaybackController: NSObject {
         isPaused = false
         playerNode.play()
         playbackStartTime = playerNode.lastRenderTime
+
+        // Notify that playback has started
+        onPlaybackStarted?()
 
         startHighlightTimerForEngine()
     }

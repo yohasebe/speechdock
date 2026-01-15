@@ -348,7 +348,9 @@ struct TTSFloatingView: View {
             case .idle, .error:
                 Button {
                     if !editableText.isEmpty {
-                        appState.startTTSWithText(editableText)
+                        // Update ttsText and speak directly (user explicitly clicked Speak)
+                        appState.ttsText = editableText
+                        appState.speakCurrentText()
                     }
                 } label: {
                     ButtonLabelWithShortcut(title: "Speak", shortcut: "(\(speakShortcut.displayString))", icon: "speaker.wave.2.fill", isProminent: true)
@@ -358,6 +360,8 @@ struct TTSFloatingView: View {
                 .disabled(editableText.isEmpty || appState.isSavingAudio)
 
                 Button {
+                    // Update ttsText before saving
+                    appState.ttsText = editableText
                     appState.synthesizeAndSaveTTSAudio(editableText)
                 } label: {
                     HStack(spacing: 4) {
@@ -367,13 +371,17 @@ struct TTSFloatingView: View {
                                 .frame(width: 14, height: 14)
                         } else {
                             Image(systemName: "square.and.arrow.down")
+                                .font(.body)
                         }
                         Text("Save Audio")
+                            .font(.body)
                         Text("(\(saveShortcut.displayString))")
                             .font(.caption2)
-                            .foregroundColor(.secondary)
                     }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 3)
                 }
+                .buttonStyle(.bordered)
                 .applyCustomShortcut(saveShortcut)
                 .disabled(editableText.count < 5 || appState.isSavingAudio)
 

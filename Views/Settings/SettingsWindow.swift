@@ -115,6 +115,9 @@ struct GeneralSettingsView: View {
 
                 // Audio Output Device selection
                 AudioOutputDevicePicker(appState: appState)
+
+                // TTS Panel behavior settings
+                TTSPanelBehaviorSettings(appState: appState)
             } header: {
                 Text("Text-to-Speech")
             }
@@ -184,6 +187,7 @@ struct ShortcutSettingsView: View {
     @Environment(AppState.self) var appState
     @State private var sttKeyCombo: KeyCombo = .sttDefault
     @State private var ttsKeyCombo: KeyCombo = .ttsDefault
+    @State private var ocrKeyCombo: KeyCombo = .ocrDefault
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     var body: some View {
@@ -198,6 +202,11 @@ struct ShortcutSettingsView: View {
                     ShortcutRecorderView(title: "Read Selected Text (TTS)", keyCombo: $ttsKeyCombo)
                         .onChange(of: ttsKeyCombo) { _, newValue in
                             appState.hotKeyService?.ttsKeyCombo = newValue
+                        }
+
+                    ShortcutRecorderView(title: "OCR Region to TTS", keyCombo: $ocrKeyCombo)
+                        .onChange(of: ocrKeyCombo) { _, newValue in
+                            appState.hotKeyService?.ocrKeyCombo = newValue
                         }
                 } header: {
                     Text("Global Hotkeys")
@@ -237,8 +246,10 @@ struct ShortcutSettingsView: View {
                     Button("Reset Global Hotkeys") {
                         sttKeyCombo = .sttDefault
                         ttsKeyCombo = .ttsDefault
+                        ocrKeyCombo = .ocrDefault
                         appState.hotKeyService?.sttKeyCombo = .sttDefault
                         appState.hotKeyService?.ttsKeyCombo = .ttsDefault
+                        appState.hotKeyService?.ocrKeyCombo = .ocrDefault
                     }
 
                     Button("Reset Panel Shortcuts") {
@@ -254,6 +265,7 @@ struct ShortcutSettingsView: View {
             if let service = appState.hotKeyService {
                 sttKeyCombo = service.sttKeyCombo
                 ttsKeyCombo = service.ttsKeyCombo
+                ocrKeyCombo = service.ocrKeyCombo
             }
         }
     }
@@ -1116,10 +1128,42 @@ struct STTPanelBehaviorSettings: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
+            Toggle(isOn: $appState.sttAutoStart) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Auto-start recording")
+                    Text("When enabled, recording starts automatically when the STT panel opens.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
             Toggle(isOn: $appState.closePanelAfterPaste) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Close panel after paste")
                     Text("When enabled, the STT panel closes automatically after pasting text.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+}
+
+/// TTS Panel behavior settings
+struct TTSPanelBehaviorSettings: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Panel Behavior")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Toggle(isOn: $appState.ttsAutoSpeak) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Auto-speak on panel open")
+                    Text("When enabled, TTS starts speaking automatically when the panel opens with text.")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }

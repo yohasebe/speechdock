@@ -152,6 +152,25 @@ struct MenuBarView: View {
             .buttonStyle(MenuBarActionButtonStyle())
             .disabled(appState.ttsState == .speaking || appState.ttsState == .loading || !appState.hasAccessibilityPermission)
 
+            // OCR to TTS Action button with shortcut
+            Button(action: {
+                NSApp.keyWindow?.close()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    appState.startOCR()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "text.viewfinder")
+                        .frame(width: 20)
+                    Text("OCR Region to TTS")
+                    Spacer()
+                    shortcutBadge(appState.hotKeyService?.ocrKeyCombo.displayString ?? "⌃⌥⇧O")
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(MenuBarActionButtonStyle())
+            .disabled(appState.ocrCoordinator.isSelecting || appState.ocrCoordinator.isProcessing)
+
             // TTS Provider picker (compact)
             HStack {
                 Text("Provider:")

@@ -226,6 +226,23 @@ final class AppState {
         }
     }
 
+    // MARK: - Auto-Start Settings
+    /// Whether to automatically start recording when STT panel opens (default: false = wait for user action)
+    var sttAutoStart: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Whether to automatically start speaking when TTS panel opens with text (default: false = wait for user action)
+    var ttsAutoSpeak: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
     // MARK: - Permission Status
     var hasMicrophonePermission: Bool = false
     var hasAccessibilityPermission: Bool = false
@@ -249,6 +266,9 @@ final class AppState {
     let apiKeyManager = APIKeyManager.shared
     let floatingWindowManager = FloatingWindowManager()
 
+    // MARK: - OCR
+    let ocrCoordinator = OCRCoordinator()
+
     // Expose hotKeyService for settings UI
     private(set) var hotKeyService: HotKeyService?
     private var realtimeSTTService: RealtimeSTTService?
@@ -260,6 +280,27 @@ final class AppState {
         refreshVoiceCachesInBackground()
         prefetchAvailableAppsInBackground()
         updatePermissionStatus()
+        setupOCRCallbacks()
+    }
+
+    private func setupOCRCallbacks() {
+        ocrCoordinator.onTextRecognized = { [weak self] text in
+            guard let self = self else { return }
+            // Show recognized text in TTS panel without auto-speaking
+            // OCR results often need correction, so we always wait for user action
+            self.showTTSPanelWithText(text)
+        }
+
+        ocrCoordinator.onError = { [weak self] error in
+            guard let self = self else { return }
+            if let error = error {
+                #if DEBUG
+                print("OCR Error: \(error.localizedDescription)")
+                #endif
+                self.errorMessage = error.localizedDescription
+            }
+            // nil error indicates cancellation - no action needed
+        }
     }
 
     /// Refresh voice caches in background (non-blocking)
@@ -293,11 +334,18 @@ final class AppState {
         if isRecording {
             stopRecording()
         } else {
-            startRecording()
+            // If panel is already showing, start recording
+            // If panel is not showing, show it first (and optionally start recording based on setting)
+            if showFloatingWindow {
+                startRecording()
+            } else {
+                showSTTPanel()
+            }
         }
     }
 
-    private func startRecording() {
+    /// Show STT panel without starting recording (user can then click record button)
+    private func showSTTPanel() {
         guard !isProcessing else { return }
 
         // Mutual exclusivity: close TTS panel and stop TTS if active
@@ -310,6 +358,30 @@ final class AppState {
 
         errorMessage = nil
         currentTranscription = ""
+        transcriptionState = .idle
+
+        // Show the panel
+        showFloatingWindowWithState()
+
+        // Auto-start recording if setting is enabled
+        if sttAutoStart {
+            startRecording()
+        }
+    }
+
+    /// Start recording (can be called from panel button or auto-start)
+    func startRecording() {
+        guard !isProcessing && !isRecording else { return }
+
+        // Mutual exclusivity: close TTS panel and stop TTS if active
+        if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
+            stopTTS()
+            floatingWindowManager.hideFloatingWindow()
+            showTTSWindow = false
+            ttsText = ""
+        }
+
+        errorMessage = nil
 
         // Start realtime STT FIRST to ensure audio capture begins immediately
         Task {
@@ -576,6 +648,7 @@ final class AppState {
         }
     }
 
+    /// Show TTS panel with text, respecting auto-speak setting
     func startTTSWithText(_ text: String) {
         guard !text.isEmpty else {
             #if DEBUG
@@ -585,7 +658,24 @@ final class AppState {
         }
 
         #if DEBUG
-        print("TTS: Starting with text length: \(text.count), provider: \(selectedTTSProvider.rawValue)")
+        print("TTS: startTTSWithText called, text length: \(text.count)")
+        #endif
+
+        // Show panel with text
+        showTTSPanelWithText(text)
+
+        // Auto-speak if setting is enabled
+        if ttsAutoSpeak {
+            speakCurrentText()
+        }
+    }
+
+    /// Show TTS panel with text without speaking (user can click Speak button)
+    func showTTSPanelWithText(_ text: String) {
+        guard !text.isEmpty else { return }
+
+        #if DEBUG
+        print("TTS: showTTSPanelWithText, text length: \(text.count)")
         #endif
 
         // Mutual exclusivity: close STT panel and cancel recording if active
@@ -596,12 +686,8 @@ final class AppState {
         // Stop any existing TTS
         stopTTSPlayback()
 
-        #if DEBUG
-        print("TTS: Setting ttsText, current value length: \(ttsText.count), new value length: \(text.count)")
-        print("TTS: New text content: '\(text.prefix(200))'")
-        #endif
         ttsText = text
-        ttsState = .loading
+        ttsState = .idle
 
         // Always ensure window is shown and brought to front
         if !showTTSWindow || !floatingWindowManager.isVisible {
@@ -609,9 +695,20 @@ final class AppState {
         } else {
             floatingWindowManager.bringToFront()
         }
+    }
+
+    /// Speak the current ttsText (can be called from panel button)
+    func speakCurrentText() {
+        guard !ttsText.isEmpty else { return }
+
+        #if DEBUG
+        print("TTS: speakCurrentText, text length: \(ttsText.count), provider: \(selectedTTSProvider.rawValue)")
+        #endif
+
+        ttsState = .loading
 
         // Apply text replacement rules before speaking
-        let processedText = TextReplacementService.shared.applyReplacements(to: text)
+        let processedText = TextReplacementService.shared.applyReplacements(to: ttsText)
 
         // Start TTS playback
         ttsService = TTSFactory.makeService(for: selectedTTSProvider)
@@ -626,11 +723,14 @@ final class AppState {
         }
         ttsService?.audioOutputDeviceUID = selectedAudioOutputDeviceUID
 
+        // Store the text being spoken
+        lastSynthesizedText = ttsText
+
         Task {
             do {
+                // speak() will call delegate.ttsDidStartSpeaking() when playback starts
+                // and delegate.tts(didFinishSpeaking:) when it completes
                 try await ttsService?.speak(text: processedText)
-                ttsState = .speaking
-                lastSynthesizedText = ttsText
             } catch {
                 #if DEBUG
                 print("TTS: Error occurred: \(error)")
@@ -800,7 +900,9 @@ final class AppState {
                         print("Audio saved to: \(url.path)")
                         #endif
                     } catch {
+                        #if DEBUG
                         print("Failed to save audio: \(error)")
+                        #endif
                     }
                 }
             }
@@ -824,6 +926,27 @@ final class AppState {
         floatingWindowManager.hideFloatingWindow()
         showTTSWindow = false
         ttsText = ""
+    }
+
+    // MARK: - OCR Methods
+
+    /// Start OCR region selection
+    func startOCR() {
+        // Close any open STT or TTS panels first
+        if showFloatingWindow || isRecording {
+            cancelRecording()
+        }
+        if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
+            closeTTSWindow()
+        }
+
+        // Start OCR selection
+        ocrCoordinator.startSelection()
+    }
+
+    /// Cancel OCR operation
+    func cancelOCR() {
+        ocrCoordinator.cancel()
     }
 
     // MARK: - Preferences
@@ -912,6 +1035,14 @@ final class AppState {
             panelTextFontSize = UserDefaults.standard.double(forKey: "panelTextFontSize")
         }
 
+        // Auto-start settings
+        if UserDefaults.standard.object(forKey: "sttAutoStart") != nil {
+            sttAutoStart = UserDefaults.standard.bool(forKey: "sttAutoStart")
+        }
+        if UserDefaults.standard.object(forKey: "ttsAutoSpeak") != nil {
+            ttsAutoSpeak = UserDefaults.standard.bool(forKey: "ttsAutoSpeak")
+        }
+
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
     }
@@ -986,6 +1117,10 @@ final class AppState {
         // Panel text appearance
         UserDefaults.standard.set(panelTextFontSize, forKey: "panelTextFontSize")
 
+        // Auto-start settings
+        UserDefaults.standard.set(sttAutoStart, forKey: "sttAutoStart")
+        UserDefaults.standard.set(ttsAutoSpeak, forKey: "ttsAutoSpeak")
+
         // Note: selectedAudioAppBundleID is not saved - it's session-only
     }
 }
@@ -1002,6 +1137,12 @@ extension AppState: HotKeyServiceDelegate {
     nonisolated func ttsHotKeyPressed() {
         Task { @MainActor in
             self.toggleTTS()
+        }
+    }
+
+    nonisolated func ocrHotKeyPressed() {
+        Task { @MainActor in
+            self.startOCR()
         }
     }
 }
@@ -1046,6 +1187,10 @@ extension AppState: RealtimeSTTDelegate {
 extension AppState: TTSDelegate {
     func tts(_ service: TTSService, willSpeakRange range: NSRange, of text: String) {
         // Word highlighting removed - streaming mode doesn't provide timing info
+    }
+
+    func ttsDidStartSpeaking(_ service: TTSService) {
+        ttsState = .speaking
     }
 
     func tts(_ service: TTSService, didFinishSpeaking successfully: Bool) {

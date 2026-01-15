@@ -177,7 +177,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let accessibilityGranted = AXIsProcessTrusted()
         let screenRecordingGranted = CGPreflightScreenCaptureAccess()
 
+        #if DEBUG
         print("Permission check: Microphone=\(microphoneStatus.rawValue), Accessibility=\(accessibilityGranted), ScreenRecording=\(screenRecordingGranted)")
+        #endif
 
         // Count how many permissions are missing
         let microphoneMissing = microphoneStatus != .authorized
@@ -188,12 +190,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // If multiple permissions are missing, show combined alert
         if missingCount >= 2 {
+            #if DEBUG
             print("Permission check: Multiple permissions missing, showing combined alert")
+            #endif
             showCombinedPermissionAlert(microphoneStatus: microphoneStatus)
         } else {
             // Check individually
             if microphoneStatus == .notDetermined {
+                #if DEBUG
                 print("Permission check: Requesting microphone access")
+                #endif
                 AVCaptureDevice.requestAccess(for: .audio) { granted in
                     if !granted {
                         DispatchQueue.main.async {
@@ -202,24 +208,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
             } else if microphoneStatus == .denied || microphoneStatus == .restricted {
+                #if DEBUG
                 print("Permission check: Microphone denied/restricted, showing alert")
+                #endif
                 showMicrophonePermissionAlert()
             } else {
+                #if DEBUG
                 print("Permission check: Microphone already authorized")
+                #endif
             }
 
             if !accessibilityGranted {
+                #if DEBUG
                 print("Permission check: Accessibility not granted, showing alert")
+                #endif
                 showAccessibilityPermissionAlert()
             } else {
+                #if DEBUG
                 print("Permission check: Accessibility already granted")
+                #endif
             }
 
             if !screenRecordingGranted {
+                #if DEBUG
                 print("Permission check: Screen Recording not granted, showing alert")
+                #endif
                 showScreenRecordingPermissionAlert()
             } else {
+                #if DEBUG
                 print("Permission check: Screen Recording already granted")
+                #endif
             }
         }
     }

@@ -33,6 +33,17 @@ Convert text to speech using:
 | **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | Required |
 | **ElevenLabs** | Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5, Monolingual v1 | Required |
 
+### OCR to Speech
+
+Capture text from any region of your screen and convert it to speech:
+
+1. Press the OCR hotkey (`Ctrl + Option + Shift + O` by default)
+2. Drag to select the region containing text
+3. Recognized text appears in the TTS panel for editing
+4. Press Speak to read the text aloud
+
+Uses macOS Vision Framework for text recognition. Requires Screen Recording permission.
+
 ### Audio Sources
 
 - **Microphone** - Record from any connected microphone with device selection
@@ -98,6 +109,7 @@ Grant permissions in **System Settings** > **Privacy & Security**. TypeTalk will
 |--------|------------------|
 | Start/Stop Recording (STT) | `Cmd + Shift + Space` |
 | Read Selected Text (TTS) | `Ctrl + Option + T` |
+| OCR Region to Speech | `Ctrl + Option + Shift + O` |
 
 Shortcuts can be customized in **Settings** > **Shortcuts**.
 
@@ -190,6 +202,12 @@ Enable **Launch at Login** in **Settings** > **General** to start TypeTalk autom
 1. Grant Screen Recording permission in System Settings
 2. For App Audio, ensure the target app is running
 3. Refresh the app list from the audio source menu
+
+### OCR not working
+
+1. Grant Screen Recording permission in System Settings
+2. Ensure the text in the selected region is clear and readable
+3. Try selecting a larger region around the text
 
 ## License
 

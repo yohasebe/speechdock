@@ -170,6 +170,9 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         speechStartTime = Date()
         startHighlightTimer()
         audioPlayer?.play()
+
+        // Notify that playback has started
+        delegate?.ttsDidStartSpeaking(self)
     }
 
     /// Play using AVAudioEngine (supports custom output device)
@@ -207,6 +210,9 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         speechStartTime = Date()
         startHighlightTimer()
         playerNode.play()
+
+        // Notify that playback has started
+        delegate?.ttsDidStartSpeaking(self)
     }
 
     /// Set the output device for an AVAudioEngine

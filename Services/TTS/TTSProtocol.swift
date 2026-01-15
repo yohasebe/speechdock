@@ -123,6 +123,9 @@ protocol TTSDelegate: AnyObject {
     /// Called when a word is about to be spoken
     func tts(_ service: TTSService, willSpeakRange range: NSRange, of text: String)
 
+    /// Called when audio playback actually starts
+    func ttsDidStartSpeaking(_ service: TTSService)
+
     /// Called when speech finishes
     func tts(_ service: TTSService, didFinishSpeaking successfully: Bool)
 

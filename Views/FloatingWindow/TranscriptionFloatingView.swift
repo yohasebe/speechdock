@@ -9,14 +9,6 @@ struct ButtonLabelWithShortcut: View {
     var icon: String? = nil
     var isProminent: Bool = false
 
-    private var shortcutColor: Color {
-        if !isEnabled {
-            // When disabled, use secondary color regardless of prominent state
-            return .secondary
-        }
-        return isProminent ? .white.opacity(0.8) : .secondary
-    }
-
     var body: some View {
         HStack(spacing: 4) {
             if let icon = icon {
@@ -26,8 +18,7 @@ struct ButtonLabelWithShortcut: View {
             Text(title)
                 .font(.body)
             Text(shortcut)
-                .font(.caption)
-                .foregroundColor(shortcutColor)
+                .font(.caption2)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 3)

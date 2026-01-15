@@ -80,7 +80,9 @@ enum AudioConverter {
                     try inputData.write(to: inputURL)
                     continuation.resume(returning: true)
                 } catch {
+                    #if DEBUG
                     print("AudioConverter: Failed to write input file: \(error)")
+                    #endif
                     continuation.resume(returning: false)
                 }
             }
@@ -118,13 +120,17 @@ enum AudioConverter {
 
         // Get audio track
         guard let audioTrack = try? await asset.loadTracks(withMediaType: .audio).first else {
+            #if DEBUG
             print("AudioConverter: No audio track found")
+            #endif
             return false
         }
 
         // Set up asset reader
         guard let assetReader = try? AVAssetReader(asset: asset) else {
+            #if DEBUG
             print("AudioConverter: Failed to create asset reader")
+            #endif
             return false
         }
 
@@ -143,7 +149,9 @@ enum AudioConverter {
 
         // Set up asset writer
         guard let assetWriter = try? AVAssetWriter(outputURL: outputURL, fileType: .m4a) else {
+            #if DEBUG
             print("AudioConverter: Failed to create asset writer")
+            #endif
             return false
         }
 
@@ -179,7 +187,9 @@ enum AudioConverter {
                                 continuation.resume(returning: assetWriter.status == .completed)
                             }
                         } else {
+                            #if DEBUG
                             print("AudioConverter: Reader failed with status: \(assetReader.status)")
+                            #endif
                             assetWriter.cancelWriting()
                             continuation.resume(returning: false)
                         }

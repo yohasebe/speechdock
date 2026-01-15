@@ -47,6 +47,10 @@ final class ElevenLabsTTS: NSObject, TTSService {
     }
 
     private func setupPlaybackController() {
+        playbackController.onPlaybackStarted = { [weak self] in
+            guard let self = self else { return }
+            self.delegate?.ttsDidStartSpeaking(self)
+        }
         playbackController.onWordHighlight = { [weak self] range, text in
             guard let self = self else { return }
             self.delegate?.tts(self, willSpeakRange: range, of: text)
@@ -62,10 +66,12 @@ final class ElevenLabsTTS: NSObject, TTSService {
     }
 
     private func setupStreamingPlayer() {
-        streamingPlayer.onPlaybackStarted = {
+        streamingPlayer.onPlaybackStarted = { [weak self] in
+            guard let self = self else { return }
             #if DEBUG
             print("ElevenLabs TTS: Streaming playback started")
             #endif
+            self.delegate?.ttsDidStartSpeaking(self)
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
             guard let self = self else { return }

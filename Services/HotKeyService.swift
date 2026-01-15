@@ -7,11 +7,13 @@ private let logger = Logger(subsystem: "com.typetalk", category: "HotKey")
 protocol HotKeyServiceDelegate: AnyObject {
     func hotKeyPressed()
     func ttsHotKeyPressed()
+    func ocrHotKeyPressed()
 }
 
 final class HotKeyService {
     private var sttHotKey: HotKey?
     private var ttsHotKey: HotKey?
+    private var ocrHotKey: HotKey?
     private var isLoadingShortcuts = false
 
     weak var delegate: HotKeyServiceDelegate?
@@ -32,10 +34,19 @@ final class HotKeyService {
         }
     }
 
+    var ocrKeyCombo: KeyCombo {
+        didSet {
+            guard !isLoadingShortcuts else { return }
+            saveShortcuts()
+            registerOCRHotKey()
+        }
+    }
+
     init() {
         // Load saved shortcuts or use defaults
         self.sttKeyCombo = KeyCombo.sttDefault
         self.ttsKeyCombo = KeyCombo.ttsDefault
+        self.ocrKeyCombo = KeyCombo.ocrDefault
         loadShortcuts()
     }
 
@@ -67,14 +78,30 @@ final class HotKeyService {
         }
     }
 
+    func registerOCRHotKey() {
+        // Remove existing hotkey
+        ocrHotKey = nil
+
+        // Create new hotkey
+        ocrHotKey = HotKey(key: ocrKeyCombo.key, modifiers: ocrKeyCombo.modifiers)
+        logger.info("OCR HotKey registered: \(self.ocrKeyCombo.displayString)")
+
+        ocrHotKey?.keyDownHandler = { [weak self] in
+            logger.info("OCR HotKey pressed!")
+            self?.delegate?.ocrHotKeyPressed()
+        }
+    }
+
     func registerAllHotKeys() {
         registerHotKey()
         registerTTSHotKey()
+        registerOCRHotKey()
     }
 
     func unregisterAllHotKeys() {
         sttHotKey = nil
         ttsHotKey = nil
+        ocrHotKey = nil
     }
 
     // MARK: - Persistence
@@ -98,6 +125,13 @@ final class HotKeyService {
            let key = Key(carbonKeyCode: ttsKeyCode) {
             ttsKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: ttsModifiers))
         }
+
+        // Load OCR shortcut
+        if let ocrKeyCode = defaults.object(forKey: "ocrKeyCode") as? UInt32,
+           let ocrModifiers = defaults.object(forKey: "ocrModifiers") as? UInt,
+           let key = Key(carbonKeyCode: ocrKeyCode) {
+            ocrKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: ocrModifiers))
+        }
     }
 
     private func saveShortcuts() {
@@ -110,6 +144,10 @@ final class HotKeyService {
         // Save TTS shortcut
         defaults.set(ttsKeyCombo.key.carbonKeyCode, forKey: "ttsKeyCode")
         defaults.set(ttsKeyCombo.modifiers.rawValue, forKey: "ttsModifiers")
+
+        // Save OCR shortcut
+        defaults.set(ocrKeyCombo.key.carbonKeyCode, forKey: "ocrKeyCode")
+        defaults.set(ocrKeyCombo.modifiers.rawValue, forKey: "ocrModifiers")
     }
 }
 
@@ -145,6 +183,7 @@ struct KeyCombo: Equatable {
 
     static let sttDefault = KeyCombo(key: .space, modifiers: [.command, .shift])
     static let ttsDefault = KeyCombo(key: .t, modifiers: [.control, .option])
+    static let ocrDefault = KeyCombo(key: .o, modifiers: [.control, .option, .shift])
 }
 
 // MARK: - Shortcut Recorder View
