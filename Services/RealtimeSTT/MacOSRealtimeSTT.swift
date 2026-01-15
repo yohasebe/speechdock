@@ -26,6 +26,13 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     // Audio level monitoring
     private let audioLevelMonitor = AudioLevelMonitor.shared
 
+    // Session restart mechanism to work around Apple's ~1 minute limit
+    private var sessionStartTime: Date?
+    private var sessionRestartTimer: Timer?
+    private let maxSessionDuration: TimeInterval = 50  // Restart before 60s limit
+    private var accumulatedTranscription = ""  // Preserve text across restarts
+    private var isRestarting = false
+
     override init() {
         super.init()
         speechRecognizer = SFSpeechRecognizer(locale: Locale.current)
@@ -60,8 +67,11 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
             throw RealtimeSTTError.serviceUnavailable("Speech recognizer not available")
         }
 
-        // Stop any existing session
-        stopListening()
+        // Stop any existing session (but don't clear accumulated text if restarting)
+        if !isRestarting {
+            stopListening()
+            accumulatedTranscription = ""
+        }
 
         // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -72,8 +82,8 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         recognitionRequest.shouldReportPartialResults = true
         recognitionRequest.addsPunctuation = true
 
-        // Setup audio engine only for microphone mode
-        if audioSource == .microphone {
+        // Setup audio engine only for microphone mode (and not during restart)
+        if audioSource == .microphone && !isRestarting {
             audioEngine = AVAudioEngine()
             guard let audioEngine = audioEngine else {
                 throw RealtimeSTTError.audioError("Failed to create audio engine")
@@ -112,17 +122,30 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
             guard let self = self else { return }
 
             Task { @MainActor in
+                // Skip processing if we're in the middle of restarting
+                guard !self.isRestarting else { return }
+
                 if let result = result {
-                    let transcription = result.bestTranscription.formattedString
+                    let currentTranscription = result.bestTranscription.formattedString
+
+                    // Combine accumulated transcription with current session's transcription
+                    let fullTranscription: String
+                    if self.accumulatedTranscription.isEmpty {
+                        fullTranscription = currentTranscription
+                    } else if currentTranscription.isEmpty {
+                        fullTranscription = self.accumulatedTranscription
+                    } else {
+                        fullTranscription = self.accumulatedTranscription + " " + currentTranscription
+                    }
 
                     if result.isFinal {
-                        self.delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
-                        self.lastTranscription = transcription
+                        self.delegate?.realtimeSTT(self, didReceiveFinalResult: fullTranscription)
+                        self.lastTranscription = currentTranscription
                     } else {
                         // Only send if there's new content
-                        if transcription != self.lastTranscription {
-                            self.delegate?.realtimeSTT(self, didReceivePartialResult: transcription)
-                            self.lastTranscription = transcription
+                        if currentTranscription != self.lastTranscription {
+                            self.delegate?.realtimeSTT(self, didReceivePartialResult: fullTranscription)
+                            self.lastTranscription = currentTranscription
                         }
                     }
                 }
@@ -140,8 +163,65 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         isListening = true
-        audioLevelMonitor.start()
-        delegate?.realtimeSTT(self, didChangeListeningState: true)
+
+        // Start session timer for automatic restart (only on initial start, not restart)
+        if !isRestarting {
+            audioLevelMonitor.start()
+            sessionStartTime = Date()
+            startSessionRestartTimer()
+            delegate?.realtimeSTT(self, didChangeListeningState: true)
+        }
+
+        isRestarting = false
+    }
+
+    /// Start timer to automatically restart recognition session before Apple's limit
+    private func startSessionRestartTimer() {
+        sessionRestartTimer?.invalidate()
+        sessionRestartTimer = Timer.scheduledTimer(withTimeInterval: maxSessionDuration, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.restartRecognitionSession()
+            }
+        }
+    }
+
+    /// Restart recognition session to avoid Apple's ~1 minute limit
+    private func restartRecognitionSession() {
+        guard isListening, !isRestarting else { return }
+
+        #if DEBUG
+        print("MacOSRealtimeSTT: Restarting session to avoid Apple's time limit")
+        #endif
+
+        isRestarting = true
+
+        // Save current transcription to accumulated text
+        if !lastTranscription.isEmpty {
+            if accumulatedTranscription.isEmpty {
+                accumulatedTranscription = lastTranscription
+            } else {
+                accumulatedTranscription += " " + lastTranscription
+            }
+        }
+
+        // Stop recognition task and request (but keep audio engine running)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
+
+        // Restart recognition
+        Task {
+            do {
+                try await startListening()
+            } catch {
+                #if DEBUG
+                print("MacOSRealtimeSTT: Failed to restart session: \(error)")
+                #endif
+                isRestarting = false
+                delegate?.realtimeSTT(self, didFailWithError: error)
+            }
+        }
     }
 
     /// Process audio buffer from external source
@@ -158,6 +238,11 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     func stopListening() {
+        // Stop session restart timer
+        sessionRestartTimer?.invalidate()
+        sessionRestartTimer = nil
+        sessionStartTime = nil
+
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioLevelMonitor.stop()
@@ -167,6 +252,10 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
 
         recognitionTask?.cancel()
         recognitionTask = nil
+
+        // Reset accumulated transcription
+        accumulatedTranscription = ""
+        isRestarting = false
 
         if isListening {
             isListening = false

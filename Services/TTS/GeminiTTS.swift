@@ -29,7 +29,10 @@ final class GeminiTTS: NSObject, TTSService {
     var useStreamingMode: Bool = true
 
     private(set) var lastAudioData: Data?
-    var audioFileExtension: String { "m4a" }  // Always M4A (converted from PCM for streaming)
+
+    /// Track the actual file extension of lastAudioData (m4a or wav fallback)
+    private var _audioFileExtension: String = "m4a"
+    var audioFileExtension: String { _audioFileExtension }
 
     var supportsSpeedControl: Bool { true }
 
@@ -312,12 +315,14 @@ final class GeminiTTS: NSObject, TTSService {
             // Then convert WAV to M4A (await completion to avoid race condition with Save Audio)
             if let m4aData = await AudioConverter.convertToAAC(inputData: wavData, inputExtension: "wav") {
                 lastAudioData = m4aData
+                _audioFileExtension = "m4a"
                 #if DEBUG
                 print("Gemini TTS: Converted to M4A, size: \(m4aData.count) bytes")
                 #endif
             } else {
                 // Fallback to WAV if M4A conversion fails
                 lastAudioData = wavData
+                _audioFileExtension = "wav"
                 #if DEBUG
                 print("Gemini TTS: M4A conversion failed, using WAV")
                 #endif
@@ -493,9 +498,11 @@ final class GeminiTTS: NSObject, TTSService {
         // Convert to M4A (AAC) for smaller file size - await completion for Save Audio support
         if let m4aData = await AudioConverter.convertToAAC(inputData: finalAudioData, inputExtension: sourceExt) {
             lastAudioData = m4aData
+            _audioFileExtension = "m4a"
         } else {
             // Fallback to original format if conversion fails
             lastAudioData = finalAudioData
+            _audioFileExtension = sourceExt
         }
 
         // Play the audio
@@ -531,6 +538,7 @@ final class GeminiTTS: NSObject, TTSService {
     func clearAudioCache() {
         lastAudioData = nil
         accumulatedPCMData = Data()
+        _audioFileExtension = "m4a"  // Reset to default
     }
 
     // MARK: - Gemini-specific Helpers
