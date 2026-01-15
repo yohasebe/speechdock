@@ -613,7 +613,8 @@ struct TranscriptionFloatingView: View {
                     highlightRange: nil,
                     enableHighlight: false,
                     showReplacementHighlights: true,
-                    fontSize: CGFloat(appState.panelTextFontSize)
+                    fontSize: CGFloat(appState.panelTextFontSize),
+                    autoScrollToBottom: isRecording  // Auto-scroll while recording
                 )
                 .background(Color(.textBackgroundColor))
                 .cornerRadius(8)

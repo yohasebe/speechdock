@@ -23,6 +23,7 @@ struct ScrollableTextView: NSViewRepresentable {
     var enableHighlight: Bool  // Kept for API compatibility, but not used
     var showReplacementHighlights: Bool = true
     var fontSize: CGFloat = NSFont.systemFontSize
+    var autoScrollToBottom: Bool = false  // Auto-scroll when text changes
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -78,6 +79,11 @@ struct ScrollableTextView: NSViewRepresentable {
             let selectedRanges = textView.selectedRanges
             textView.string = text
             textView.selectedRanges = selectedRanges
+
+            // Auto-scroll to bottom if enabled
+            if autoScrollToBottom {
+                textView.scrollToEndOfDocument(nil)
+            }
         }
 
         // Apply text styling with replacement highlights
