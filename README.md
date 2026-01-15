@@ -6,6 +6,8 @@
 
 A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) with support for multiple providers.
 
+**Always accessible from your menu bar** - Use STT and TTS anywhere on your Mac with global hotkeys. Transcribe not only your voice but also system audio or audio from specific apps. Read aloud typed text, pasted content, or text captured via OCR from any screen region.
+
 **Ready to use immediately after installation** - No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers and Local Whisper are optional enhancements.
 
 English | [日本語](README_ja.md)
