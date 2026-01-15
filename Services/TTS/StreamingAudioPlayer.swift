@@ -172,8 +172,9 @@ final class StreamingAudioPlayer {
             pendingData = Data()
         }
 
-        // If no buffers were scheduled, finish immediately
-        if scheduledBufferCount == 0 {
+        // If no buffers were scheduled, or all buffers have already completed, finish immediately
+        // This handles the race condition where buffer callbacks fire before finishStream() is called
+        if scheduledBufferCount == 0 || completedBufferCount >= scheduledBufferCount {
             handlePlaybackComplete()
         }
     }
