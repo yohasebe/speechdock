@@ -913,6 +913,12 @@ struct AudioInputSourceSelector: View {
         appState.selectedAudioInputSourceType.icon
     }
 
+    /// Get the current app icon for App Audio mode
+    private var currentAppIcon: NSImage? {
+        guard appState.selectedAudioInputSourceType == .applicationAudio else { return nil }
+        return availableApps.first { $0.bundleID == appState.selectedAudioAppBundleID }?.icon
+    }
+
     private var currentLabel: String {
         switch appState.selectedAudioInputSourceType {
         case .microphone:
@@ -1027,8 +1033,16 @@ struct AudioInputSourceSelector: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: currentIcon)
-                    .font(.caption)
+                // Show app icon for App Audio, system icon for others
+                if let appIcon = currentAppIcon {
+                    Image(nsImage: appIcon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 14, height: 14)
+                } else {
+                    Image(systemName: currentIcon)
+                        .font(.caption)
+                }
                 Text(currentLabel)
                     .font(.caption2)
                     .lineLimit(1)
