@@ -107,6 +107,12 @@ final class FloatingWindowManager: ObservableObject {
         // This is essential for accessory apps to receive keyboard focus
         NSApp.setActivationPolicy(.regular)
 
+        // For standard window mode, give macOS time to process the activation policy change
+        // This ensures the Dock icon appears before the window is shown
+        if appState.panelStyle == .standardWindow {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        }
+
         // Activate app first, then show window
         NSApp.activate(ignoringOtherApps: true)
 
@@ -394,6 +400,12 @@ final class FloatingWindowManager: ObservableObject {
         // Become regular app to ensure proper window activation
         // This is essential for accessory apps to receive keyboard focus
         NSApp.setActivationPolicy(.regular)
+
+        // For standard window mode, give macOS time to process the activation policy change
+        // This ensures the Dock icon appears before the window is shown
+        if appState.panelStyle == .standardWindow {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        }
 
         // Activate app first, then show window
         NSApp.activate(ignoringOtherApps: true)
