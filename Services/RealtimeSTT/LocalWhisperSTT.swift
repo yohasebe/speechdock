@@ -270,7 +270,7 @@ final class LocalWhisperSTT: NSObject, RealtimeSTTService {
                 id: variant.rawValue,
                 name: variant.displayName,
                 description: variant.description,
-                isDefault: variant == .base
+                isDefault: variant == .largev3Turbo
             )
         }
     }
