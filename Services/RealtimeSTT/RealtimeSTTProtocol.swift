@@ -113,11 +113,16 @@ enum RealtimeSTTFactory {
         switch provider {
         case .macOS:
             // Use SpeechAnalyzer on macOS 26+ for better performance and no time limit
+            // SpeechAnalyzerSTT requires Swift 6.1+ compiler (macOS 26 SDK)
+            #if compiler(>=6.1)
             if #available(macOS 26, *) {
                 return SpeechAnalyzerSTT()
             } else {
                 return MacOSRealtimeSTT()
             }
+            #else
+            return MacOSRealtimeSTT()
+            #endif
         case .localWhisper:
             return LocalWhisperSTT()
         case .openAI:

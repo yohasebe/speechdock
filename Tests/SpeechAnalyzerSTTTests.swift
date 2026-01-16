@@ -1,6 +1,9 @@
 import XCTest
 @testable import TypeTalk
 
+// SpeechAnalyzerSTT is only available with Swift 6.1+ compiler (macOS 26 SDK)
+#if compiler(>=6.1)
+
 /// Tests for SpeechAnalyzerSTT
 /// Note: Full functionality tests require macOS 26+ and microphone access
 @available(macOS 26, *)
@@ -69,3 +72,5 @@ final class SpeechAnalyzerSTTTests: XCTestCase {
         XCTAssertTrue(true)
     }
 }
+
+#endif // compiler(>=6.1)

@@ -2,6 +2,10 @@ import Foundation
 import Speech
 @preconcurrency import AVFoundation
 
+// SpeechAnalyzer APIs are only available in macOS 26+ SDK (Xcode 17+)
+// Use compile-time check to avoid errors on older SDKs
+#if compiler(>=6.1)
+
 // Debug logging helper
 private func debugLog(_ message: String) {
     #if DEBUG
@@ -479,3 +483,5 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
         }
     }
 }
+
+#endif // compiler(>=6.1)
