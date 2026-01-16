@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-01-16
+
+### Added
+- Subtitle mode for real-time transcription overlay during recording
+  - Customizable font size, opacity, position (top/bottom), and max lines
+  - Draggable subtitle position with position memory
+  - Toggle Subtitle Mode hotkey (`Ctrl + Option + S`)
+  - Auto-hide STT panel option when subtitle mode is active
+- SpeechAnalyzer support for macOS 26+ (no time limit, improved performance)
+- Gemini Live API real-time streaming transcription
+- OpenAI Realtime API streaming transcription
+
+### Changed
+- Menu bar panel now closes automatically when opening STT/TTS panels or Settings
+- Replaced NSPopover with NSPanel for menu bar (more reliable, immediate display)
+
+### Fixed
+- Quit TypeTalk now works with single click (was requiring double-click when panels open)
+- Subtitle panel dragging is now smooth (was jerky due to frequent state updates)
+- Position setting (top/bottom) now works correctly when custom position was set
+- Menu bar icon sometimes not responding to clicks (rewrote using NSPanel)
+
+### Internal
+- Modernized ClipboardService to use async/await instead of blocking Thread.sleep
+- Modernized StatusBarManager image tinting to use NSImage drawing handler instead of deprecated lockFocus/unlockFocus
+
 ## [0.1.4] - 2026-01-14
 
 ### Added

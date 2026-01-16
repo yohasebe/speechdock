@@ -24,44 +24,40 @@ final class ClipboardService {
 
     /// Copy text and paste it to the frontmost application
     /// Uses polling to verify clipboard update before pasting, with retry logic
-    func copyAndPaste(_ text: String) {
-        clipboardLock.lock()
-        defer { clipboardLock.unlock() }
+    func copyAndPaste(_ text: String) async {
+        // Perform clipboard operations synchronously on main thread
+        let success = await MainActor.run {
+            clipboardLock.lock()
+            defer { clipboardLock.unlock() }
 
-        let pasteboard = NSPasteboard.general
-        var success = false
+            let pasteboard = NSPasteboard.general
 
-        // Retry up to 3 times if clipboard gets modified unexpectedly
-        for attempt in 1...3 {
-            let previousChangeCount = pasteboard.changeCount
+            // Retry up to 3 times if clipboard gets modified unexpectedly
+            for attempt in 1...3 {
+                let previousChangeCount = pasteboard.changeCount
 
-            // Set the text to clipboard
-            pasteboard.clearContents()
-            pasteboard.setString(text, forType: .string)
+                // Set the text to clipboard
+                pasteboard.clearContents()
+                pasteboard.setString(text, forType: .string)
 
-            // Verify clipboard was updated
-            guard pasteboard.changeCount != previousChangeCount else {
-                #if DEBUG
-                print("ClipboardService: Failed to update clipboard (attempt \(attempt))")
-                #endif
-                Thread.sleep(forTimeInterval: 0.05)
-                continue
+                // Verify clipboard was updated
+                guard pasteboard.changeCount != previousChangeCount else {
+                    #if DEBUG
+                    print("ClipboardService: Failed to update clipboard (attempt \(attempt))")
+                    #endif
+                    continue
+                }
+
+                // Verify text is still what we set (no race condition)
+                if pasteboard.string(forType: .string) == text {
+                    return true
+                } else {
+                    #if DEBUG
+                    print("ClipboardService: Clipboard content changed unexpectedly (attempt \(attempt))")
+                    #endif
+                }
             }
-
-            // Wait a short time for the clipboard to stabilize
-            Thread.sleep(forTimeInterval: 0.05)
-
-            // Verify text is still what we set (no race condition)
-            if pasteboard.string(forType: .string) == text {
-                success = true
-                break
-            } else {
-                #if DEBUG
-                print("ClipboardService: Clipboard content changed unexpectedly (attempt \(attempt))")
-                #endif
-                // Wait before retrying
-                Thread.sleep(forTimeInterval: 0.05)
-            }
+            return false
         }
 
         guard success else {
@@ -71,8 +67,13 @@ final class ClipboardService {
             return
         }
 
+        // Short delay to allow clipboard to stabilize before pasting
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
         // Perform paste
-        pasteWithAppleScript()
+        await MainActor.run {
+            pasteWithAppleScript()
+        }
     }
 
     private func pasteWithAppleScript() {

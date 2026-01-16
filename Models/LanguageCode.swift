@@ -207,20 +207,15 @@ extension LanguageCode {
     static func supportsAutoDetection(for provider: RealtimeSTTProvider) -> Bool {
         switch provider {
         case .macOS:
-            return false  // macOS uses system locale, not auto-detection
+            return true  // Uses system locale when Auto is selected
         case .localWhisper, .openAI, .gemini, .elevenLabs:
             return true
         }
     }
 
     /// Get default language for a provider
+    /// All providers currently support Auto detection
     static func defaultLanguage(for provider: RealtimeSTTProvider) -> LanguageCode {
-        if supportsAutoDetection(for: provider) {
-            return .auto
-        } else {
-            // For macOS, return system language or English as fallback
-            let systemLanguage = Locale.current.language.languageCode?.identifier ?? "en"
-            return LanguageCode(rawValue: systemLanguage) ?? .english
-        }
+        return .auto
     }
 }

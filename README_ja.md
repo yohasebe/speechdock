@@ -20,11 +20,13 @@
 
 | プロバイダ | モデル | APIキー |
 |----------|--------|---------|
-| **macOS Native** | System Default | 不要 |
+| **macOS Native** | System Default（macOS 26+ではSpeechAnalyzer） | 不要 |
 | **Local Whisper** | Tiny, Base, Small, Medium, Large v2/v3, Large v3 Turbo | 不要 |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | 必要 |
 | **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | 必要 |
 | **ElevenLabs** | Scribe v2 Realtime | 必要 |
+
+**注意**: macOS 26+では、ネイティブSTTはAppleの新しいSpeechAnalyzerフレームワークを使用し、時間制限なしのリアルタイム文字起こしと高いパフォーマンスを提供します。
 
 ### 音声合成（TTS）
 
@@ -47,6 +49,17 @@
 4. 読み上げボタンを押してテキストを音声で再生
 
 macOS Vision Frameworkを使用してテキスト認識を行います。画面収録権限が必要です。
+
+### 字幕モード
+
+録音中にリアルタイム文字起こしを字幕オーバーレイとして表示します：
+
+- **画面上の字幕** - 画面上の任意の場所にフローティング字幕として文字起こしを表示
+- **カスタマイズ可能な外観** - フォントサイズ、透明度、位置（上/下）、最大行数を調整可能
+- **ドラッグ可能な位置** - 字幕を画面上の任意の位置にドラッグ可能
+- **パネル自動非表示** - 字幕モード有効時にSTTパネルを自動的に非表示にするオプション
+
+ホットキー（デフォルト: `Ctrl + Option + S`）またはSTTパネル/メニューバーから切り替えます。
 
 ### オーディオソース
 
@@ -134,6 +147,7 @@ TypeTalkには以下の権限が必要です：
 | 録音開始/停止（STT） | `Cmd + Shift + Space` |
 | 選択テキストを読み上げ（TTS） | `Ctrl + Option + T` |
 | OCR領域を読み上げ | `Ctrl + Option + Shift + O` |
+| 字幕モード切り替え | `Ctrl + Option + S` |
 
 ショートカットは **設定** > **Shortcuts** でカスタマイズできます。
 

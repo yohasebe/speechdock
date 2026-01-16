@@ -8,10 +8,16 @@ final class StatusBarManager: NSObject {
     static let shared = StatusBarManager()
 
     private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
+    private var panel: NSPanel?
+    private var hostingView: NSHostingView<AnyView>?
     private var cancellables = Set<AnyCancellable>()
     private var observationTask: Task<Void, Never>?
     private var animationTask: Task<Void, Never>?
+    private weak var appState: AppState?
+
+    /// Event monitor for clicks outside the panel
+    private var globalEventMonitor: Any?
+    private var localEventMonitor: Any?
 
     /// Animation phase for pulsing effect (0.0 to 1.0)
     private var animationPhase: Double = 0.0
@@ -23,6 +29,8 @@ final class StatusBarManager: NSObject {
     }
 
     func setup(appState: AppState) {
+        self.appState = appState
+
         // Create status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
@@ -31,22 +39,46 @@ final class StatusBarManager: NSObject {
 
         // Setup button action
         if let button = statusItem?.button {
-            button.action = #selector(togglePopover)
+            button.action = #selector(togglePanel)
             button.target = self
         }
 
-        // Create popover with SwiftUI content
-        popover = NSPopover()
-        popover?.contentSize = NSSize(width: 300, height: 400)
-        popover?.behavior = .transient
-        popover?.animates = true
-        popover?.contentViewController = NSHostingController(
-            rootView: MenuBarView().environment(appState)
-        )
+        // Create panel
+        createPanel(appState: appState)
 
         // Observe state changes using a periodic check
-        // (Observable macro doesn't work well with Combine directly)
         startObservingState(appState: appState)
+    }
+
+    private func createPanel(appState: AppState) {
+        // Create a borderless panel
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 500),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
+
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = .popUpMenu
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.isMovableByWindowBackground = false
+        panel.hidesOnDeactivate = false
+
+        // Create SwiftUI content with rounded background
+        let contentView = MenuBarPanelContainer {
+            MenuBarView().environment(appState)
+        }
+
+        let hostingView = NSHostingView(rootView: AnyView(contentView))
+        hostingView.frame = panel.contentView?.bounds ?? .zero
+        hostingView.autoresizingMask = [.width, .height]
+
+        panel.contentView = hostingView
+        self.hostingView = hostingView
+        self.panel = panel
     }
 
     private func startObservingState(appState: AppState) {
@@ -90,7 +122,6 @@ final class StatusBarManager: NSObject {
                 guard let self = self, self.isAnimating else { break }
 
                 // Update animation phase using sine wave for smooth pulsing
-                // Complete cycle every ~1.2 seconds (smoother, calmer pulse)
                 self.animationPhase += 0.08
                 if self.animationPhase > .pi * 2 {
                     self.animationPhase = 0
@@ -98,7 +129,7 @@ final class StatusBarManager: NSObject {
 
                 self.updateIcon(for: appState, animated: true)
 
-                // ~30fps animation (33ms between frames)
+                // ~30fps animation
                 try? await Task.sleep(nanoseconds: 33_000_000)
             }
         }
@@ -125,82 +156,184 @@ final class StatusBarManager: NSObject {
 
         // Load the template image
         guard let image = NSImage(named: "MenuBarIcon") else { return }
-        image.isTemplate = false // Disable template to allow custom colors
+        image.isTemplate = false
 
         // Determine the color based on state
         let color: NSColor
         if appState.isRecording {
-            // Recording: Pulsing red
             let pulseAlpha = animated ? 0.5 + 0.5 * sin(animationPhase) : 1.0
             color = NSColor.systemRed.withAlphaComponent(CGFloat(pulseAlpha))
         } else if appState.transcriptionState == .processing {
-            // Processing: Steady lighter red
             color = NSColor.systemRed.withAlphaComponent(0.6)
         } else if appState.ttsState == .speaking {
-            // Speaking: Pulsing blue
             let pulseAlpha = animated ? 0.5 + 0.5 * sin(animationPhase) : 1.0
             color = NSColor.systemBlue.withAlphaComponent(CGFloat(pulseAlpha))
         } else if appState.ttsState == .loading {
-            // Loading TTS: Steady lighter blue
             color = NSColor.systemBlue.withAlphaComponent(0.6)
         } else {
-            // Default: use template mode for system appearance
             image.isTemplate = true
             button.image = image
             return
         }
 
-        // Create tinted image
         let tintedImage = tintImage(image, with: color)
         button.image = tintedImage
     }
 
     private func tintImage(_ image: NSImage, with color: NSColor) -> NSImage {
         let size = image.size
-        let newImage = NSImage(size: size)
-
-        newImage.lockFocus()
-
-        // Draw the original image
-        image.draw(in: NSRect(origin: .zero, size: size),
-                   from: NSRect(origin: .zero, size: size),
-                   operation: .sourceOver,
-                   fraction: 1.0)
-
-        // Apply color tint
-        color.set()
-        NSRect(origin: .zero, size: size).fill(using: .sourceAtop)
-
-        newImage.unlockFocus()
-
+        let newImage = NSImage(size: size, flipped: false) { rect in
+            image.draw(in: rect,
+                       from: rect,
+                       operation: .sourceOver,
+                       fraction: 1.0)
+            color.set()
+            rect.fill(using: .sourceAtop)
+            return true
+        }
         newImage.isTemplate = false
         return newImage
     }
 
-    @objc private func togglePopover() {
-        guard let button = statusItem?.button, let popover = popover else { return }
+    // MARK: - Panel Toggle
 
-        if popover.isShown {
-            popover.performClose(nil)
+    @objc private func togglePanel() {
+        guard let panel = panel else { return }
+
+        if panel.isVisible {
+            closePanel()
         } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-
-            // Set the popover's window level to appear on top of other panels
-            if let popoverWindow = popover.contentViewController?.view.window {
-                popoverWindow.level = WindowLevelCoordinator.shared.nextPanelLevel()
-                popoverWindow.makeKey()
-            }
+            showPanel()
         }
     }
 
-    func closePopover() {
-        popover?.performClose(nil)
-        // Reset window level coordinator when popover is closed
+    private func showPanel() {
+        guard let panel = panel, let button = statusItem?.button else { return }
+
+        // Get the button's screen position
+        guard let buttonWindow = button.window else { return }
+        let buttonRect = button.convert(button.bounds, to: nil)
+        let screenRect = buttonWindow.convertToScreen(buttonRect)
+
+        // Position panel below the menu bar icon, centered
+        let panelWidth = panel.frame.width
+        let panelX = screenRect.midX - panelWidth / 2
+        let panelY = screenRect.minY - panel.frame.height - 4
+
+        panel.setFrameOrigin(NSPoint(x: panelX, y: panelY))
+        panel.makeKeyAndOrderFront(nil)
+
+        // Add event monitors to close when clicking outside
+        addEventMonitors()
+    }
+
+    func closePanel() {
+        panel?.orderOut(nil)
+        removeEventMonitors()
         WindowLevelCoordinator.shared.reset()
+    }
+
+    // Alias for compatibility
+    func closePopover() {
+        closePanel()
+    }
+
+    // MARK: - Event Monitors
+
+    private func addEventMonitors() {
+        // Monitor for clicks outside the panel (global)
+        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.closePanel()
+        }
+
+        // Monitor for clicks inside our app but outside the panel
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self = self, let panel = self.panel else { return event }
+
+            // Check if click is inside the panel
+            if let contentView = panel.contentView {
+                let locationInWindow = event.locationInWindow
+                let locationInPanel = contentView.convert(locationInWindow, from: nil)
+                if !contentView.bounds.contains(locationInPanel) {
+                    // Click is outside panel but inside app - close if not on status item
+                    if event.window != self.statusItem?.button?.window {
+                        self.closePanel()
+                    }
+                }
+            }
+            return event
+        }
+    }
+
+    private func removeEventMonitors() {
+        if let monitor = globalEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalEventMonitor = nil
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            localEventMonitor = nil
+        }
     }
 
     deinit {
         observationTask?.cancel()
         animationTask?.cancel()
+        // Clean up event monitors - must be done on main thread
+        let globalMonitor = globalEventMonitor
+        let localMonitor = localEventMonitor
+        if globalMonitor != nil || localMonitor != nil {
+            DispatchQueue.main.async {
+                if let monitor = globalMonitor {
+                    NSEvent.removeMonitor(monitor)
+                }
+                if let monitor = localMonitor {
+                    NSEvent.removeMonitor(monitor)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Panel Container View
+
+/// Container view for menu bar panel with rounded corners and shadow
+struct MenuBarPanelContainer<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .background(
+                MenuBarVisualEffectBlur(material: .popover, blendingMode: .behindWindow)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+    }
+}
+
+/// NSVisualEffectView wrapper for menu bar panel
+private struct MenuBarVisualEffectBlur: NSViewRepresentable {
+    var material: NSVisualEffectView.Material
+    var blendingMode: NSVisualEffectView.BlendingMode
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = blendingMode
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+        nsView.blendingMode = blendingMode
     }
 }

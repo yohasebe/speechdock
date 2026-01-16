@@ -20,11 +20,13 @@ Convert speech to text using:
 
 | Provider | Models | API Key |
 |----------|--------|---------|
-| **macOS Native** | System Default | Not required |
+| **macOS Native** | System Default (SpeechAnalyzer on macOS 26+) | Not required |
 | **Local Whisper** | Tiny, Base, Small, Medium, Large v2/v3, Large v3 Turbo | Not required |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | Required |
 | **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | Required |
 | **ElevenLabs** | Scribe v2 Realtime | Required |
+
+**Note**: On macOS 26+, the native STT uses Apple's new SpeechAnalyzer framework, providing real-time transcription without time limits and improved performance.
 
 ### Text-to-Speech (TTS)
 
@@ -47,6 +49,17 @@ Capture text from any region of your screen and convert it to speech:
 4. Press Speak to read the text aloud
 
 Uses macOS Vision Framework for text recognition. Requires Screen Recording permission.
+
+### Subtitle Mode
+
+Display real-time transcription as subtitles overlay during recording:
+
+- **On-screen subtitles** - Show transcription as floating subtitles anywhere on screen
+- **Customizable appearance** - Adjust font size, opacity, position (top/bottom), and max lines
+- **Draggable position** - Drag subtitles to any location on screen
+- **Auto-hide panel** - Optionally hide STT panel when subtitle mode is active
+
+Toggle with hotkey (`Ctrl + Option + S` by default) or from the STT panel/menu bar.
 
 ### Audio Sources
 
@@ -134,6 +147,7 @@ Grant permissions in **System Settings** > **Privacy & Security**. TypeTalk will
 | Start/Stop Recording (STT) | `Cmd + Shift + Space` |
 | Read Selected Text (TTS) | `Ctrl + Option + T` |
 | OCR Region to Speech | `Ctrl + Option + Shift + O` |
+| Toggle Subtitle Mode | `Ctrl + Option + S` |
 
 Shortcuts can be customized in **Settings** > **Shortcuts**.
 

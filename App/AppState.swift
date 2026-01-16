@@ -264,6 +264,110 @@ final class AppState {
         }
     }
 
+    // MARK: - Subtitle Mode Settings
+    /// Whether subtitle mode is enabled
+    var subtitleModeEnabled: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            updateSubtitleOverlay()
+            savePreferences()
+        }
+    }
+
+    /// Subtitle overlay position (top or bottom)
+    var subtitlePosition: SubtitlePosition = .bottom {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            // Clear custom position when user explicitly changes position setting
+            if subtitleUseCustomPosition {
+                subtitleUseCustomPosition = false
+            } else {
+                SubtitleOverlayManager.shared.updatePosition()
+            }
+            savePreferences()
+        }
+    }
+
+    /// Subtitle font size (18-48pt)
+    var subtitleFontSize: Double = 28.0 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Subtitle text opacity (0.0-1.0)
+    var subtitleOpacity: Double = 0.85 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Subtitle background opacity (0.0-1.0)
+    var subtitleBackgroundOpacity: Double = 0.5 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Maximum number of lines to display (2-6)
+    var subtitleMaxLines: Int = 3 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Whether to hide STT panel when subtitle mode is active
+    var subtitleHidePanelWhenActive: Bool = true {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Whether to use custom position instead of preset top/bottom
+    var subtitleUseCustomPosition: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            // Only update position if not during drag and not being set by manager
+            if !SubtitleOverlayManager.shared.isDragging {
+                SubtitleOverlayManager.shared.updatePosition()
+            }
+            savePreferences()
+        }
+    }
+
+    /// Set custom position flag without triggering updatePosition
+    /// Used by SubtitleOverlayManager during drag operations
+    func setCustomPositionFlag(_ value: Bool) {
+        guard subtitleUseCustomPosition != value else { return }
+        // Temporarily prevent the didSet from calling updatePosition
+        let wasLoading = isLoadingPreferences
+        isLoadingPreferences = true
+        subtitleUseCustomPosition = value
+        isLoadingPreferences = wasLoading
+        savePreferences()
+    }
+
+    /// Custom X position for subtitle overlay
+    var subtitleCustomX: Double = 0 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Custom Y position for subtitle overlay
+    var subtitleCustomY: Double = 0 {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
     // MARK: - Permission Status
     var hasMicrophonePermission: Bool = false
     var hasAccessibilityPermission: Bool = false
@@ -365,6 +469,30 @@ final class AppState {
         }
     }
 
+    // MARK: - Subtitle Mode
+
+    /// Toggle subtitle mode on/off
+    func toggleSubtitleMode() {
+        subtitleModeEnabled.toggle()
+    }
+
+    /// Update subtitle overlay visibility based on current state
+    private func updateSubtitleOverlay() {
+        if subtitleModeEnabled && isRecording {
+            SubtitleOverlayManager.shared.show(appState: self)
+            // Optionally hide STT panel
+            if subtitleHidePanelWhenActive {
+                floatingWindowManager.temporarilyHideWindow()
+            }
+        } else {
+            SubtitleOverlayManager.shared.hide()
+            // Show STT panel again if it was hidden
+            if subtitleHidePanelWhenActive && showFloatingWindow {
+                floatingWindowManager.bringToFront()
+            }
+        }
+    }
+
     /// Show STT panel without starting recording (user can then click record button)
     private func showSTTPanel() {
         guard !isProcessing else { return }
@@ -428,6 +556,14 @@ final class AppState {
                 if !showFloatingWindow {
                     showFloatingWindowWithState()
                 }
+
+                // Show subtitle overlay if enabled
+                if subtitleModeEnabled {
+                    SubtitleOverlayManager.shared.show(appState: self)
+                    if subtitleHidePanelWhenActive {
+                        floatingWindowManager.temporarilyHideWindow()
+                    }
+                }
             }
         }
     }
@@ -485,7 +621,8 @@ final class AppState {
         recordingStartTime = nil
 
         // Check if this provider does "record then transcribe" (needs processing state)
-        let needsProcessingState = [.gemini, .openAI, .localWhisper].contains(selectedRealtimeProvider)
+        // Note: Gemini and OpenAI now use realtime streaming, only localWhisper needs processing state
+        let needsProcessingState = [.localWhisper].contains(selectedRealtimeProvider)
 
         if needsProcessingState {
             // Set processing state - the delegate will update when transcription completes
@@ -511,6 +648,17 @@ final class AppState {
                 await systemAudioCaptureService.stopCapturing()
             }
         }
+
+        // Hide subtitle overlay and restore panel (deferred to avoid blocking)
+        let shouldRestorePanel = subtitleHidePanelWhenActive && showFloatingWindow
+        Task { @MainActor in
+            SubtitleOverlayManager.shared.hide()
+            if shouldRestorePanel {
+                // Small delay to let UI settle before bringing panel back
+                try? await Task.sleep(nanoseconds: 50_000_000)  // 50ms
+                floatingWindowManager.bringToFront()
+            }
+        }
     }
 
     /// Stop recording and immediately insert the text
@@ -526,6 +674,11 @@ final class AppState {
             Task {
                 await systemAudioCaptureService.stopCapturing()
             }
+        }
+
+        // Hide subtitle overlay asynchronously
+        Task { @MainActor in
+            SubtitleOverlayManager.shared.hide()
         }
 
         // Then hide window and paste
@@ -556,6 +709,11 @@ final class AppState {
             durationTimer?.invalidate()
             durationTimer = nil
             recordingStartTime = nil
+
+            // Hide subtitle overlay asynchronously
+            Task { @MainActor in
+                SubtitleOverlayManager.shared.hide()
+            }
 
             // Stop system audio capture if active
             if systemAudioCaptureService.isCapturing {
@@ -605,8 +763,9 @@ final class AppState {
 
             // Delay paste to allow window to close and focus to switch
             let delay = activated ? 0.4 : 0.3
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                ClipboardService.shared.copyAndPaste(processedText)
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                await ClipboardService.shared.copyAndPaste(processedText)
             }
         } else {
             // Keep panel open: paste and return focus to panel
@@ -617,11 +776,13 @@ final class AppState {
 
             // Delay paste to allow focus to switch
             let delay = activated ? 0.3 : 0.2
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                ClipboardService.shared.copyAndPaste(processedText)
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                await ClipboardService.shared.copyAndPaste(processedText)
 
                 // Bring panel back after paste completes
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                try? await Task.sleep(nanoseconds: 200_000_000) // 200ms
+                await MainActor.run {
                     self?.floatingWindowManager.bringToFront()
                 }
             }
@@ -671,16 +832,7 @@ final class AppState {
 
     /// Show TTS panel with text, respecting auto-speak setting
     func startTTSWithText(_ text: String) {
-        guard !text.isEmpty else {
-            #if DEBUG
-            print("TTS: Empty text, aborting")
-            #endif
-            return
-        }
-
-        #if DEBUG
-        print("TTS: startTTSWithText called, text length: \(text.count)")
-        #endif
+        guard !text.isEmpty else { return }
 
         // Show panel with text
         showTTSPanelWithText(text)
@@ -1070,6 +1222,39 @@ final class AppState {
             panelStyle = style
         }
 
+        // Subtitle mode settings
+        if UserDefaults.standard.object(forKey: "subtitleModeEnabled") != nil {
+            subtitleModeEnabled = UserDefaults.standard.bool(forKey: "subtitleModeEnabled")
+        }
+        if let subtitlePositionRaw = UserDefaults.standard.string(forKey: "subtitlePosition"),
+           let position = SubtitlePosition(rawValue: subtitlePositionRaw) {
+            subtitlePosition = position
+        }
+        if UserDefaults.standard.object(forKey: "subtitleFontSize") != nil {
+            subtitleFontSize = UserDefaults.standard.double(forKey: "subtitleFontSize")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleOpacity") != nil {
+            subtitleOpacity = UserDefaults.standard.double(forKey: "subtitleOpacity")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleBackgroundOpacity") != nil {
+            subtitleBackgroundOpacity = UserDefaults.standard.double(forKey: "subtitleBackgroundOpacity")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleMaxLines") != nil {
+            subtitleMaxLines = UserDefaults.standard.integer(forKey: "subtitleMaxLines")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleHidePanelWhenActive") != nil {
+            subtitleHidePanelWhenActive = UserDefaults.standard.bool(forKey: "subtitleHidePanelWhenActive")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleUseCustomPosition") != nil {
+            subtitleUseCustomPosition = UserDefaults.standard.bool(forKey: "subtitleUseCustomPosition")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleCustomX") != nil {
+            subtitleCustomX = UserDefaults.standard.double(forKey: "subtitleCustomX")
+        }
+        if UserDefaults.standard.object(forKey: "subtitleCustomY") != nil {
+            subtitleCustomY = UserDefaults.standard.double(forKey: "subtitleCustomY")
+        }
+
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
     }
@@ -1151,6 +1336,18 @@ final class AppState {
         // Panel style
         UserDefaults.standard.set(panelStyle.rawValue, forKey: "panelStyle")
 
+        // Subtitle mode settings
+        UserDefaults.standard.set(subtitleModeEnabled, forKey: "subtitleModeEnabled")
+        UserDefaults.standard.set(subtitlePosition.rawValue, forKey: "subtitlePosition")
+        UserDefaults.standard.set(subtitleFontSize, forKey: "subtitleFontSize")
+        UserDefaults.standard.set(subtitleOpacity, forKey: "subtitleOpacity")
+        UserDefaults.standard.set(subtitleBackgroundOpacity, forKey: "subtitleBackgroundOpacity")
+        UserDefaults.standard.set(subtitleMaxLines, forKey: "subtitleMaxLines")
+        UserDefaults.standard.set(subtitleHidePanelWhenActive, forKey: "subtitleHidePanelWhenActive")
+        UserDefaults.standard.set(subtitleUseCustomPosition, forKey: "subtitleUseCustomPosition")
+        UserDefaults.standard.set(subtitleCustomX, forKey: "subtitleCustomX")
+        UserDefaults.standard.set(subtitleCustomY, forKey: "subtitleCustomY")
+
         // Note: selectedAudioAppBundleID is not saved - it's session-only
     }
 }
@@ -1173,6 +1370,12 @@ extension AppState: HotKeyServiceDelegate {
     nonisolated func ocrHotKeyPressed() {
         Task { @MainActor in
             self.startOCR()
+        }
+    }
+
+    nonisolated func subtitleHotKeyPressed() {
+        Task { @MainActor in
+            self.toggleSubtitleMode()
         }
     }
 }

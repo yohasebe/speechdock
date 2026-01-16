@@ -68,29 +68,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
-    /// Intercept ⌘Q when STT/TTS panels are visible - close panel instead of quitting
+    /// Clean up and quit immediately when user requests termination
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // NSApplicationDelegate methods are called on the main thread
         // Use assumeIsolated to safely access @MainActor state synchronously
         return MainActor.assumeIsolated {
             let appState = AppState.shared
 
-            // Check if any floating panel is visible
+            // Clean up any active recordings
             if appState.floatingWindowManager.isVisible {
-                // Cancel recording if active and close the panel (synchronously)
                 appState.cancelRecording()
-                return .terminateCancel
             }
 
-            // Check if TTS is speaking
+            // Stop TTS if active
             if appState.ttsState == .speaking || appState.ttsState == .loading {
-                // Stop TTS and close any TTS panel (synchronously)
                 appState.stopTTS()
-                appState.floatingWindowManager.hideFloatingWindow()
-                return .terminateCancel
             }
 
-            // No panels visible, allow termination
+            // Close all panels
+            appState.floatingWindowManager.hideFloatingWindow()
+            SubtitleOverlayManager.shared.hide()
+
+            // Allow termination immediately
             return .terminateNow
         }
     }

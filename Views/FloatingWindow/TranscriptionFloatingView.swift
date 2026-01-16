@@ -25,6 +25,61 @@ struct ButtonLabelWithShortcut: View {
     }
 }
 
+/// Compact window selector button for action bar (triggers popover)
+struct CompactWindowSelectorButton: View {
+    @ObservedObject var floatingWindowManager: FloatingWindowManager
+    @Binding var isExpanded: Bool
+    let onToggle: () -> Void
+    @StateObject private var shortcutManager = ShortcutSettingsManager.shared
+
+    private var targetSelectShortcut: CustomShortcut {
+        shortcutManager.shortcut(for: .sttTargetSelect)
+    }
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.right.circle.fill")
+                    .foregroundColor(.accentColor)
+                    .font(.caption)
+
+                Text("Target:")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+
+                if let selected = floatingWindowManager.selectedWindow {
+                    if let appIcon = selected.appIcon {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 16)
+                    }
+                    Text(selected.displayName)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                } else {
+                    Text("None")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.green.opacity(0.2))
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .applyCustomShortcut(targetSelectShortcut)
+    }
+}
+
 /// Window selector button (dropdown trigger only)
 struct WindowSelectorButton: View {
     @ObservedObject var floatingWindowManager: FloatingWindowManager
@@ -545,6 +600,21 @@ struct TranscriptionFloatingView: View {
                 Text(headerText)
                     .font(.headline)
 
+                // Subtitle mode indicator
+                if appState.subtitleModeEnabled {
+                    HStack(spacing: 4) {
+                        Image(systemName: "captions.bubble.fill")
+                            .font(.system(size: 10))
+                        Text("Subtitle")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.8))
+                    .cornerRadius(4)
+                }
+
                 // Recording duration and audio level
                 if isRecording {
                     HStack(spacing: 8) {
@@ -564,18 +634,28 @@ struct TranscriptionFloatingView: View {
 
                 Spacer()
 
-                // Provider badge
-                HStack(spacing: 4) {
-                    Text("Provider:")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Text(appState.selectedRealtimeProvider.rawValue)
-                        .font(.caption2)
+                // Provider selector
+                STTProviderSelector(appState: appState)
+                    .disabled(isRecording)
+
+                // Language selector
+                STTLanguageSelector(appState: appState)
+                    .disabled(isRecording)
+
+                // Input selector
+                AudioInputSourceSelector(appState: appState)
+                    .disabled(appState.isRecording)
+
+                // Subtitle mode toggle
+                Button(action: {
+                    appState.toggleSubtitleMode()
+                }) {
+                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
+                        .font(.caption)
+                        .foregroundColor(appState.subtitleModeEnabled ? .accentColor : .secondary)
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color.accentColor.opacity(0.2))
-                .cornerRadius(4)
+                .buttonStyle(.plain)
+                .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -584,30 +664,8 @@ struct TranscriptionFloatingView: View {
                 }
             }
 
-            // Window selector button
-            WindowSelectorButton(
-                floatingWindowManager: appState.floatingWindowManager,
-                isExpanded: isWindowSelectorExpanded,
-                onToggle: {
-                    if !isWindowSelectorExpanded {
-                        appState.floatingWindowManager.refreshAvailableWindows()
-                        dropdownId = UUID()  // Force recreate dropdown
-                    }
-                    isWindowSelectorExpanded.toggle()
-                }
-            )
-
-            // Show dropdown OR text area (not both)
-            if isWindowSelectorExpanded {
-                // Dropdown list
-                WindowSelectorDropdown(
-                    floatingWindowManager: appState.floatingWindowManager,
-                    isExpanded: $isWindowSelectorExpanded
-                )
-                .id(dropdownId)  // Force recreate to reset state
-            } else {
-                // Text area with replacement highlighting
-                ScrollableTextView(
+            // Text area with replacement highlighting
+            ScrollableTextView(
                     text: $editedText,
                     isEditable: true,
                     highlightRange: nil,
@@ -666,36 +724,37 @@ struct TranscriptionFloatingView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                // Action buttons
-                actionButtons
-            }
+            // Action buttons
+            actionButtons
         }
         .padding(16)
-        .frame(minWidth: 720, idealWidth: 800, maxWidth: 1000)
+        .frame(minWidth: 820, idealWidth: 900, maxWidth: 1200)
         .background(panelBackground)
         .cornerRadius(panelCornerRadius)
         .onChange(of: appState.currentTranscription) { _, newValue in
+            // Only update editedText from transcription during recording
+            guard isRecording else { return }
+
             // Append new transcription to base text
             if baseText.isEmpty {
                 editedText = newValue
             } else if newValue.isEmpty {
-                // Keep existing text when transcription is cleared
                 editedText = baseText
             } else {
-                // Append with space separator
                 editedText = baseText + " " + newValue
             }
         }
         .onChange(of: isRecording) { _, newValue in
             if newValue {
-                // Save current text as base when recording starts
+                // Recording started - sync editedText to currentTranscription for subtitle panel
+                appState.currentTranscription = editedText
+                // Save current text as base
                 baseText = editedText.trimmingCharacters(in: .whitespaces)
-                // Start pulsing animation when recording starts
                 startBorderAnimation()
             } else {
-                // Update base text with current content when recording stops
-                // Animation stops automatically when the overlay view is removed
+                // Recording stopped
                 baseText = editedText.trimmingCharacters(in: .whitespaces)
+                appState.currentTranscription = editedText
             }
         }
         .onAppear {
@@ -770,14 +829,52 @@ struct TranscriptionFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
-            // Audio input source selector on the left (disabled during recording)
-            AudioInputSourceSelector(appState: appState)
-                .disabled(appState.isRecording)
+            // Paste Target selector on the left
+            CompactWindowSelectorButton(
+                floatingWindowManager: appState.floatingWindowManager,
+                isExpanded: $isWindowSelectorExpanded,
+                onToggle: {
+                    if !isWindowSelectorExpanded {
+                        appState.floatingWindowManager.refreshAvailableWindows()
+                        dropdownId = UUID()
+                    }
+                    isWindowSelectorExpanded.toggle()
+                }
+            )
+            .popover(isPresented: $isWindowSelectorExpanded) {
+                WindowSelectorDropdown(
+                    floatingWindowManager: appState.floatingWindowManager,
+                    isExpanded: $isWindowSelectorExpanded
+                )
+                .id(dropdownId)
+                .frame(width: 500, height: 400)
+                .padding()
+            }
+
+            // Paste button next to Target selector
+            if case .recording = appState.transcriptionState {
+                if !editedText.isEmpty {
+                    Button {
+                        AppState.shared.stopRecordingAndInsert(editedText)
+                    } label: {
+                        ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
+                    }
+                    .applyCustomShortcut(pasteShortcut)
+                }
+            } else {
+                Button {
+                    onConfirm(editedText)
+                } label: {
+                    ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
+                }
+                .applyCustomShortcut(pasteShortcut)
+                .disabled(editedText.isEmpty)
+            }
 
             Spacer()
 
             if case .recording = appState.transcriptionState {
-                // Recording state: Stop, Copy, and Paste buttons (Save not available while recording)
+                // Recording state: Stop and Copy buttons
                 Button {
                     AppState.shared.toggleRecording()
                 } label: {
@@ -797,16 +894,9 @@ struct TranscriptionFloatingView: View {
                         )
                     }
                     .keyboardShortcut("c", modifiers: [.command, .shift])
-
-                    Button {
-                        AppState.shared.stopRecordingAndInsert(editedText)
-                    } label: {
-                        ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
-                    }
-                    .applyCustomShortcut(pasteShortcut)
                 }
             } else {
-                // Not recording: Record, Save, Copy, and Paste buttons
+                // Not recording: Record, Save, and Copy buttons
                 Button {
                     startRecordingWithAppend()
                 } label: {
@@ -833,14 +923,6 @@ struct TranscriptionFloatingView: View {
                     )
                 }
                 .keyboardShortcut("c", modifiers: [.command, .shift])
-                .disabled(editedText.isEmpty)
-
-                Button {
-                    onConfirm(editedText)
-                } label: {
-                    ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
-                }
-                .applyCustomShortcut(pasteShortcut)
                 .disabled(editedText.isEmpty)
             }
         }
@@ -944,6 +1026,7 @@ struct AudioInputSourceSelector: View {
                 .fixedSize()
             inputMenu
         }
+        .fixedSize()
     }
 
     private var inputMenu: some View {
@@ -1047,11 +1130,9 @@ struct AudioInputSourceSelector: View {
                 Text(currentLabel)
                     .font(.caption2)
                     .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
             .background(sourceBackgroundColor)
             .cornerRadius(4)
         }
@@ -1104,5 +1185,118 @@ struct VisualEffectBlur: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
+    }
+}
+
+/// Compact STT provider selector for panel header
+struct STTProviderSelector: View {
+    var appState: AppState
+
+    private var availableProviders: [RealtimeSTTProvider] {
+        RealtimeSTTProvider.allCases.filter { provider in
+            !provider.requiresAPIKey || hasAPIKey(for: provider)
+        }
+    }
+
+    private func hasAPIKey(for provider: RealtimeSTTProvider) -> Bool {
+        switch provider {
+        case .openAI:
+            return appState.apiKeyManager.hasAPIKey(for: .openAI)
+        case .gemini:
+            return appState.apiKeyManager.hasAPIKey(for: .gemini)
+        case .elevenLabs:
+            return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .macOS, .localWhisper:
+            return true
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Provider:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize()
+            Menu {
+                ForEach(availableProviders, id: \.rawValue) { provider in
+                    Button(action: {
+                        appState.selectedRealtimeProvider = provider
+                    }) {
+                        HStack {
+                            Text(provider.rawValue)
+                            if appState.selectedRealtimeProvider == provider {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Text(appState.selectedRealtimeProvider.rawValue)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .fixedSize()
+    }
+}
+
+/// Compact STT language selector for panel header
+struct STTLanguageSelector: View {
+    var appState: AppState
+
+    private var availableLanguages: [LanguageCode] {
+        LanguageCode.supportedLanguages(for: appState.selectedRealtimeProvider)
+    }
+
+    private var currentLanguageDisplay: String {
+        if appState.selectedSTTLanguage.isEmpty {
+            return "Auto"
+        }
+        if let lang = LanguageCode(rawValue: appState.selectedSTTLanguage) {
+            return lang.displayName
+        }
+        return "Auto"
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Language:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize()
+            Menu {
+                ForEach(availableLanguages, id: \.rawValue) { lang in
+                    Button(action: {
+                        appState.selectedSTTLanguage = lang.rawValue
+                    }) {
+                        HStack {
+                            Text(lang.displayName)
+                            if appState.selectedSTTLanguage == lang.rawValue {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Text(currentLanguageDisplay)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.purple.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .fixedSize()
     }
 }

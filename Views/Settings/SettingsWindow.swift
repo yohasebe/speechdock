@@ -129,6 +129,13 @@ struct GeneralSettingsView: View {
                 Text("Appearance")
             }
 
+            // Subtitle Mode Section
+            Section {
+                SubtitleModeSettings(appState: appState)
+            } header: {
+                Text("Subtitle Mode")
+            }
+
             // Startup Section
             Section {
                 LaunchAtLoginToggle()
@@ -188,6 +195,7 @@ struct ShortcutSettingsView: View {
     @State private var sttKeyCombo: KeyCombo = .sttDefault
     @State private var ttsKeyCombo: KeyCombo = .ttsDefault
     @State private var ocrKeyCombo: KeyCombo = .ocrDefault
+    @State private var subtitleKeyCombo: KeyCombo = .subtitleDefault
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     var body: some View {
@@ -207,6 +215,11 @@ struct ShortcutSettingsView: View {
                     ShortcutRecorderView(title: "OCR Region to TTS", keyCombo: $ocrKeyCombo)
                         .onChange(of: ocrKeyCombo) { _, newValue in
                             appState.hotKeyService?.ocrKeyCombo = newValue
+                        }
+
+                    ShortcutRecorderView(title: "Toggle Subtitle Mode", keyCombo: $subtitleKeyCombo)
+                        .onChange(of: subtitleKeyCombo) { _, newValue in
+                            appState.hotKeyService?.subtitleKeyCombo = newValue
                         }
                 } header: {
                     Text("Global Hotkeys")
@@ -247,9 +260,11 @@ struct ShortcutSettingsView: View {
                         sttKeyCombo = .sttDefault
                         ttsKeyCombo = .ttsDefault
                         ocrKeyCombo = .ocrDefault
+                        subtitleKeyCombo = .subtitleDefault
                         appState.hotKeyService?.sttKeyCombo = .sttDefault
                         appState.hotKeyService?.ttsKeyCombo = .ttsDefault
                         appState.hotKeyService?.ocrKeyCombo = .ocrDefault
+                        appState.hotKeyService?.subtitleKeyCombo = .subtitleDefault
                     }
 
                     Button("Reset Panel Shortcuts") {
@@ -266,6 +281,7 @@ struct ShortcutSettingsView: View {
                 sttKeyCombo = service.sttKeyCombo
                 ttsKeyCombo = service.ttsKeyCombo
                 ocrKeyCombo = service.ocrKeyCombo
+                subtitleKeyCombo = service.subtitleKeyCombo
             }
         }
     }
@@ -1232,5 +1248,132 @@ struct PanelAppearanceSettings: View {
         Text("Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time.")
             .font(.caption2)
             .foregroundColor(.secondary)
+    }
+}
+
+/// Subtitle Mode settings
+struct SubtitleModeSettings: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Enable/Disable toggle
+            Toggle(isOn: $appState.subtitleModeEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Enable Subtitle Mode")
+                    Text("Display real-time transcription as subtitles during recording.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Position picker
+            Picker("Position", selection: $appState.subtitlePosition) {
+                ForEach(SubtitlePosition.allCases) { position in
+                    Text(position.displayName).tag(position)
+                }
+            }
+
+            // Font size slider
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Font Size")
+                    Spacer()
+                    Text("\(Int(appState.subtitleFontSize)) pt")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+
+                HStack(spacing: 8) {
+                    Slider(
+                        value: $appState.subtitleFontSize,
+                        in: 18...48,
+                        step: 2
+                    ) {
+                        EmptyView()
+                    } minimumValueLabel: {
+                        Text("A")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    } maximumValueLabel: {
+                        Text("A")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Button("Reset") {
+                        appState.subtitleFontSize = 28.0
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                }
+            }
+
+            // Text opacity slider
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Text Opacity")
+                    Spacer()
+                    Text("\(Int(appState.subtitleOpacity * 100))%")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+
+                Slider(
+                    value: $appState.subtitleOpacity,
+                    in: 0.3...1.0,
+                    step: 0.05
+                )
+            }
+
+            // Background opacity slider
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Background Opacity")
+                    Spacer()
+                    Text("\(Int(appState.subtitleBackgroundOpacity * 100))%")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+
+                Slider(
+                    value: $appState.subtitleBackgroundOpacity,
+                    in: 0.1...0.9,
+                    step: 0.05
+                )
+            }
+
+            // Max lines picker
+            Picker("Max Lines", selection: $appState.subtitleMaxLines) {
+                ForEach(2...6, id: \.self) { lines in
+                    Text("\(lines) lines").tag(lines)
+                }
+            }
+
+            // Hide panel when active toggle
+            Toggle(isOn: $appState.subtitleHidePanelWhenActive) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hide STT Panel when active")
+                    Text("Temporarily hide the STT panel when subtitle mode is active.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Reset all button
+            HStack {
+                Spacer()
+                Button("Reset to Defaults") {
+                    appState.subtitleModeEnabled = false
+                    appState.subtitlePosition = .bottom
+                    appState.subtitleFontSize = 28.0
+                    appState.subtitleOpacity = 0.85
+                    appState.subtitleBackgroundOpacity = 0.5
+                    appState.subtitleMaxLines = 3
+                    appState.subtitleHidePanelWhenActive = true
+                }
+                .font(.caption)
+            }
+        }
     }
 }

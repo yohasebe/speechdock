@@ -211,14 +211,21 @@ struct TTSFloatingView: View {
                     .font(.headline)
                 Spacer()
 
-                // Provider badge
-                infoBadge(label: "Provider", value: appState.selectedTTSProvider.rawValue)
+                // Provider selector
+                TTSProviderSelector(appState: appState)
+                    .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
 
-                // Voice badge
-                infoBadge(label: "Voice", value: currentVoiceName)
+                // Voice selector
+                TTSVoiceSelector(appState: appState)
+                    .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
 
-                // Speed badge
-                infoBadge(label: "Speed", value: String(format: "%.1fx", appState.selectedTTSSpeed))
+                // Speed selector
+                TTSSpeedSelector(appState: appState)
+                    .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
+
+                // Output selector
+                TTSAudioOutputSelector(appState: appState)
+                    .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
             }
 
             // Content area - always editable TextEditor
@@ -228,7 +235,7 @@ struct TTSFloatingView: View {
             actionButtons
         }
         .padding(16)
-        .frame(minWidth: 720, idealWidth: 800, maxWidth: 1000)
+        .frame(minWidth: 820, idealWidth: 900, maxWidth: 1200)
         .background(panelBackground)
         .cornerRadius(panelCornerRadius)
         .onAppear {
@@ -300,39 +307,9 @@ struct TTSFloatingView: View {
         }
     }
 
-    /// Get the display name for the current voice
-    private var currentVoiceName: String {
-        let service = TTSFactory.makeService(for: appState.selectedTTSProvider)
-        let voices = service.availableVoices()
-        if let voice = voices.first(where: { $0.id == appState.selectedTTSVoice }) {
-            return voice.name
-        }
-        return appState.selectedTTSVoice.isEmpty ? "Auto" : appState.selectedTTSVoice
-    }
-
-    /// Info badge view for displaying provider, voice, speed
-    private func infoBadge(label: String, value: String) -> some View {
-        HStack(spacing: 4) {
-            Text("\(label):")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.caption2)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Color.accentColor.opacity(0.2))
-        .cornerRadius(4)
-    }
-
     @ViewBuilder
     private var contentArea: some View {
         VStack(spacing: 8) {
-            // Loading banner (displayed above text area)
-            if case .loading = appState.ttsState {
-                TTSLoadingBanner()
-            }
-
             // Error banner (displayed above text area)
             if case .error(let message) = appState.ttsState {
                 HStack(spacing: 8) {
@@ -350,7 +327,7 @@ struct TTSFloatingView: View {
                 .cornerRadius(8)
             }
 
-            // Custom scrollable text view
+            // Custom scrollable text view with loading overlay
             ScrollableTextView(
                 text: $editableText,
                 isEditable: !isEditorDisabled,
@@ -360,6 +337,14 @@ struct TTSFloatingView: View {
             )
             .cornerRadius(8)
             .overlay(textAreaBorder)
+            .overlay(
+                // Loading overlay (matches STT style)
+                Group {
+                    if case .loading = appState.ttsState {
+                        TTSLoadingIndicator()
+                    }
+                }
+            )
             .frame(minHeight: 200, maxHeight: 400)
             .opacity(isEditorDisabled ? 0.85 : 1.0)
         }
@@ -367,10 +352,6 @@ struct TTSFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
-            // Audio output selector on the left (disabled during playback)
-            TTSAudioOutputSelector(appState: appState)
-                .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
-
             Spacer()
 
             switch appState.ttsState {
@@ -487,41 +468,32 @@ struct TTSPulsingWaveformIcon: View {
     }
 }
 
-/// Animated loading banner for TTS audio generation (displayed above text area)
-struct TTSLoadingBanner: View {
+/// Animated loading indicator for TTS audio generation (overlay style, matches STT)
+struct TTSLoadingIndicator: View {
     @State private var animationPhase: Double = 0
 
     private let barCount = 5
     private let barWidth: CGFloat = 3
-    private let barSpacing: CGFloat = 2
-    private let minHeight: CGFloat = 6
-    private let maxHeight: CGFloat = 16
+    private let barSpacing: CGFloat = 4
+    private let minHeight: CGFloat = 8
+    private let maxHeight: CGFloat = 25
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Animated waveform bars
+        VStack(spacing: 6) {
+            // Animated waveform bars (blue color for loading)
             HStack(spacing: barSpacing) {
                 ForEach(0..<barCount, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(Color.blue.opacity(0.8))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.blue.opacity(0.7))
                         .frame(width: barWidth, height: barHeight(for: index))
                 }
             }
             .frame(height: maxHeight)
 
             Text("Generating audio...")
-                .font(.caption)
                 .foregroundColor(.secondary)
-
-            Spacer()
-
-            ProgressView()
-                .scaleEffect(0.7)
+                .font(.caption)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.blue.opacity(0.1))
-        .cornerRadius(8)
         .onAppear {
             startAnimation()
         }
@@ -566,8 +538,10 @@ struct TTSAudioOutputSelector: View {
             Text("Output:")
                 .font(.caption2)
                 .foregroundColor(.secondary)
+                .fixedSize()
             outputMenu
         }
+        .fixedSize()
         .onAppear {
             loadDevices()
         }
@@ -600,11 +574,9 @@ struct TTSAudioOutputSelector: View {
                 Text(currentName)
                     .font(.caption2)
                     .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
             .background(Color.accentColor.opacity(0.2))
             .cornerRadius(4)
         }
@@ -620,5 +592,186 @@ struct TTSAudioOutputSelector: View {
            !availableDevices.contains(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
             appState.selectedAudioOutputDeviceUID = ""
         }
+    }
+}
+
+/// Compact TTS provider selector for panel header
+struct TTSProviderSelector: View {
+    var appState: AppState
+
+    private var availableProviders: [TTSProvider] {
+        TTSProvider.allCases.filter { provider in
+            !provider.requiresAPIKey || hasAPIKey(for: provider)
+        }
+    }
+
+    private func hasAPIKey(for provider: TTSProvider) -> Bool {
+        switch provider {
+        case .openAI:
+            return appState.apiKeyManager.hasAPIKey(for: .openAI)
+        case .gemini:
+            return appState.apiKeyManager.hasAPIKey(for: .gemini)
+        case .elevenLabs:
+            return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .macOS:
+            return true
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Provider:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize()
+            Menu {
+                ForEach(availableProviders, id: \.rawValue) { provider in
+                    Button(action: {
+                        appState.selectedTTSProvider = provider
+                    }) {
+                        HStack {
+                            Text(provider.rawValue)
+                            if appState.selectedTTSProvider == provider {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Text(appState.selectedTTSProvider.rawValue)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .fixedSize()
+    }
+}
+
+/// Compact TTS voice selector for panel header
+struct TTSVoiceSelector: View {
+    var appState: AppState
+    @State private var availableVoices: [TTSVoice] = []
+
+    private var currentVoiceName: String {
+        if let voice = availableVoices.first(where: { $0.id == appState.selectedTTSVoice }) {
+            return voice.name
+        }
+        return appState.selectedTTSVoice.isEmpty ? "Auto" : appState.selectedTTSVoice
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Voice:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize()
+            Menu {
+                ForEach(availableVoices) { voice in
+                    Button(action: {
+                        appState.selectedTTSVoice = voice.id
+                    }) {
+                        HStack {
+                            Text(voice.name)
+                            if appState.selectedTTSVoice == voice.id {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Text(currentVoiceName)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .fixedSize()
+        .onAppear {
+            loadVoices()
+        }
+        .onChange(of: appState.selectedTTSProvider) { _, _ in
+            loadVoices()
+        }
+    }
+
+    private func loadVoices() {
+        let service = TTSFactory.makeService(for: appState.selectedTTSProvider)
+        availableVoices = service.availableVoices()
+
+        // If current voice is not in the list, select the default or first voice
+        if !availableVoices.contains(where: { $0.id == appState.selectedTTSVoice }) {
+            if let defaultVoice = availableVoices.first(where: { $0.isDefault }) {
+                appState.selectedTTSVoice = defaultVoice.id
+            } else if let firstVoice = availableVoices.first {
+                appState.selectedTTSVoice = firstVoice.id
+            }
+        }
+    }
+}
+
+/// Compact TTS speed selector for panel header
+struct TTSSpeedSelector: View {
+    var appState: AppState
+
+    private var speedOptions: [Double] {
+        [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+    }
+
+    private var supportsSpeed: Bool {
+        if appState.selectedTTSProvider == .openAI {
+            let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
+            return model != "gpt-4o-mini-tts"
+        }
+        return true
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Speed:")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize()
+            Menu {
+                ForEach(speedOptions, id: \.self) { speed in
+                    Button(action: {
+                        appState.selectedTTSSpeed = speed
+                    }) {
+                        HStack {
+                            Text(String(format: "%.2fx", speed))
+                            if abs(appState.selectedTTSSpeed - speed) < 0.01 {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Text(supportsSpeed ? String(format: "%.1fx", appState.selectedTTSSpeed) : "N/A")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(!supportsSpeed)
+        }
+        .fixedSize()
     }
 }

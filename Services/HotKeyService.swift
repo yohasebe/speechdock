@@ -8,12 +8,14 @@ protocol HotKeyServiceDelegate: AnyObject {
     func hotKeyPressed()
     func ttsHotKeyPressed()
     func ocrHotKeyPressed()
+    func subtitleHotKeyPressed()
 }
 
 final class HotKeyService {
     private var sttHotKey: HotKey?
     private var ttsHotKey: HotKey?
     private var ocrHotKey: HotKey?
+    private var subtitleHotKey: HotKey?
     private var isLoadingShortcuts = false
 
     weak var delegate: HotKeyServiceDelegate?
@@ -42,11 +44,20 @@ final class HotKeyService {
         }
     }
 
+    var subtitleKeyCombo: KeyCombo {
+        didSet {
+            guard !isLoadingShortcuts else { return }
+            saveShortcuts()
+            registerSubtitleHotKey()
+        }
+    }
+
     init() {
         // Load saved shortcuts or use defaults
         self.sttKeyCombo = KeyCombo.sttDefault
         self.ttsKeyCombo = KeyCombo.ttsDefault
         self.ocrKeyCombo = KeyCombo.ocrDefault
+        self.subtitleKeyCombo = KeyCombo.subtitleDefault
         loadShortcuts()
     }
 
@@ -92,16 +103,32 @@ final class HotKeyService {
         }
     }
 
+    func registerSubtitleHotKey() {
+        // Remove existing hotkey
+        subtitleHotKey = nil
+
+        // Create new hotkey
+        subtitleHotKey = HotKey(key: subtitleKeyCombo.key, modifiers: subtitleKeyCombo.modifiers)
+        logger.info("Subtitle HotKey registered: \(self.subtitleKeyCombo.displayString)")
+
+        subtitleHotKey?.keyDownHandler = { [weak self] in
+            logger.info("Subtitle HotKey pressed!")
+            self?.delegate?.subtitleHotKeyPressed()
+        }
+    }
+
     func registerAllHotKeys() {
         registerHotKey()
         registerTTSHotKey()
         registerOCRHotKey()
+        registerSubtitleHotKey()
     }
 
     func unregisterAllHotKeys() {
         sttHotKey = nil
         ttsHotKey = nil
         ocrHotKey = nil
+        subtitleHotKey = nil
     }
 
     // MARK: - Persistence
@@ -132,6 +159,13 @@ final class HotKeyService {
            let key = Key(carbonKeyCode: ocrKeyCode) {
             ocrKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: ocrModifiers))
         }
+
+        // Load Subtitle shortcut
+        if let subtitleKeyCode = defaults.object(forKey: "subtitleKeyCode") as? UInt32,
+           let subtitleModifiers = defaults.object(forKey: "subtitleModifiers") as? UInt,
+           let key = Key(carbonKeyCode: subtitleKeyCode) {
+            subtitleKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: subtitleModifiers))
+        }
     }
 
     private func saveShortcuts() {
@@ -148,6 +182,10 @@ final class HotKeyService {
         // Save OCR shortcut
         defaults.set(ocrKeyCombo.key.carbonKeyCode, forKey: "ocrKeyCode")
         defaults.set(ocrKeyCombo.modifiers.rawValue, forKey: "ocrModifiers")
+
+        // Save Subtitle shortcut
+        defaults.set(subtitleKeyCombo.key.carbonKeyCode, forKey: "subtitleKeyCode")
+        defaults.set(subtitleKeyCombo.modifiers.rawValue, forKey: "subtitleModifiers")
     }
 }
 
@@ -184,6 +222,7 @@ struct KeyCombo: Equatable {
     static let sttDefault = KeyCombo(key: .space, modifiers: [.command, .shift])
     static let ttsDefault = KeyCombo(key: .t, modifiers: [.control, .option])
     static let ocrDefault = KeyCombo(key: .o, modifiers: [.control, .option, .shift])
+    static let subtitleDefault = KeyCombo(key: .s, modifiers: [.control, .option])
 }
 
 // MARK: - Shortcut Recorder View

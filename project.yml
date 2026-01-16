@@ -35,7 +35,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.typetalk.app
         PRODUCT_NAME: TypeTalk
-        MARKETING_VERSION: "0.1.6"
+        MARKETING_VERSION: "0.1.8"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/TypeTalk.entitlements

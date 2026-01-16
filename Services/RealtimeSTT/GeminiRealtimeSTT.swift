@@ -1,41 +1,49 @@
 import Foundation
 @preconcurrency import AVFoundation
 
-/// Google Gemini API for speech-to-text (record then transcribe)
+/// Google Gemini Live API for true streaming speech-to-text via WebSocket
 @MainActor
 final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "gemini-2.5-flash"
+    var selectedModel: String = "gemini-2.5-flash-native-audio-preview-12-2025"
     var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
 
-    private var audioEngine: AVAudioEngine?
-
-    // Audio buffer (no max limit - record until stop)
-    private var audioBuffer: [Float] = []
-    private let bufferLock = NSLock()
-
-    // VAD for auto-stop
-    private let vadService = VADService.shared
-    private var vadBuffer: [Float] = []
-    private let vadChunkSize = 4096  // 256ms at 16kHz
-    private var silenceStartTime: Date?
-    private var recordingStartTime: Date?
-
-    // VAD auto-stop settings (configurable via AppState)
+    // VAD auto-stop settings (Gemini has built-in VAD)
     var vadMinimumRecordingTime: TimeInterval = 10.0
     var vadSilenceDuration: TimeInterval = 3.0
+
+    private var audioEngine: AVAudioEngine?
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var urlSession: URLSession?
+
+    private let apiKeyManager = APIKeyManager.shared
+    // Gemini Live API uses 16kHz audio
+    private let sampleRate: Double = 16000
+
+    // Audio format converter for resampling
+    private var audioConverter: AVAudioConverter?
+    private var outputFormat: AVAudioFormat?
+
+    // Accumulated transcription text
+    private var accumulatedText: String = ""
 
     // Audio level monitoring
     private let audioLevelMonitor = AudioLevelMonitor.shared
 
-    private let apiKeyManager = APIKeyManager.shared
-    private let sampleRate: Double = 16000
+    // Pre-buffer for initial audio (before WebSocket is ready)
+    private var preBuffer: [Data] = []
+    private var isPreBuffering = true
+    private let preBufferLock = NSLock()
+
+    // Connection state
+    private var isSetupComplete = false
+    private var isWebSocketConnected = false
 
     func startListening() async throws {
-        guard apiKeyManager.getAPIKey(for: .gemini) != nil else {
+        guard let apiKey = apiKeyManager.getAPIKey(for: .gemini) else {
             throw RealtimeSTTError.apiError("Gemini API key not found")
         }
 
@@ -43,116 +51,303 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         stopListening()
 
         // Reset state
-        bufferLock.lock()
-        audioBuffer.removeAll()
-        vadBuffer.removeAll()
-        bufferLock.unlock()
-        silenceStartTime = nil
-        recordingStartTime = Date()
-        vadService.reset()
-        audioLevelMonitor.start()
+        accumulatedText = ""
+        isSetupComplete = false
+        isWebSocketConnected = false
+        preBufferLock.lock()
+        preBuffer.removeAll()
+        isPreBuffering = true
+        preBufferLock.unlock()
 
-        // Start audio capture FIRST for immediate response
+        // Start audio capture FIRST to avoid missing initial audio
         if audioSource == .microphone {
             try await startAudioCapture()
+        } else {
+            // For external source, prepare the output format
+            outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: true)
         }
 
         isListening = true
+        audioLevelMonitor.start()
         delegate?.realtimeSTT(self, didChangeListeningState: true)
 
-        // Initialize VAD in background (non-blocking)
-        Task {
-            do {
-                try await vadService.initialize()
-            } catch {
-                #if DEBUG
-                print("GeminiRealtimeSTT: VAD initialization failed: \(error)")
-                #endif
-            }
+        do {
+            // Connect WebSocket (audio is being pre-buffered meanwhile)
+            try await connectWebSocket(apiKey: apiKey)
+
+            // Send setup message
+            try await sendSetupMessage()
+
+            // Wait for setup complete
+            try await Task.sleep(nanoseconds: 300_000_000)  // 0.3 seconds
+
+            // Flush pre-buffered audio
+            await flushPreBuffer()
+        } catch {
+            // Clean up on error
+            #if DEBUG
+            print("GeminiRealtimeSTT: startListening failed: \(error)")
+            #endif
+            stopListening()
+            throw error
         }
     }
 
     func stopListening() {
-        let wasListening = isListening
-        isListening = false
+        #if DEBUG
+        print("GeminiRealtimeSTT: stopListening called, isListening=\(isListening)")
+        #endif
 
+        // Stop audio engine
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
+        audioConverter = nil
+        outputFormat = nil
         audioLevelMonitor.stop()
 
-        if wasListening {
-            // Transcribe the recorded audio
-            Task {
-                await transcribeRecordedAudio()
-            }
+        // Clear pre-buffer
+        preBufferLock.lock()
+        preBuffer.removeAll()
+        isPreBuffering = false
+        preBufferLock.unlock()
+
+        // Close WebSocket
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
+        isWebSocketConnected = false
+
+        // Send final result if there's any text
+        if !accumulatedText.isEmpty {
+            delegate?.realtimeSTT(self, didReceiveFinalResult: accumulatedText)
+        }
+
+        if isListening {
+            isListening = false
             delegate?.realtimeSTT(self, didChangeListeningState: false)
         }
+
+        isSetupComplete = false
+
+        #if DEBUG
+        print("GeminiRealtimeSTT: stopListening completed")
+        #endif
     }
 
+    /// Process audio buffer from external source
     func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
         guard audioSource == .external, isListening else { return }
-        appendToBuffer(buffer)
-    }
-
-    private func appendToBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData else { return }
-        let frameLength = Int(buffer.frameLength)
-        let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
-
-        bufferLock.lock()
-        audioBuffer.append(contentsOf: samples)
-        vadBuffer.append(contentsOf: samples)
-        bufferLock.unlock()
 
         // Update audio level monitor
-        audioLevelMonitor.updateLevel(from: samples)
+        if let channelData = buffer.floatChannelData {
+            let frameLength = Int(buffer.frameLength)
+            let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+            audioLevelMonitor.updateLevel(from: samples)
+        }
 
-        // Process VAD for auto-stop
-        Task {
-            await processVADForAutoStop()
+        sendAudioBuffer(buffer)
+    }
+
+    func availableModels() -> [RealtimeSTTModelInfo] {
+        [
+            RealtimeSTTModelInfo(id: "gemini-2.5-flash-native-audio-preview-12-2025", name: "Gemini 2.5 Flash Native Audio", description: "Native audio with transcription support", isDefault: true),
+            RealtimeSTTModelInfo(id: "gemini-2.0-flash-live-001", name: "Gemini 2.0 Flash Live", description: "Fast streaming (limited transcription)")
+        ]
+    }
+
+    // MARK: - WebSocket Connection
+
+    private func connectWebSocket(apiKey: String) async throws {
+        // Gemini Live API WebSocket endpoint (using v1beta)
+        guard let url = URL(string: "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=\(apiKey)") else {
+            throw RealtimeSTTError.apiError("Invalid WebSocket URL")
+        }
+
+        #if DEBUG
+        print("GeminiRealtimeSTT: Connecting to WebSocket...")
+        #endif
+
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
+
+        // Use OperationQueue.main for delegate callbacks to avoid threading issues
+        let session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
+        urlSession = session
+
+        let task = session.webSocketTask(with: url)
+        webSocketTask = task
+        task.resume()
+
+        // Start receiving messages
+        startReceivingMessages()
+
+        // Wait for connection with timeout
+        let startTime = Date()
+        let timeout: TimeInterval = 10.0
+
+        while !isWebSocketConnected {
+            if Date().timeIntervalSince(startTime) > timeout {
+                throw RealtimeSTTError.apiError("WebSocket connection timeout")
+            }
+            try await Task.sleep(nanoseconds: 100_000_000)  // 0.1 second
+        }
+
+        #if DEBUG
+        print("GeminiRealtimeSTT: WebSocket connected")
+        #endif
+    }
+
+    private func sendSetupMessage() async throws {
+        let model = selectedModel.isEmpty ? "gemini-2.5-flash-native-audio-preview-12-2025" : selectedModel
+
+        // System instruction for proper transcription formatting
+        // Japanese/Chinese/Korean don't use inter-word spacing
+        let systemInstructionText = """
+            You are a speech transcription assistant. When transcribing audio:
+            - For Japanese, Chinese, or Korean: Do NOT insert spaces between words or morphemes. Output natural text without spaces.
+            - For English and other Western languages: Use normal word spacing.
+            - Output only the transcription, no explanations.
+            """
+
+        // For transcription-only mode, use AUDIO modality with inputAudioTranscription enabled
+        let setup: [String: Any] = [
+            "setup": [
+                "model": "models/\(model)",
+                "generationConfig": [
+                    "responseModalities": ["AUDIO"]
+                ],
+                "systemInstruction": [
+                    "parts": [
+                        ["text": systemInstructionText]
+                    ]
+                ],
+                "inputAudioTranscription": [:]
+            ]
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: setup),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            throw RealtimeSTTError.apiError("Failed to serialize setup message")
+        }
+
+        #if DEBUG
+        print("GeminiRealtimeSTT: Sending setup: \(jsonString)")
+        #endif
+
+        try await webSocketTask?.send(.string(jsonString))
+    }
+
+    private func startReceivingMessages() {
+        webSocketTask?.receive { [weak self] result in
+            Task { @MainActor in
+                guard let self = self else { return }
+
+                switch result {
+                case .success(let message):
+                    self.handleWebSocketMessage(message)
+                    // Continue receiving if WebSocket is still active
+                    if self.webSocketTask != nil {
+                        self.startReceivingMessages()
+                    }
+
+                case .failure(let error):
+                    #if DEBUG
+                    print("GeminiRealtimeSTT: WebSocket receive error: \(error)")
+                    #endif
+                    if self.isListening {
+                        self.delegate?.realtimeSTT(self, didFailWithError: error)
+                    }
+                }
+            }
         }
     }
 
-    private func processVADForAutoStop() async {
-        guard vadService.isReady, isListening else { return }
+    private func handleWebSocketMessage(_ message: URLSessionWebSocketTask.Message) {
+        switch message {
+        case .string(let text):
+            parseMessage(text)
+        case .data(let data):
+            if let text = String(data: data, encoding: .utf8) {
+                parseMessage(text)
+            }
+        @unknown default:
+            break
+        }
+    }
 
-        // Check if minimum recording time has passed
-        guard let startTime = recordingStartTime,
-              Date().timeIntervalSince(startTime) >= vadMinimumRecordingTime else {
+    private func parseMessage(_ jsonString: String) {
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            #if DEBUG
+            print("GeminiRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+            #endif
             return
         }
 
-        bufferLock.lock()
-        while vadBuffer.count >= vadChunkSize {
-            let chunk = Array(vadBuffer.prefix(vadChunkSize))
-            vadBuffer.removeFirst(vadChunkSize)
-            bufferLock.unlock()
+        #if DEBUG
+        // Log full message for debugging
+        print("GeminiRealtimeSTT: Received message: \(jsonString.prefix(500))")
+        #endif
 
-            let result = await vadService.processSamples(chunk)
+        // Check for setup complete
+        if json["setupComplete"] != nil {
+            isSetupComplete = true
+            #if DEBUG
+            print("GeminiRealtimeSTT: Setup complete")
+            #endif
+            return
+        }
 
-            if result.isSpeech {
-                // Speech detected - reset silence timer
-                silenceStartTime = nil
-            } else {
-                // Silence detected
-                if silenceStartTime == nil {
-                    silenceStartTime = Date()
-                } else if let silenceStart = silenceStartTime,
-                          Date().timeIntervalSince(silenceStart) >= vadSilenceDuration {
-                    // Silence duration reached - auto-stop
-                    #if DEBUG
-                    print("GeminiRealtimeSTT: Auto-stop triggered after \(vadSilenceDuration)s of silence")
-                    #endif
-                    stopListening()
-                    return
-                }
+        // Check for input transcription at top level
+        if let inputTranscription = json["inputTranscription"] as? [String: Any],
+           let text = inputTranscription["text"] as? String, !text.isEmpty {
+            appendTranscriptionText(text)
+            #if DEBUG
+            print("GeminiRealtimeSTT: Transcription (top-level): '\(text)' -> accumulated: '\(accumulatedText.suffix(100))'")
+            #endif
+            delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
+            return
+        }
+
+        // Check for server content (transcription may be nested here)
+        if let serverContent = json["serverContent"] as? [String: Any] {
+            #if DEBUG
+            print("GeminiRealtimeSTT: serverContent keys: \(serverContent.keys)")
+            #endif
+
+            // Check for inputTranscription in serverContent
+            if let inputTranscription = serverContent["inputTranscription"] as? [String: Any],
+               let text = inputTranscription["text"] as? String, !text.isEmpty {
+                appendTranscriptionText(text)
+                #if DEBUG
+                print("GeminiRealtimeSTT: Transcription (serverContent): '\(text)'")
+                #endif
+                delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
             }
 
-            bufferLock.lock()
+            // Check for turnComplete to send final result
+            if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
+                #if DEBUG
+                print("GeminiRealtimeSTT: Turn complete")
+                #endif
+            }
+            return
         }
-        bufferLock.unlock()
+
+        // Check for errors
+        if let error = json["error"] as? [String: Any] {
+            let message = error["message"] as? String ?? "Unknown error"
+            #if DEBUG
+            print("GeminiRealtimeSTT: Error: \(message)")
+            #endif
+            delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.apiError(message))
+        }
     }
+
+    // MARK: - Audio Capture
 
     private func startAudioCapture() async throws {
         audioEngine = AVAudioEngine()
@@ -169,24 +364,37 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         let inputNode = audioEngine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Convert to 16kHz mono
-        let targetFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
-        let converter = AVAudioConverter(from: inputFormat, to: targetFormat)
+        // Prepare output format (16kHz, mono, 16-bit PCM for Gemini)
+        guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: true) else {
+            throw RealtimeSTTError.audioError("Failed to create output format")
+        }
+        outputFormat = outFormat
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
+        // Create converter if sample rate differs
+        if inputFormat.sampleRate != sampleRate || inputFormat.channelCount != 1 {
+            audioConverter = AVAudioConverter(from: inputFormat, to: outFormat)
+        }
+
+        // Install tap to capture audio
+        inputNode.installTap(onBus: 0, bufferSize: 2048, format: inputFormat) { [weak self] buffer, _ in
             guard let self = self else { return }
 
-            let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * self.sampleRate / inputFormat.sampleRate)
-            guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCount) else { return }
-
-            var error: NSError?
-            converter?.convert(to: convertedBuffer, error: &error) { inNumPackets, outStatus in
-                outStatus.pointee = .haveData
-                return buffer
+            // Extract samples for level monitoring
+            var samples: [Float]?
+            if let channelData = buffer.floatChannelData {
+                let frameLength = Int(buffer.frameLength)
+                samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
             }
 
-            if error == nil {
-                self.appendToBuffer(convertedBuffer)
+            // Process audio data (can be done on background thread)
+            let pcmData = self.convertBufferToData(buffer)
+
+            // Update UI and send data on main thread
+            DispatchQueue.main.async {
+                if let samples = samples {
+                    self.audioLevelMonitor.updateLevel(from: samples)
+                }
+                self.sendPCMData(pcmData)
             }
         }
 
@@ -194,173 +402,263 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         try audioEngine.start()
     }
 
-    private func transcribeRecordedAudio() async {
-        bufferLock.lock()
-        let samples = audioBuffer
-        audioBuffer.removeAll()
-        vadBuffer.removeAll()
-        bufferLock.unlock()
+    /// Convert buffer to PCM data - can be called from any thread
+    nonisolated private func convertBufferToData(_ buffer: AVAudioPCMBuffer) -> Data {
+        // Note: audioConverter access from background thread is safe as it's only read here
+        if buffer.format.commonFormat == .pcmFormatInt16 {
+            return bufferToData(buffer)
+        } else {
+            return convertFloatBufferToInt16Data(buffer)
+        }
+    }
 
-        // Need at least 0.5 seconds of audio
-        guard samples.count > 8000 else {
-            #if DEBUG
-            print("GeminiRealtimeSTT: Recording too short, skipping transcription")
-            #endif
+    /// Send PCM data - must be called from main thread
+    private func sendPCMData(_ pcmData: Data) {
+        guard isListening, !pcmData.isEmpty else { return }
+
+        // Check if we should pre-buffer or send directly
+        preBufferLock.lock()
+        let shouldPreBuffer = isPreBuffering
+        preBufferLock.unlock()
+
+        if shouldPreBuffer {
+            preBufferLock.lock()
+            preBuffer.append(pcmData)
+            preBufferLock.unlock()
+        } else {
+            sendAudioData(pcmData)
+        }
+    }
+
+    /// For external audio source - called from main thread
+    private func sendAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard isListening else { return }
+
+        let pcmData: Data
+
+        if let converter = audioConverter, let outFormat = outputFormat {
+            // Need to convert format
+            let ratio = outFormat.sampleRate / buffer.format.sampleRate
+            let outputFrameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
+
+            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outputFrameCapacity) else {
+                return
+            }
+
+            var error: NSError?
+            let status = converter.convert(to: outputBuffer, error: &error) { inNumPackets, outStatus in
+                outStatus.pointee = .haveData
+                return buffer
+            }
+
+            if status == .error || error != nil {
+                return
+            }
+
+            pcmData = bufferToData(outputBuffer)
+        } else if buffer.format.commonFormat == .pcmFormatInt16 {
+            // Already in correct format
+            pcmData = bufferToData(buffer)
+        } else {
+            // Convert float to int16
+            pcmData = convertFloatBufferToInt16Data(buffer)
+        }
+
+        if pcmData.isEmpty {
             return
         }
 
-        do {
-            let transcription = try await transcribeAudio(samples: samples)
-            if !transcription.isEmpty {
-                delegate?.realtimeSTT(self, didReceiveFinalResult: transcription)
-            }
-        } catch {
-            delegate?.realtimeSTT(self, didFailWithError: error)
+        // Check if we should pre-buffer or send directly
+        preBufferLock.lock()
+        let shouldPreBuffer = isPreBuffering
+        preBufferLock.unlock()
+
+        if shouldPreBuffer {
+            preBufferLock.lock()
+            preBuffer.append(pcmData)
+            preBufferLock.unlock()
+        } else {
+            sendAudioData(pcmData)
         }
     }
 
-    private func transcribeAudio(samples: [Float]) async throws -> String {
-        guard let apiKey = apiKeyManager.getAPIKey(for: .gemini) else {
-            throw RealtimeSTTError.apiError("Gemini API key not found")
+    private func flushPreBuffer() async {
+        preBufferLock.lock()
+        let buffersToFlush = preBuffer
+        preBuffer.removeAll()
+        isPreBuffering = false
+        preBufferLock.unlock()
+
+        #if DEBUG
+        print("GeminiRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
+        #endif
+
+        for data in buffersToFlush {
+            sendAudioData(data)
+            // Small delay to avoid overwhelming the WebSocket
+            try? await Task.sleep(nanoseconds: 10_000_000)  // 10ms
         }
+    }
 
-        // Convert Float samples to WAV data
-        let wavData = createWAVData(from: samples, sampleRate: Int(sampleRate))
-        let base64Audio = wavData.base64EncodedString()
+    private func sendAudioData(_ pcmData: Data) {
+        guard let webSocketTask = webSocketTask, isSetupComplete else { return }
 
-        // Build request to Gemini API
-        let model = selectedModel.isEmpty ? "gemini-2.5-flash" : selectedModel
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
+        // Send as base64 encoded audio using realtimeInput with mediaChunks
+        let base64Audio = pcmData.base64EncodedString()
 
-        guard let apiURL = URL(string: endpoint) else {
-            throw RealtimeSTTError.apiError("Invalid API endpoint URL")
-        }
-        var request = URLRequest(url: apiURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 60  // Longer timeout for longer recordings
-
-        let body: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        [
-                            "inline_data": [
-                                "mime_type": "audio/wav",
-                                "data": base64Audio
-                            ]
-                        ],
-                        [
-                            "text": "Transcribe audio to text. Output ONLY spoken words. No timestamps, labels, explanations, or formatting. For Japanese/Chinese/Korean: NO spaces between words or characters. Empty string if silent/unclear."
-                        ]
+        let message: [String: Any] = [
+            "realtimeInput": [
+                "mediaChunks": [
+                    [
+                        "mimeType": "audio/pcm;rate=16000",
+                        "data": base64Audio
                     ]
                 ]
-            ],
-            "generationConfig": [
-                "temperature": 0,
-                "maxOutputTokens": 8192
             ]
         ]
 
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw RealtimeSTTError.apiError("Invalid response")
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            return
         }
 
-        guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw RealtimeSTTError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
-        }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let firstPart = parts.first,
-              let text = firstPart["text"] as? String else {
-            throw RealtimeSTTError.apiError("Invalid response format")
-        }
-
-        return cleanTranscription(text)
-    }
-
-    private func cleanTranscription(_ text: String) -> String {
-        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Remove common LLM response prefixes
-        let prefixesToRemove = [
-            "Here is the transcription:",
-            "Here's the transcription:",
-            "Transcription:",
-            "The transcription is:",
-            "The audio says:",
-        ]
-        for prefix in prefixesToRemove {
-            if result.lowercased().hasPrefix(prefix.lowercased()) {
-                result = String(result.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        webSocketTask.send(.string(jsonString)) { error in
+            if let error = error {
+                #if DEBUG
+                print("GeminiRealtimeSTT: Send error: \(error)")
+                #endif
             }
         }
-
-        // Remove spurious spaces in Japanese/Chinese/Korean text
-        // Check if text is predominantly CJK
-        let cjkCount = result.unicodeScalars.filter { scalar in
-            (scalar.value >= 0x4E00 && scalar.value <= 0x9FFF) ||  // CJK Unified Ideographs
-            (scalar.value >= 0x3040 && scalar.value <= 0x309F) ||  // Hiragana
-            (scalar.value >= 0x30A0 && scalar.value <= 0x30FF) ||  // Katakana
-            (scalar.value >= 0xAC00 && scalar.value <= 0xD7AF)     // Korean Hangul
-        }.count
-
-        if cjkCount > result.count / 3 {  // If more than 1/3 is CJK, remove spaces
-            result = result.replacingOccurrences(of: " ", with: "")
-        }
-
-        return result
     }
 
-    private func createWAVData(from samples: [Float], sampleRate: Int) -> Data {
-        var data = Data()
+    /// Append transcription text - Gemini sends incremental fragments
+    private func appendTranscriptionText(_ newText: String) {
+        guard !newText.isEmpty else { return }
 
-        var pcmData = Data()
-        for sample in samples {
+        #if DEBUG
+        let debugText = newText.replacingOccurrences(of: " ", with: "␣")
+        print("GeminiRealtimeSTT: appendTranscriptionText")
+        print("  - newText (raw): '\(debugText)'")
+        print("  - accumulatedText before: '\(accumulatedText.suffix(80))'")
+        #endif
+
+        var processedText = newText
+
+        // Check if we're in CJK context (accumulated text ends with CJK or new text contains CJK)
+        let lastCharIsCJK = accumulatedText.last.map { isCJKCharacter($0) } ?? false
+        let newTextHasCJK = containsCJKCharacters(newText)
+
+        if newTextHasCJK {
+            // New text contains CJK - remove all spaces
+            processedText = newText.replacingOccurrences(of: " ", with: "")
+        } else if lastCharIsCJK {
+            // Previous text ended with CJK - remove leading spaces from this fragment
+            // This handles cases where Gemini sends " " as a separate fragment
+            processedText = newText.replacingOccurrences(of: "^\\s+", with: "", options: .regularExpression)
+        }
+
+        // Skip if processed text is empty (was just whitespace)
+        guard !processedText.isEmpty else { return }
+
+        accumulatedText += processedText
+
+        #if DEBUG
+        print("  - processedText: '\(processedText)'")
+        print("  - accumulatedText after: '\(accumulatedText.suffix(80))'")
+        #endif
+    }
+
+    /// Check if a single character is CJK
+    private func isCJKCharacter(_ char: Character) -> Bool {
+        for scalar in char.unicodeScalars {
+            if isCJKScalar(scalar) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Check if string contains CJK (Chinese, Japanese, Korean) characters
+    /// These languages don't use inter-word spacing
+    private func containsCJKCharacters(_ text: String) -> Bool {
+        for scalar in text.unicodeScalars {
+            if isCJKScalar(scalar) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Check if a unicode scalar is in CJK range
+    private func isCJKScalar(_ scalar: Unicode.Scalar) -> Bool {
+        let value = scalar.value
+        // CJK Unified Ideographs: U+4E00-U+9FFF
+        // CJK Extension A: U+3400-U+4DBF
+        // Hiragana: U+3040-U+309F
+        // Katakana: U+30A0-U+30FF
+        // Hangul Syllables: U+AC00-U+D7AF
+        // Katakana Phonetic Extensions: U+31F0-U+31FF
+        // CJK Punctuation: U+3000-U+303F (includes 。、etc.)
+        return (0x4E00...0x9FFF).contains(value) ||
+               (0x3400...0x4DBF).contains(value) ||
+               (0x3040...0x309F).contains(value) ||
+               (0x30A0...0x30FF).contains(value) ||
+               (0xAC00...0xD7AF).contains(value) ||
+               (0x31F0...0x31FF).contains(value) ||
+               (0x3000...0x303F).contains(value)
+    }
+
+    nonisolated private func bufferToData(_ buffer: AVAudioPCMBuffer) -> Data {
+        guard let int16Data = buffer.int16ChannelData else { return Data() }
+        let frameLength = Int(buffer.frameLength)
+        return Data(bytes: int16Data[0], count: frameLength * 2)
+    }
+
+    nonisolated private func convertFloatBufferToInt16Data(_ buffer: AVAudioPCMBuffer) -> Data {
+        guard let floatData = buffer.floatChannelData else { return Data() }
+        let frameLength = Int(buffer.frameLength)
+
+        var int16Data = [Int16](repeating: 0, count: frameLength)
+        for i in 0..<frameLength {
+            let sample = floatData[0][i]
             let clipped = max(-1.0, min(1.0, sample))
-            let intSample = Int16(clipped * 32767.0)
-            pcmData.append(contentsOf: withUnsafeBytes(of: intSample.littleEndian) { Array($0) })
+            int16Data[i] = Int16(clipped * 32767.0)
         }
 
-        let dataSize = UInt32(pcmData.count)
-        let fileSize = UInt32(36 + pcmData.count)
-        let channels: UInt16 = 1
-        let bitsPerSample: UInt16 = 16
-        let byteRate = UInt32(sampleRate * Int(channels) * Int(bitsPerSample) / 8)
-        let blockAlign = UInt16(channels * bitsPerSample / 8)
+        return Data(bytes: int16Data, count: frameLength * 2)
+    }
+}
 
-        data.append("RIFF".data(using: .ascii)!)
-        data.append(contentsOf: withUnsafeBytes(of: fileSize.littleEndian) { Array($0) })
-        data.append("WAVE".data(using: .ascii)!)
-        data.append("fmt ".data(using: .ascii)!)
-        data.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) })
-        data.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) })
-        data.append(contentsOf: withUnsafeBytes(of: channels.littleEndian) { Array($0) })
-        data.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) })
-        data.append(contentsOf: withUnsafeBytes(of: byteRate.littleEndian) { Array($0) })
-        data.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Array($0) })
-        data.append(contentsOf: withUnsafeBytes(of: bitsPerSample.littleEndian) { Array($0) })
-        data.append("data".data(using: .ascii)!)
-        data.append(contentsOf: withUnsafeBytes(of: dataSize.littleEndian) { Array($0) })
-        data.append(pcmData)
+// MARK: - URLSessionWebSocketDelegate
 
-        return data
+extension GeminiRealtimeSTT: URLSessionWebSocketDelegate {
+    nonisolated func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        #if DEBUG
+        print("GeminiRealtimeSTT: WebSocket didOpen")
+        #endif
+
+        // Delegate is called on main queue (OperationQueue.main)
+        MainActor.assumeIsolated {
+            self.isWebSocketConnected = true
+        }
     }
 
-    func availableModels() -> [RealtimeSTTModelInfo] {
-        [
-            RealtimeSTTModelInfo(id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Fast, multimodal", isDefault: true),
-            RealtimeSTTModelInfo(id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous generation"),
-            RealtimeSTTModelInfo(id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "High quality")
-        ]
+    nonisolated func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "unknown"
+        #if DEBUG
+        print("GeminiRealtimeSTT: WebSocket didClose with code: \(closeCode.rawValue), reason: \(reasonString)")
+        #endif
+
+        MainActor.assumeIsolated {
+            self.isWebSocketConnected = false
+        }
+    }
+
+    nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            #if DEBUG
+            print("GeminiRealtimeSTT: URLSession task completed with error: \(error)")
+            #endif
+        }
     }
 }

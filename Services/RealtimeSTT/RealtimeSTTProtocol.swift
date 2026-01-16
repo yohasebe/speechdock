@@ -92,7 +92,12 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
 
     var description: String {
         switch self {
-        case .macOS: return "Apple Speech (offline, fast)"
+        case .macOS:
+            if #available(macOS 26, *) {
+                return "Apple Speech (offline, realtime, no time limit)"
+            } else {
+                return "Apple Speech (offline, fast)"
+            }
         case .localWhisper: return "WhisperKit (offline, high quality)"
         case .openAI: return "OpenAI Realtime API (high quality)"
         case .gemini: return "Gemini Live API (multimodal)"
@@ -107,7 +112,12 @@ enum RealtimeSTTFactory {
     static func makeService(for provider: RealtimeSTTProvider) -> RealtimeSTTService {
         switch provider {
         case .macOS:
-            return MacOSRealtimeSTT()
+            // Use SpeechAnalyzer on macOS 26+ for better performance and no time limit
+            if #available(macOS 26, *) {
+                return SpeechAnalyzerSTT()
+            } else {
+                return MacOSRealtimeSTT()
+            }
         case .localWhisper:
             return LocalWhisperSTT()
         case .openAI:

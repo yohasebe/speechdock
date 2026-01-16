@@ -72,13 +72,15 @@ struct MenuBarView: View {
 
             // STT Action button with shortcut
             Button(action: {
+                // Close menu bar panel before starting recording
+                StatusBarManager.shared.closePanel()
                 appState.toggleRecording()
             }) {
                 HStack {
                     Image(systemName: appState.isRecording ? "stop.fill" : "record.circle")
                         .foregroundColor(appState.isRecording ? .red : (appState.hasMicrophonePermission ? .primary : .secondary))
                         .frame(width: 20)
-                    Text(appState.isRecording ? "Stop Recording" : "Start Recording")
+                    Text(appState.isRecording ? "Stop" : "Transcription")
                         .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.sttKeyCombo.displayString ?? "⌘⇧Space")
@@ -88,6 +90,31 @@ struct MenuBarView: View {
             .buttonStyle(MenuBarActionButtonStyle())
             .disabled(appState.isProcessing || !appState.hasMicrophonePermission)
 
+            // Subtitle mode toggle (right below Transcription)
+            Button(action: {
+                appState.toggleSubtitleMode()
+            }) {
+                HStack {
+                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
+                        .foregroundColor(appState.subtitleModeEnabled ? .accentColor : .primary)
+                        .frame(width: 20)
+                    Text("Subtitle Mode")
+                    Spacer()
+                    if appState.subtitleModeEnabled {
+                        Text("On")
+                            .font(.caption)
+                            .foregroundColor(.accentColor)
+                    } else {
+                        Text("Off")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    shortcutBadge(appState.hotKeyService?.subtitleKeyCombo.displayString ?? "⌃⌥S")
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(MenuBarActionButtonStyle())
+
             // STT Provider picker (compact)
             HStack {
                 Text("Provider:")
@@ -96,6 +123,22 @@ struct MenuBarView: View {
                 Picker("", selection: $appState.selectedRealtimeProvider) {
                     ForEach(availableSTTProviders) { provider in
                         Text(provider.rawValue).tag(provider)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .scaleEffect(0.9, anchor: .leading)
+            }
+            .disabled(!appState.hasMicrophonePermission || appState.isRecording)
+
+            // STT Language picker (compact)
+            HStack {
+                Text("Language:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Picker("", selection: $appState.selectedSTTLanguage) {
+                    ForEach(LanguageCode.supportedLanguages(for: appState.selectedRealtimeProvider), id: \.rawValue) { lang in
+                        Text(lang.displayName).tag(lang.rawValue)
                     }
                 }
                 .pickerStyle(.menu)
@@ -133,16 +176,14 @@ struct MenuBarView: View {
 
             // TTS Action button with shortcut
             Button(action: {
-                NSApp.keyWindow?.close()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    appState.startTTS()
-                }
+                StatusBarManager.shared.closePanel()
+                appState.startTTS()
             }) {
                 HStack {
                     Image(systemName: "speaker.wave.2")
                         .foregroundColor(appState.hasAccessibilityPermission ? .primary : .secondary)
                         .frame(width: 20)
-                    Text("Read Selected Text")
+                    Text("Text to Speech")
                         .foregroundColor(appState.hasAccessibilityPermission ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.ttsKeyCombo.displayString ?? "⌃⌥T")
@@ -154,10 +195,8 @@ struct MenuBarView: View {
 
             // OCR to TTS Action button with shortcut
             Button(action: {
-                NSApp.keyWindow?.close()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    appState.startOCR()
-                }
+                StatusBarManager.shared.closePanel()
+                appState.startOCR()
             }) {
                 HStack {
                     Image(systemName: "text.viewfinder")
