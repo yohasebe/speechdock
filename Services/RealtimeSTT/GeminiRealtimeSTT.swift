@@ -375,6 +375,10 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             audioConverter = AVAudioConverter(from: inputFormat, to: outFormat)
         }
 
+        // Capture converter and format for use in tap closure
+        let capturedConverter = audioConverter
+        let capturedFormat = outputFormat
+
         // Install tap to capture audio
         inputNode.installTap(onBus: 0, bufferSize: 2048, format: inputFormat) { [weak self] buffer, _ in
             guard let self = self else { return }
@@ -386,8 +390,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
                 samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
             }
 
-            // Process audio data (can be done on background thread)
-            let pcmData = self.convertBufferToData(buffer)
+            // Process audio data with resampling (can be done on background thread)
+            let pcmData = self.convertBufferToData(buffer, converter: capturedConverter, outFormat: capturedFormat)
 
             // Update UI and send data on main thread
             DispatchQueue.main.async {
@@ -402,14 +406,43 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         try audioEngine.start()
     }
 
-    /// Convert buffer to PCM data - can be called from any thread
-    nonisolated private func convertBufferToData(_ buffer: AVAudioPCMBuffer) -> Data {
-        // Note: audioConverter access from background thread is safe as it's only read here
-        if buffer.format.commonFormat == .pcmFormatInt16 {
-            return bufferToData(buffer)
-        } else {
-            return convertFloatBufferToInt16Data(buffer)
+    /// Convert buffer to PCM data with optional resampling
+    /// Parameters are passed to allow calling from background thread
+    nonisolated private func convertBufferToData(_ buffer: AVAudioPCMBuffer, converter: AVAudioConverter?, outFormat: AVAudioFormat?) -> Data {
+        // Need to resample if converter is provided
+        guard let converter = converter, let outFormat = outFormat else {
+            // No converter needed - just convert format
+            if buffer.format.commonFormat == .pcmFormatInt16 {
+                return bufferToData(buffer)
+            } else {
+                return convertFloatBufferToInt16Data(buffer)
+            }
         }
+
+        // Calculate output frame capacity based on sample rate ratio
+        let ratio = outFormat.sampleRate / buffer.format.sampleRate
+        let outputFrameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
+
+        guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outputFrameCapacity) else {
+            return Data()
+        }
+
+        var error: NSError?
+        let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+            outStatus.pointee = .haveData
+            return buffer
+        }
+
+        let status = converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
+
+        if status == .error || error != nil {
+            #if DEBUG
+            print("GeminiRealtimeSTT: Audio conversion error: \(error?.localizedDescription ?? "unknown")")
+            #endif
+            return Data()
+        }
+
+        return bufferToData(outputBuffer)
     }
 
     /// Send PCM data - must be called from main thread
