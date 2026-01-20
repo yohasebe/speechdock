@@ -4,6 +4,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     case openAI = "OpenAI"
     case gemini = "Gemini"
     case elevenLabs = "ElevenLabs"
+    case grok = "Grok"
 
     var id: String { rawValue }
 
@@ -12,6 +13,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI: return "OPENAI_API_KEY"
         case .gemini: return "GEMINI_API_KEY"
         case .elevenLabs: return "ELEVENLABS_API_KEY"
+        case .grok: return "GROK_API_KEY"
         }
     }
 
@@ -23,6 +25,8 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
             return [.gemini25Flash]
         case .elevenLabs:
             return [.scribeV2]
+        case .grok:
+            return [.grok2]
         }
     }
 
@@ -44,6 +48,9 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
     case scribeV2 = "scribe_v2"
     case scribeV1 = "scribe_v1"
 
+    // Grok models
+    case grok2 = "grok-2-public"
+
     var id: String { rawValue }
 
     var displayName: String {
@@ -54,6 +61,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
         case .gemini25Flash: return "Gemini 2.5 Flash"
         case .scribeV2: return "Scribe v2"
         case .scribeV1: return "Scribe v1"
+        case .grok2: return "Grok 2"
         }
     }
 
@@ -65,6 +73,8 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
             return .gemini
         case .scribeV2, .scribeV1:
             return .elevenLabs
+        case .grok2:
+            return .grok
         }
     }
 }

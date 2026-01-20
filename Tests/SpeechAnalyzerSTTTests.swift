@@ -1,5 +1,5 @@
 import XCTest
-@testable import TypeTalk
+@testable import SpeechDock
 
 // SpeechAnalyzerSTT is only available with Swift 6.1+ compiler (macOS 26 SDK)
 #if compiler(>=6.1)

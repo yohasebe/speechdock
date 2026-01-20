@@ -100,7 +100,7 @@ final class WindowService {
         return app.bundleIdentifier
     }
 
-    /// Get list of all visible windows (excluding TypeTalk's own windows)
+    /// Get list of all visible windows (excluding SpeechDock's own windows)
     /// Note: Thumbnails are NOT generated here for performance. Call generateThumbnailAsync separately.
     func getAvailableWindows() -> [WindowInfo] {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]

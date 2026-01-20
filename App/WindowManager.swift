@@ -27,7 +27,7 @@ final class WindowManager {
         let hostingController = NSHostingController(rootView: aboutView)
 
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "About TypeTalk"
+        window.title = "About SpeechDock"
         window.identifier = NSUserInterfaceItemIdentifier("about")
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false

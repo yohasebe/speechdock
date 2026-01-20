@@ -5,6 +5,7 @@ import ApplicationServices
 
 enum TranscriptionState: Equatable {
     case idle
+    case preparing  // Starting up audio capture and connection
     case recording
     case processing
     case result(String)
@@ -13,6 +14,7 @@ enum TranscriptionState: Equatable {
     var statusText: String {
         switch self {
         case .idle: return ""
+        case .preparing: return "Starting..."
         case .recording: return "Recording..."
         case .processing: return "Processing..."
         case .result: return ""
@@ -520,7 +522,7 @@ final class AppState {
 
     /// Start recording (can be called from panel button or auto-start)
     func startRecording() {
-        guard !isProcessing && !isRecording else { return }
+        guard !isProcessing && !isRecording && transcriptionState != .preparing else { return }
 
         // Mutual exclusivity: close TTS panel and stop TTS if active
         if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
@@ -532,7 +534,15 @@ final class AppState {
 
         errorMessage = nil
 
-        // Start realtime STT FIRST to ensure audio capture begins immediately
+        // IMMEDIATELY show preparing state for instant user feedback
+        transcriptionState = .preparing
+
+        // Show floating window immediately so user sees "Starting..."
+        if !showFloatingWindow {
+            showFloatingWindowWithState()
+        }
+
+        // Start realtime STT (audio capture and connection)
         Task {
             await startRealtimeSTT()
 
@@ -549,12 +559,6 @@ final class AppState {
                         guard let self = self, let startTime = self.recordingStartTime else { return }
                         self.recordingDuration = Date().timeIntervalSince(startTime)
                     }
-                }
-
-                // Only show floating window if not already visible
-                // This prevents resetting @State variables when resuming recording
-                if !showFloatingWindow {
-                    showFloatingWindowWithState()
                 }
 
                 // Show subtitle overlay if enabled
@@ -1280,6 +1284,8 @@ final class AppState {
             return apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return apiKeyManager.hasAPIKey(for: .grok)
         case .macOS, .localWhisper:
             return true
         }
@@ -1293,6 +1299,8 @@ final class AppState {
             return apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return apiKeyManager.hasAPIKey(for: .grok)
         case .macOS:
             return true
         }

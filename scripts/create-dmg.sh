@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-# TypeTalk DMG Creation Script
-# This script creates a DMG installer for TypeTalk
+# SpeechDock DMG Creation Script
+# This script creates a DMG installer for SpeechDock
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VERSION=$(cat "$PROJECT_DIR/VERSION")
 BUILD_DIR="$PROJECT_DIR/build"
-APP_NAME="TypeTalk"
+APP_NAME="SpeechDock"
 DMG_NAME="$APP_NAME-$VERSION.dmg"
 
 echo "Creating DMG for $APP_NAME v$VERSION..."

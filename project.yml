@@ -1,6 +1,6 @@
-name: TypeTalk
+name: SpeechDock
 options:
-  bundleIdPrefix: com.typetalk
+  bundleIdPrefix: com.speechdock
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "16.2"
@@ -20,7 +20,7 @@ packages:
     from: 2.6.0
 
 targets:
-  TypeTalk:
+  SpeechDock:
     type: application
     platform: macOS
     sources:
@@ -33,12 +33,12 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.typetalk.app
-        PRODUCT_NAME: TypeTalk
+        PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app
+        PRODUCT_NAME: SpeechDock
         MARKETING_VERSION: "0.1.8"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: Resources/TypeTalk.entitlements
+        CODE_SIGN_ENTITLEMENTS: Resources/SpeechDock.entitlements
         SWIFT_VERSION: "5.9"
         SWIFT_STRICT_CONCURRENCY: minimal
         MACOSX_DEPLOYMENT_TARGET: "14.0"
@@ -54,14 +54,14 @@ targets:
       - package: FluidAudio
       - package: Sparkle
 
-  TypeTalkTests:
+  SpeechDockTests:
     type: bundle.unit-test
     platform: macOS
     sources:
       - path: Tests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.typetalk.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app.tests
         SWIFT_VERSION: "5.9"
         INFOPLIST_FILE: ""
         GENERATE_INFOPLIST_FILE: YES
@@ -69,20 +69,20 @@ targets:
         CODE_SIGN_IDENTITY: "Developer ID Application: Yoichiro Hasebe (25ME8D76FY)"
         DEVELOPMENT_TEAM: 25ME8D76FY
     dependencies:
-      - target: TypeTalk
+      - target: SpeechDock
 
 schemes:
-  TypeTalk:
+  SpeechDock:
     build:
       targets:
-        TypeTalk: all
-        TypeTalkTests: [test]
+        SpeechDock: all
+        SpeechDockTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - TypeTalkTests
+        - SpeechDockTests
     profile:
       config: Release
     analyze:

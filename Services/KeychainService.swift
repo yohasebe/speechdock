@@ -10,7 +10,7 @@ enum KeychainError: Error {
 
 /// Thread-safe keychain service for storing sensitive data
 final class KeychainService {
-    private let service = "com.typetalk.apikeys"
+    private let service = "com.speechdock.apikeys"
 
     /// Lock for thread-safe keychain access
     private let lock = NSLock()

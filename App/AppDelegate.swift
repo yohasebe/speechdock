@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Setup status bar and hotkey with AppState on main actor
         Task { @MainActor in
-            // Setup status bar manager (must be done here, not in TypeTalkApp.init)
+            // Setup status bar manager (must be done here, not in SpeechDockApp.init)
             StatusBarManager.shared.setup(appState: AppState.shared)
 
             AppState.shared.setupHotKey(self.hotKeyService!)
@@ -35,10 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         checkRequiredPermissions()
     }
 
-    /// Check if another instance of TypeTalk is already running
+    /// Check if another instance of SpeechDock is already running
     private func isAnotherInstanceRunning() -> Bool {
         let currentPID = ProcessInfo.processInfo.processIdentifier
-        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "TypeTalk"
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "SpeechDock"
 
         let runningApps = NSWorkspace.shared.runningApplications
         for app in runningApps {
@@ -61,8 +61,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Show alert when duplicate instance is detected
     private func showDuplicateInstanceAlert() {
         let alert = NSAlert()
-        alert.messageText = "TypeTalk is already running"
-        alert.informativeText = "Another instance of TypeTalk is already running. Please use the existing instance from the menu bar."
+        alert.messageText = "SpeechDock is already running"
+        alert.informativeText = "Another instance of SpeechDock is already running. Please use the existing instance from the menu bar."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
         alert.runModal()
@@ -107,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         hotKeyService?.unregisterAllHotKeys()
 
-        // Clean up all TypeTalk temp files on termination
+        // Clean up all SpeechDock temp files on termination
         cleanupAllTempFiles()
     }
 
@@ -116,7 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    /// Clean up all TypeTalk temporary files (called on app termination)
+    /// Clean up all SpeechDock temporary files (called on app termination)
     private func cleanupAllTempFiles() {
         let tempDir = FileManager.default.temporaryDirectory
         let fileManager = FileManager.default
@@ -131,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             for fileURL in contents {
                 let filename = fileURL.lastPathComponent
 
-                // Only clean up TypeTalk temp files (tts_* and stt_*)
+                // Only clean up SpeechDock temp files (tts_* and stt_*)
                 if filename.hasPrefix("tts_") || filename.hasPrefix("stt_") {
                     try? fileManager.removeItem(at: fileURL)
                 }
@@ -158,7 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             for fileURL in contents {
                 let filename = fileURL.lastPathComponent
 
-                // Only clean up TypeTalk temp files (tts_* and stt_*)
+                // Only clean up SpeechDock temp files (tts_* and stt_*)
                 guard filename.hasPrefix("tts_") || filename.hasPrefix("stt_") else {
                     continue
                 }
@@ -290,7 +290,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             alert.informativeText = """
-            TypeTalk needs the following permissions to work properly:
+            SpeechDock needs the following permissions to work properly:
 
             \(neededPermissions.joined(separator: "\n"))
 
@@ -373,7 +373,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let alert = NSAlert()
             alert.messageText = "Microphone Access Required"
-            alert.informativeText = "TypeTalk needs microphone access to record audio for transcription.\n\nPlease enable it in System Settings, then return here."
+            alert.informativeText = "SpeechDock needs microphone access to record audio for transcription.\n\nPlease enable it in System Settings, then return here."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Open System Settings")
             alert.addButton(withTitle: "Later")
@@ -414,7 +414,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let alert = NSAlert()
             alert.messageText = "Accessibility Access Required"
-            alert.informativeText = "TypeTalk needs Accessibility access to use global keyboard shortcuts and insert transcribed text.\n\nPlease enable it in System Settings, then return here."
+            alert.informativeText = "SpeechDock needs Accessibility access to use global keyboard shortcuts and insert transcribed text.\n\nPlease enable it in System Settings, then return here."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Open System Settings")
             alert.addButton(withTitle: "Later")
@@ -455,7 +455,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let alert = NSAlert()
             alert.messageText = "Screen Recording Access Required"
-            alert.informativeText = "TypeTalk needs Screen Recording access to show window thumbnails when selecting a paste target.\n\nPlease enable it in System Settings, then return here."
+            alert.informativeText = "SpeechDock needs Screen Recording access to show window thumbnails when selecting a paste target.\n\nPlease enable it in System Settings, then return here."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Open System Settings")
             alert.addButton(withTitle: "Later")

@@ -1,5 +1,5 @@
 import XCTest
-@testable import TypeTalk
+@testable import SpeechDock
 
 final class KeychainServiceTests: XCTestCase {
     private var keychainService: KeychainService!

@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>TypeTalk</string>
+    <string>SpeechDock</string>
     <key>CFBundleDisplayName</key>
-    <string>TypeTalk</string>
+    <string>SpeechDock</string>
     <key>CFBundleIdentifier</key>
-    <string>com.typetalk.app</string>
+    <string>com.speechdock.app</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>TypeTalk</string>
+    <string>SpeechDock</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>
@@ -23,17 +23,17 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>TypeTalk needs microphone access to record your voice for transcription.</string>
+    <string>SpeechDock needs microphone access to record your voice for transcription.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>TypeTalk uses speech recognition for real-time transcription.</string>
+    <string>SpeechDock uses speech recognition for real-time transcription.</string>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>TypeTalk needs screen recording access to show window thumbnails when selecting a paste target.</string>
+    <string>SpeechDock needs screen recording access to show window thumbnails when selecting a paste target.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 
     <!-- Sparkle Auto-Update Configuration -->
     <key>SUFeedURL</key>
-    <string>https://raw.githubusercontent.com/yohasebe/typetalk/main/appcast.xml</string>
+    <string>https://raw.githubusercontent.com/yohasebe/speechdock/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
     <string>MAa/lGpJrjLYjp2nTFS1HgMEyPaazjwbxyVsQqtIZ9A=</string>
     <key>SUEnableAutomaticChecks</key>

@@ -1,5 +1,5 @@
 import XCTest
-@testable import TypeTalk
+@testable import SpeechDock
 
 /// Tests for ElevenLabs STT text deduplication logic
 final class ElevenLabsDeduplicationTests: XCTestCase {

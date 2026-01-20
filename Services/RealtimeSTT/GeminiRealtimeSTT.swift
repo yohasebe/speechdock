@@ -37,6 +37,12 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private var preBuffer: [Data] = []
     private var isPreBuffering = true
     private let preBufferLock = NSLock()
+    // Maximum pre-buffer size (~5 seconds at 16kHz 16-bit mono = 160KB)
+    private let maxPreBufferSize = 170_000
+
+    // Settling time to skip initial mic noise (in seconds)
+    private let micSettlingTime: TimeInterval = 0.3
+    private var audioStartTime: Date?
 
     // Connection state
     private var isSetupComplete = false
@@ -54,10 +60,14 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         accumulatedText = ""
         isSetupComplete = false
         isWebSocketConnected = false
+        audioStartTime = nil
         preBufferLock.lock()
         preBuffer.removeAll()
         isPreBuffering = true
         preBufferLock.unlock()
+
+        // Mark when audio capture starts for settling time (applies to both mic and external)
+        audioStartTime = Date()
 
         // Start audio capture FIRST to avoid missing initial audio
         if audioSource == .microphone {
@@ -449,6 +459,13 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private func sendPCMData(_ pcmData: Data) {
         guard isListening, !pcmData.isEmpty else { return }
 
+        // Skip audio during settling time to avoid initial noise being transcribed
+        // Applies to both microphone and external sources (system/app audio)
+        if let startTime = audioStartTime,
+           Date().timeIntervalSince(startTime) < micSettlingTime {
+            return
+        }
+
         // Check if we should pre-buffer or send directly
         preBufferLock.lock()
         let shouldPreBuffer = isPreBuffering
@@ -456,6 +473,15 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
         if shouldPreBuffer {
             preBufferLock.lock()
+            // Limit pre-buffer size to prevent memory issues during slow connections
+            let currentSize = preBuffer.reduce(0) { $0 + $1.count }
+            if currentSize + pcmData.count > maxPreBufferSize {
+                // Remove oldest data to make room (keep most recent audio)
+                var sizeToRemove = currentSize + pcmData.count - maxPreBufferSize
+                while sizeToRemove > 0 && !preBuffer.isEmpty {
+                    sizeToRemove -= preBuffer.removeFirst().count
+                }
+            }
             preBuffer.append(pcmData)
             preBufferLock.unlock()
         } else {

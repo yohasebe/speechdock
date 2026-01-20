@@ -170,6 +170,8 @@ struct GeneralSettingsView: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return appState.apiKeyManager.hasAPIKey(for: .grok)
         case .macOS, .localWhisper:
             return true
         }
@@ -184,6 +186,8 @@ struct GeneralSettingsView: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return appState.apiKeyManager.hasAPIKey(for: .grok)
         case .macOS:
             return true
         }
@@ -802,6 +806,8 @@ struct TTSSpeedSlider: View {
             return "Adjust playback speed (actual range: 0.7x–1.2x)"
         case .macOS:
             return "Adjust playback speed"
+        case .grok:
+            return "Grok Voice Agent does not support speed control"
         }
     }
 
@@ -826,7 +832,7 @@ struct LaunchAtLoginToggle: View {
                 .disabled(!LaunchAtLoginService.shared.isAvailable)
 
             if LaunchAtLoginService.shared.isAvailable {
-                Text("TypeTalk will start automatically when you log in")
+                Text("SpeechDock will start automatically when you log in")
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
@@ -907,6 +913,8 @@ struct STTLanguagePicker: View {
             return "Auto detects the language. Note: Portuguese is not supported."
         case .elevenLabs:
             return "Auto detects the language. Specifying a language can improve accuracy."
+        case .grok:
+            return "Auto detects the language (100+ languages supported)."
         }
     }
 }

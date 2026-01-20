@@ -1,6 +1,6 @@
-# Contributing to TypeTalk
+# Contributing to SpeechDock
 
-Thank you for your interest in contributing to TypeTalk! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to SpeechDock! This document provides guidelines and instructions for contributing.
 
 ## Development Setup
 
@@ -14,8 +14,8 @@ Thank you for your interest in contributing to TypeTalk! This document provides 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yohasebe/typetalk.git
-   cd typetalk
+   git clone https://github.com/yohasebe/speechdock.git
+   cd speechdock
    ```
 
 2. **Generate the Xcode project**
@@ -25,21 +25,21 @@ Thank you for your interest in contributing to TypeTalk! This document provides 
 
 3. **Open in Xcode**
    ```bash
-   open TypeTalk.xcodeproj
+   open SpeechDock.xcodeproj
    ```
 
 4. **Build and run**
-   - Select the `TypeTalk` scheme
+   - Select the `SpeechDock` scheme
    - Press `Cmd+R` to build and run
 
 ### Project Structure
 
 ```
-typetalk/
+speechdock/
 ├── App/                    # Application entry point and state
 │   ├── AppDelegate.swift   # App lifecycle management
 │   ├── AppState.swift      # Central state management
-│   └── TypeTalkApp.swift   # SwiftUI app entry
+│   └── SpeechDockApp.swift   # SwiftUI app entry
 ├── Models/                 # Data models
 ├── Services/               # Business logic and API integrations
 │   ├── RealtimeSTT/        # Speech-to-text services
@@ -79,7 +79,7 @@ typetalk/
 ### Running Tests
 
 ```bash
-xcodebuild test -scheme TypeTalk -destination 'platform=macOS'
+xcodebuild test -scheme SpeechDock -destination 'platform=macOS'
 ```
 
 Or in Xcode: `Cmd+U`
@@ -126,7 +126,7 @@ Or in Xcode: `Cmd+U`
 
 When reporting bugs, please include:
 - macOS version
-- TypeTalk version
+- SpeechDock version
 - Steps to reproduce
 - Expected vs actual behavior
 - Relevant logs or screenshots
@@ -140,7 +140,7 @@ For feature requests, please describe:
 
 ## License
 
-By contributing to TypeTalk, you agree that your contributions will be licensed under the Apache License 2.0.
+By contributing to SpeechDock, you agree that your contributions will be licensed under the Apache License 2.0.
 
 ## Questions?
 

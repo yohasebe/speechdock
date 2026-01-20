@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "TypeTalk",
+    name: "SpeechDock",
     platforms: [
         .macOS(.v14)
     ],
@@ -11,7 +11,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "TypeTalk",
+            name: "SpeechDock",
             dependencies: ["HotKey"],
             path: ".",
             exclude: ["Package.swift", "project.yml", "Resources"],

@@ -90,7 +90,7 @@ jobs:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           # Get DMG filename and info
-          DMG_FILE=$(ls TypeTalk-*.dmg)
+          DMG_FILE=$(ls SpeechDock-*.dmg)
           DMG_SIZE=$(stat -f%z "$DMG_FILE")
           VERSION=$(cat VERSION)
           BUILD_NUMBER=$(grep -A1 'CFBundleVersion' Resources/Info.plist | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
@@ -110,8 +110,8 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
               <channel>
-                  <title>TypeTalk Updates</title>
-                  <link>https://github.com/yohasebe/typetalk</link>
+                  <title>SpeechDock Updates</title>
+                  <link>https://github.com/yohasebe/speechdock</link>
                   <description>Most recent changes with links to updates.</description>
                   <language>en</language>
                   <item>
@@ -121,7 +121,7 @@ jobs:
                       <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
                       <enclosure
-                          url="https://github.com/yohasebe/typetalk/releases/download/v${VERSION}/${DMG_FILE}"
+                          url="https://github.com/yohasebe/speechdock/releases/download/v${VERSION}/${DMG_FILE}"
                           sparkle:edSignature="${SIGNATURE}"
                           length="${DMG_SIZE}"
                           type="application/octet-stream"/>
@@ -145,7 +145,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: TypeTalk-*.dmg
+          files: SpeechDock-*.dmg
           generate_release_notes: true
           draft: false
           prerelease: false

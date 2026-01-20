@@ -172,7 +172,7 @@ enum AudioConverter {
         assetWriter.startSession(atSourceTime: .zero)
 
         // Process samples
-        let processingQueue = DispatchQueue(label: "com.typetalk.audioconverter")
+        let processingQueue = DispatchQueue(label: "com.speechdock.audioconverter")
 
         return await withCheckedContinuation { continuation in
             writerInput.requestMediaDataWhenReady(on: processingQueue) {

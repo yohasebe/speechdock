@@ -62,25 +62,7 @@ enum OCRService {
                     return
                 }
 
-                // Sort observations by position (top to bottom, left to right)
-                let sortedObservations = observations.sorted { obs1, obs2 in
-                    // Y is inverted in Vision (0 is bottom)
-                    let y1 = 1 - obs1.boundingBox.midY
-                    let y2 = 1 - obs2.boundingBox.midY
-
-                    // If on roughly the same line (within 2% of image height), sort by X
-                    if abs(y1 - y2) < 0.02 {
-                        return obs1.boundingBox.midX < obs2.boundingBox.midX
-                    }
-                    return y1 < y2
-                }
-
-                // Extract top candidate from each observation
-                let recognizedTexts = sortedObservations.compactMap { observation -> String? in
-                    observation.topCandidates(1).first?.string
-                }
-
-                let fullText = recognizedTexts.joined(separator: "\n")
+                let fullText = formatObservationsWithLayout(observations)
 
                 if fullText.isEmpty {
                     continuation.resume(throwing: OCRError.noTextFound)
@@ -105,6 +87,113 @@ enum OCRService {
                 }
             }
         }
+    }
+
+    /// Format observations preserving original layout structure
+    private static func formatObservationsWithLayout(_ observations: [VNRecognizedTextObservation]) -> String {
+        // Extract text with position info
+        struct TextBlock {
+            let text: String
+            let minX: CGFloat      // Left edge (0-1, normalized)
+            let midY: CGFloat      // Vertical center (0-1, 0=bottom in Vision)
+            let height: CGFloat    // Height of the text block
+        }
+
+        let blocks: [TextBlock] = observations.compactMap { obs in
+            guard let text = obs.topCandidates(1).first?.string else { return nil }
+            return TextBlock(
+                text: text,
+                minX: obs.boundingBox.minX,
+                midY: obs.boundingBox.midY,
+                height: obs.boundingBox.height
+            )
+        }
+
+        guard !blocks.isEmpty else { return "" }
+
+        // Sort by Y (top to bottom - Vision Y is inverted, so we sort descending)
+        // Then by X (left to right) for items on the same line
+        let sortedBlocks = blocks.sorted { b1, b2 in
+            let y1 = b1.midY
+            let y2 = b2.midY
+            // Average height for line detection threshold
+            let avgHeight = (b1.height + b2.height) / 2
+
+            // If on roughly the same line (within half the average text height)
+            if abs(y1 - y2) < avgHeight * 0.5 {
+                return b1.minX < b2.minX
+            }
+            // Higher Y value = higher on screen in Vision coordinates
+            return y1 > y2
+        }
+
+        // Group blocks into lines based on Y position
+        var lines: [[TextBlock]] = []
+        var currentLine: [TextBlock] = []
+        var lastY: CGFloat?
+
+        for block in sortedBlocks {
+            if let prevY = lastY {
+                let avgHeight = currentLine.map { $0.height }.reduce(0, +) / CGFloat(currentLine.count)
+                // If Y difference is significant, start a new line
+                if abs(prevY - block.midY) > avgHeight * 0.5 {
+                    if !currentLine.isEmpty {
+                        lines.append(currentLine)
+                    }
+                    currentLine = [block]
+                } else {
+                    currentLine.append(block)
+                }
+            } else {
+                currentLine.append(block)
+            }
+            lastY = block.midY
+        }
+        if !currentLine.isEmpty {
+            lines.append(currentLine)
+        }
+
+        // Detect left margin for indentation detection
+        let allMinX = sortedBlocks.map { $0.minX }
+        let baseIndent = allMinX.min() ?? 0
+
+        // Build output with layout preservation
+        var result: [String] = []
+        var previousLineY: CGFloat?
+
+        for line in lines {
+            // Sort line by X position
+            let sortedLine = line.sorted { $0.minX < $1.minX }
+
+            // Check for paragraph break (larger vertical gap)
+            if let prevY = previousLineY {
+                let avgHeight = line.map { $0.height }.reduce(0, +) / CGFloat(line.count)
+                let gap = prevY - (line.first?.midY ?? prevY)
+                // If gap is more than 1.5x the text height, it's likely a paragraph break
+                if gap > avgHeight * 1.5 {
+                    result.append("")  // Add blank line for paragraph
+                }
+            }
+
+            // Check for indentation (list items, quotes, etc.)
+            let lineMinX = sortedLine.first?.minX ?? baseIndent
+            let indentLevel = Int((lineMinX - baseIndent) / 0.03)  // ~3% indent = 1 level
+
+            // Join text blocks on the same line
+            let lineText = sortedLine.map { $0.text }.joined(separator: " ")
+
+            // Add indentation if detected
+            if indentLevel > 0 {
+                let indent = String(repeating: "  ", count: min(indentLevel, 4))  // Max 4 levels
+                result.append(indent + lineText)
+            } else {
+                result.append(lineText)
+            }
+
+            previousLineY = line.first?.midY
+        }
+
+        return result.joined(separator: "\n")
     }
 
     /// Get available recognition languages supported by Vision

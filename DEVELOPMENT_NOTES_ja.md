@@ -1,6 +1,6 @@
 # 開発ノート
 
-TypeTalk開発者向けの技術ドキュメントです。
+SpeechDock開発者向けの技術ドキュメントです。
 
 [English](DEVELOPMENT_NOTES.md) | 日本語
 
@@ -27,14 +27,14 @@ TypeTalk開発者向けの技術ドキュメントです。
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/yohasebe/TypeTalk.git
-cd TypeTalk
+git clone https://github.com/yohasebe/SpeechDock.git
+cd SpeechDock
 
 # Xcodeプロジェクトを生成
 xcodegen generate
 
 # Xcodeで開く
-open TypeTalk.xcodeproj
+open SpeechDock.xcodeproj
 
 # ビルドと実行 (Cmd + R)
 ```
@@ -56,9 +56,9 @@ export ELEVENLABS_API_KEY="your-key"
 ## プロジェクト構成
 
 ```
-TypeTalk/
+SpeechDock/
 ├── App/
-│   ├── TypeTalkApp.swift      # アプリエントリーポイント
+│   ├── SpeechDockApp.swift      # アプリエントリーポイント
 │   ├── AppState.swift         # グローバル状態管理
 │   ├── AppDelegate.swift      # アプリライフサイクル
 │   ├── StatusBarManager.swift # メニューバー管理
@@ -245,11 +245,11 @@ WhisperKitモデルはユーザーのDocumentsフォルダに保存されます�
 
 #### アプリ削除時の動作
 
-TypeTalkをアンインストールした場合：
+SpeechDockをアンインストールした場合：
 
 | データ | 削除される？ | 場所 |
 |-------|------------|------|
-| TypeTalk.app | はい | /Applications |
+| SpeechDock.app | はい | /Applications |
 | WhisperKitモデル | **いいえ** | ~/Documents/huggingface/ |
 | ユーザー設定 | アンインストーラによる | ~/Library/Preferences |
 | APIキー | アンインストーラによる | Keychain |
@@ -347,7 +347,7 @@ func save(key: String, data: Data) throws {
 
 - NSLockでスレッドセーフ
 - APIキーはログに出力されない
-- `~/.typetalk.env`サポートはセキュリティ上削除
+- `~/.speechdock.env`サポートはセキュリティ上削除
 
 ### キャッシュ管理
 
@@ -446,7 +446,7 @@ xcodegen generate
 
 ### 自動アップデート (Sparkle)
 
-TypeTalkは自動アップデートに[Sparkle 2](https://sparkle-project.org/)を使用しています。アップデートはGitHub Releases経由で配信されます。
+SpeechDockは自動アップデートに[Sparkle 2](https://sparkle-project.org/)を使用しています。アップデートはGitHub Releases経由で配信されます。
 
 #### 初期設定（一度だけ）
 
@@ -473,7 +473,7 @@ TypeTalkは自動アップデートに[Sparkle 2](https://sparkle-project.org/)�
 ```xml
 <!-- Sparkle自動アップデート設定 -->
 <key>SUFeedURL</key>
-<string>https://raw.githubusercontent.com/yohasebe/typetalk/main/appcast.xml</string>
+<string>https://raw.githubusercontent.com/yohasebe/speechdock/main/appcast.xml</string>
 <key>SUPublicEDKey</key>
 <string>YOUR_PUBLIC_KEY_HERE</string>
 <key>SUEnableAutomaticChecks</key>
@@ -488,8 +488,8 @@ TypeTalkは自動アップデートに[Sparkle 2](https://sparkle-project.org/)�
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
-        <title>TypeTalk Updates</title>
-        <link>https://github.com/yohasebe/typetalk</link>
+        <title>SpeechDock Updates</title>
+        <link>https://github.com/yohasebe/speechdock</link>
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
@@ -499,7 +499,7 @@ TypeTalkは自動アップデートに[Sparkle 2](https://sparkle-project.org/)�
             <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/yohasebe/typetalk/releases/download/v0.1.4/TypeTalk.dmg"
+                url="https://github.com/yohasebe/speechdock/releases/download/v0.1.4/SpeechDock.dmg"
                 sparkle:edSignature="SIGNATURE_HERE"
                 length="FILE_SIZE_IN_BYTES"
                 type="application/octet-stream"/>
@@ -514,7 +514,7 @@ TypeTalkは自動アップデートに[Sparkle 2](https://sparkle-project.org/)�
 
 ```bash
 # DMGに署名
-./Sparkle.framework/Versions/B/Resources/sign_update TypeTalk.dmg
+./Sparkle.framework/Versions/B/Resources/sign_update SpeechDock.dmg
 
 # appcast.xmlで使用するEdDSA署名が出力される
 ```
@@ -527,7 +527,7 @@ TypeTalkは自動アップデートに[Sparkle 2](https://sparkle-project.org/)�
 - name: Sign update for Sparkle
   run: |
     # Sparkleツールをダウンロードまたはキャッシュ版を使用
-    SIGNATURE=$(./sign_update TypeTalk.dmg --ed-key-file ${{ secrets.SPARKLE_PRIVATE_KEY }})
+    SIGNATURE=$(./sign_update SpeechDock.dmg --ed-key-file ${{ secrets.SPARKLE_PRIVATE_KEY }})
     echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
 
 - name: Update appcast.xml

@@ -2,7 +2,7 @@ import AppKit
 import HotKey
 import os.log
 
-private let logger = Logger(subsystem: "com.typetalk", category: "HotKey")
+private let logger = Logger(subsystem: "com.speechdock", category: "HotKey")
 
 protocol HotKeyServiceDelegate: AnyObject {
     func hotKeyPressed()

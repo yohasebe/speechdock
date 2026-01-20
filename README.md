@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo.png" alt="TypeTalk Logo" width="128" height="128">
+  <img src="assets/logo.png" alt="SpeechDock Logo" width="128" height="128">
 </p>
 
-# TypeTalk
+# SpeechDock
 
 A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) with support for multiple providers.
 
@@ -92,10 +92,10 @@ Toggle with hotkey (`Ctrl + Option + S` by default) or from the STT panel/menu b
 
 ## Installation
 
-1. Download the latest `.dmg` file from the [Releases](https://github.com/yohasebe/TypeTalk/releases) page
+1. Download the latest `.dmg` file from the [Releases](https://github.com/yohasebe/SpeechDock/releases) page
 2. Open the DMG file
-3. Drag TypeTalk to your Applications folder
-4. Launch TypeTalk from Applications
+3. Drag SpeechDock to your Applications folder
+4. Launch SpeechDock from Applications
 
 ## Setup
 
@@ -124,11 +124,11 @@ Local Whisper runs speech recognition entirely on your Mac without sending audio
 | Large v3 Turbo | ~800 MB | Fast + accurate (recommended) |
 | Large v2/v3 | ~1.5 GB | Best accuracy, slower |
 
-Models are stored in `~/Library/Caches/com.typetalk.app/` and can be deleted to free disk space.
+Models are stored in `~/Library/Caches/com.speechdock.app/` and can be deleted to free disk space.
 
 ### Permissions
 
-TypeTalk requires the following permissions:
+SpeechDock requires the following permissions:
 
 | Permission | Purpose |
 |------------|---------|
@@ -136,7 +136,7 @@ TypeTalk requires the following permissions:
 | **Accessibility** | Global keyboard shortcuts and text insertion |
 | **Screen Recording** | Window thumbnails and System/App Audio capture |
 
-Grant permissions in **System Settings** > **Privacy & Security**. TypeTalk will prompt you on first use.
+Grant permissions in **System Settings** > **Privacy & Security**. SpeechDock will prompt you on first use.
 
 ## Usage
 
@@ -171,7 +171,7 @@ Shortcuts can be customized in **Settings** > **Shortcuts**.
 
 ### Menu Bar
 
-Click the TypeTalk icon in the menu bar to:
+Click the SpeechDock icon in the menu bar to:
 
 - Start/stop STT recording
 - Start TTS for selected text
@@ -221,7 +221,7 @@ Both STT and TTS support language selection:
 
 ### Launch at Login
 
-Enable **Launch at Login** in **Settings** > **General** to start TypeTalk automatically.
+Enable **Launch at Login** in **Settings** > **General** to start SpeechDock automatically.
 
 ## Troubleshooting
 
@@ -263,7 +263,7 @@ Enable **Launch at Login** in **Settings** > **General** to start TypeTalk autom
 - **macOS Native**: Audio processed entirely on-device, no data sent externally
 - **Local Whisper**: Audio processed entirely on-device, no data sent externally
 - **Cloud Providers**: Audio sent to provider APIs (OpenAI, Google, ElevenLabs) for processing according to their privacy policies
-- **No Telemetry**: TypeTalk does not collect or transmit usage data
+- **No Telemetry**: SpeechDock does not collect or transmit usage data
 
 ## License
 

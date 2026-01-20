@@ -1,9 +1,9 @@
-# TypeTalk Development Rakefile
+# SpeechDock Development Rakefile
 
 require 'fileutils'
 
 # Configuration
-APP_NAME = "TypeTalk"
+APP_NAME = "SpeechDock"
 PROJECT_FILE = "#{APP_NAME}.xcodeproj"
 SCHEME = APP_NAME
 BUILD_DIR = "build"
@@ -259,7 +259,7 @@ task :xcode => "project:open"
 desc "Show available tasks"
 task :help do
   puts ""
-  puts "TypeTalk Development Tasks"
+  puts "SpeechDock Development Tasks"
   puts "=" * 40
   puts ""
   puts "Common tasks:"

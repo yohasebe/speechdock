@@ -10,6 +10,9 @@ final class TextSelectionService {
     /// Polling interval for clipboard change detection
     private let pollInterval: TimeInterval = 0.02
 
+    /// UTType for HTML content
+    private let htmlType = NSPasteboard.PasteboardType.html
+
     private init() {}
 
     /// Gets the currently selected text from the frontmost application
@@ -61,8 +64,30 @@ final class TextSelectionService {
 
         while Date().timeIntervalSince(startTime) < maxCopyWaitTime {
             if pasteboard.changeCount != clearedChangeCount {
-                // Clipboard was updated, get the text
-                selectedText = pasteboard.string(forType: .string)
+                // Clipboard was updated
+                // Try to get rich text formats for better layout preservation
+
+                // 1. Try HTML first (web browsers)
+                if let htmlString = pasteboard.string(forType: htmlType) {
+                    selectedText = convertHTMLToFormattedText(htmlString)
+                    #if DEBUG
+                    print("TextSelectionService: Got HTML from clipboard, converted to formatted text")
+                    #endif
+                }
+
+                // 2. Try RTF if HTML not available (Word, Pages, etc.)
+                if (selectedText == nil || selectedText?.isEmpty == true),
+                   let rtfData = pasteboard.data(forType: .rtf) {
+                    selectedText = convertRTFToFormattedText(rtfData)
+                    #if DEBUG
+                    print("TextSelectionService: Got RTF from clipboard, converted to formatted text")
+                    #endif
+                }
+
+                // 3. Fall back to plain text if rich text conversion failed or unavailable
+                if selectedText == nil || selectedText?.isEmpty == true {
+                    selectedText = pasteboard.string(forType: .string)
+                }
                 break
             }
             // Use Task.sleep instead of Thread.sleep to avoid blocking
@@ -82,6 +107,57 @@ final class TextSelectionService {
         }
 
         return selectedText
+    }
+
+    /// Convert HTML string to formatted plain text preserving layout structure
+    private func convertHTMLToFormattedText(_ html: String) -> String? {
+        guard let data = html.data(using: .utf8) else { return nil }
+
+        // Use NSAttributedString to parse HTML
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.html,
+            .characterEncoding: String.Encoding.utf8.rawValue
+        ]
+
+        guard let attributedString = try? NSAttributedString(data: data, options: options, documentAttributes: nil) else {
+            return nil
+        }
+
+        return cleanupAttributedStringText(attributedString)
+    }
+
+    /// Convert RTF data to formatted plain text preserving layout structure
+    private func convertRTFToFormattedText(_ rtfData: Data) -> String? {
+        // Use NSAttributedString to parse RTF
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.rtf
+        ]
+
+        guard let attributedString = try? NSAttributedString(data: rtfData, options: options, documentAttributes: nil) else {
+            return nil
+        }
+
+        return cleanupAttributedStringText(attributedString)
+    }
+
+    /// Clean up attributed string text while preserving layout structure
+    private func cleanupAttributedStringText(_ attributedString: NSAttributedString) -> String? {
+        // Get the plain text from attributed string (preserves line breaks from structure)
+        var result = attributedString.string
+
+        // Clean up excessive whitespace while preserving intentional line breaks
+        // Replace multiple spaces with single space
+        result = result.replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
+        // Replace more than 2 consecutive newlines with just 2
+        result = result.replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
+        // Trim leading/trailing whitespace from each line
+        result = result.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .joined(separator: "\n")
+        // Trim overall leading/trailing whitespace
+        result = result.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return result.isEmpty ? nil : result
     }
 
     private func copySelectionWithAppleScript() {

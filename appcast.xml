@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
-        <title>TypeTalk Updates</title>
-        <link>https://github.com/yohasebe/typetalk</link>
+        <title>SpeechDock Updates</title>
+        <link>https://github.com/yohasebe/speechdock</link>
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
@@ -12,8 +12,8 @@
             <sparkle:shortVersionString>0.1.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/yohasebe/typetalk/releases/download/v0.1.8/TypeTalk-0.1.8.dmg"
-                sparkle:edSignature="sparkle:edSignature="VdiEWhvRDGf0oNSLtelTcOWy9/ov1hEJkJv/pQH2ppy/7JWa/BbN2nFf0crK6J2lb+44b/j/jK/6Sy/jMn/8AQ==" length="5517165""
+                url="https://github.com/yohasebe/speechdock/releases/download/v0.1.8/SpeechDock-0.1.8.dmg"
+                sparkle:edSignature="VdiEWhvRDGf0oNSLtelTcOWy9/ov1hEJkJv/pQH2ppy/7JWa/BbN2nFf0crK6J2lb+44b/j/jK/6Sy/jMn/8AQ=="
                 length="5517165"
                 type="application/octet-stream"/>
         </item>

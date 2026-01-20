@@ -12,7 +12,7 @@ struct AboutView: View {
                 .frame(width: 128, height: 128)
 
             // App Name
-            Text("TypeTalk")
+            Text("SpeechDock")
                 .font(.system(size: 24, weight: .bold))
 
             // Version
@@ -45,7 +45,7 @@ struct AboutView: View {
 
             // GitHub Link
             Button(action: {
-                if let url = URL(string: "https://github.com/yohasebe/TypeTalk") {
+                if let url = URL(string: "https://github.com/yohasebe/SpeechDock") {
                     NSWorkspace.shared.open(url)
                 }
             }) {

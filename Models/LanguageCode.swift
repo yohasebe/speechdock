@@ -167,6 +167,8 @@ extension LanguageCode {
             return geminiLanguages
         case .elevenLabs:
             return elevenLabsLanguages
+        case .grok:
+            return commonLanguages  // Grok supports 100+ languages with auto-detection
         }
     }
 
@@ -208,7 +210,7 @@ extension LanguageCode {
         switch provider {
         case .macOS:
             return true  // Uses system locale when Auto is selected
-        case .localWhisper, .openAI, .gemini, .elevenLabs:
+        case .localWhisper, .openAI, .gemini, .elevenLabs, .grok:
             return true
         }
     }

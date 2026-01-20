@@ -13,7 +13,7 @@ struct MenuBarView: View {
                     .foregroundColor(appState.isRecording ? .red : .accentColor)
                     .font(.title2)
 
-                Text("TypeTalk")
+                Text("SpeechDock")
                     .font(.headline)
 
                 Spacer()
@@ -295,7 +295,7 @@ struct MenuBarView: View {
                     HStack {
                         Image(systemName: "info.circle")
                             .frame(width: 20)
-                        Text("About TypeTalk")
+                        Text("About SpeechDock")
                         Spacer()
                     }
                     .contentShape(Rectangle())
@@ -330,7 +330,7 @@ struct MenuBarView: View {
                     HStack {
                         Image(systemName: "power")
                             .frame(width: 20)
-                        Text("Quit TypeTalk")
+                        Text("Quit SpeechDock")
                         Spacer()
                     }
                     .contentShape(Rectangle())
@@ -379,6 +379,8 @@ struct MenuBarView: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return appState.apiKeyManager.hasAPIKey(for: .grok)
         case .macOS, .localWhisper:
             return true
         }
@@ -392,6 +394,8 @@ struct MenuBarView: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return appState.apiKeyManager.hasAPIKey(for: .grok)
         case .macOS:
             return true
         }
@@ -422,6 +426,8 @@ struct MenuBarView: View {
             return "Adjust playback speed (actual range: 0.7x–1.2x)"
         case .macOS:
             return "Adjust playback speed"
+        case .grok:
+            return "Grok Voice Agent does not support speed control"
         }
     }
 
@@ -489,7 +495,7 @@ struct MenuBarView: View {
         // Close the menu bar popover first
         StatusBarManager.shared.closePopover()
 
-        if let url = URL(string: "https://github.com/yohasebe/typetalk") {
+        if let url = URL(string: "https://github.com/yohasebe/speechdock") {
             NSWorkspace.shared.open(url)
         }
     }

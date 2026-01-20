@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced NSPopover with NSPanel for menu bar (more reliable, immediate display)
 
 ### Fixed
-- Quit TypeTalk now works with single click (was requiring double-click when panels open)
+- Quit SpeechDock now works with single click (was requiring double-click when panels open)
 - Subtitle panel dragging is now smooth (was jerky due to frequent state updates)
 - Position setting (top/bottom) now works correctly when custom position was set
 - Menu bar icon sometimes not responding to clicks (rewrote using NSPanel)
@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CONTRIBUTING.md with development guidelines
 
 ### Changed
-- Removed `~/.typetalk.env` config file support for security reasons
+- Removed `~/.speechdock.env` config file support for security reasons
 - API keys should now be stored via Settings UI (stored securely in macOS Keychain)
 - Environment variables still supported for development use
 - App Audio option removed from Settings panel (available only in menu bar and STT panel)
@@ -102,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2026-01-12
 
 ### Added
-- Support for `~/.typetalk.env` config file for API keys (recommended for Finder launch)
+- Support for `~/.speechdock.env` config file for API keys (recommended for Finder launch)
 - Automatic permission prompts for Microphone and Accessibility on first launch
 
 ### Fixed
@@ -113,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-01-11
 
 ### Added
-- Initial release of TypeTalk
+- Initial release of SpeechDock
 - **Speech-to-Text (STT)** support with multiple providers:
   - macOS native (Speech Recognition)
   - OpenAI (Whisper, GPT-4o Transcribe)

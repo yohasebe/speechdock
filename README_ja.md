@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo.png" alt="TypeTalk Logo" width="128" height="128">
+  <img src="assets/logo.png" alt="SpeechDock Logo" width="128" height="128">
 </p>
 
-# TypeTalk
+# SpeechDock
 
 複数のプロバイダに対応した、macOS メニューバー常駐型の音声認識（STT）・音声合成（TTS）アプリケーションです。
 
@@ -92,10 +92,10 @@ macOS Vision Frameworkを使用してテキスト認識を行います。画面�
 
 ## インストール
 
-1. [Releases](https://github.com/yohasebe/TypeTalk/releases)ページから最新の`.dmg`ファイルをダウンロード
+1. [Releases](https://github.com/yohasebe/SpeechDock/releases)ページから最新の`.dmg`ファイルをダウンロード
 2. DMGファイルを開く
-3. TypeTalkをアプリケーションフォルダにドラッグ
-4. アプリケーションからTypeTalkを起動
+3. SpeechDockをアプリケーションフォルダにドラッグ
+4. アプリケーションからSpeechDockを起動
 
 ## セットアップ
 
@@ -124,11 +124,11 @@ Local Whisperは音声をクラウドに送信せず、完全にMac上で音声�
 | Large v3 Turbo | 約800 MB | 高速＋高精度（推奨） |
 | Large v2/v3 | 約1.5 GB | 最高精度、低速 |
 
-モデルは `~/Library/Caches/com.typetalk.app/` に保存され、削除してディスク容量を解放できます。
+モデルは `~/Library/Caches/com.speechdock.app/` に保存され、削除してディスク容量を解放できます。
 
 ### 権限
 
-TypeTalkには以下の権限が必要です：
+SpeechDockには以下の権限が必要です：
 
 | 権限 | 用途 |
 |------|------|
@@ -171,7 +171,7 @@ TypeTalkには以下の権限が必要です：
 
 ### メニューバー
 
-メニューバーのTypeTalkアイコンをクリックして：
+メニューバーのSpeechDockアイコンをクリックして：
 
 - STT録音の開始/停止
 - 選択テキストのTTS開始
@@ -221,7 +221,7 @@ STTとTTSの両方で言語選択が可能です：
 
 ### ログイン時に起動
 
-**設定** > **General** で **Launch at Login** を有効にすると、TypeTalkが自動的に起動します。
+**設定** > **General** で **Launch at Login** を有効にすると、SpeechDockが自動的に起動します。
 
 ## トラブルシューティング
 
@@ -263,7 +263,7 @@ STTとTTSの両方で言語選択が可能です：
 - **macOS Native**: 音声は完全にデバイス上で処理され、外部に送信されません
 - **Local Whisper**: 音声は完全にデバイス上で処理され、外部に送信されません
 - **クラウドプロバイダ**: 音声はプロバイダのAPI（OpenAI、Google、ElevenLabs）に送信され、各社のプライバシーポリシーに従って処理されます
-- **テレメトリなし**: TypeTalkは使用データの収集・送信を行いません
+- **テレメトリなし**: SpeechDockは使用データの収集・送信を行いません
 
 ## ライセンス
 

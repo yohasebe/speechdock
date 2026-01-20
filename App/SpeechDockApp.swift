@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct TypeTalkApp: App {
+struct SpeechDockApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appState = AppState.shared
 
@@ -16,7 +16,7 @@ struct TypeTalkApp: App {
         .commands {
             // Replace default About command to open our custom AboutWindow
             CommandGroup(replacing: .appInfo) {
-                Button("About TypeTalk") {
+                Button("About SpeechDock") {
                     WindowManager.shared.openAboutWindow()
                 }
             }
@@ -31,8 +31,8 @@ struct TypeTalkApp: App {
 
             // Replace default Help command to open GitHub documentation
             CommandGroup(replacing: .help) {
-                Button("TypeTalk Help") {
-                    if let url = URL(string: "https://github.com/yohasebe/typetalk") {
+                Button("SpeechDock Help") {
+                    if let url = URL(string: "https://github.com/yohasebe/speechdock") {
                         NSWorkspace.shared.open(url)
                     }
                 }

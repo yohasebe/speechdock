@@ -148,6 +148,67 @@ let personalVoice = AVSpeechSynthesisVoice(identifier: "com.apple.speech.synthes
 
 ---
 
+## Gemini Live API トラブルシューティング (2026-01)
+
+### マイク入力で転写が動作しない問題
+
+**症状**:
+- App Audio（Chromeなど）では転写が正常に動作する
+- Microphone入力では転写結果が返ってこない
+- WebSocket接続は成功し、`setupComplete`も受信される
+
+**原因**:
+マイクからの音声（通常44.1kHz/48kHz）がGemini Live APIが要求する16kHzにリサンプリングされていなかった。
+
+**解決策**:
+`GeminiRealtimeSTT.swift`の`convertBufferToData`関数でAVAudioConverterを使用して適切にリサンプリングする。
+
+```swift
+// Capture converter and format for use in tap closure
+let capturedConverter = audioConverter
+let capturedFormat = outputFormat
+
+inputNode.installTap(onBus: 0, bufferSize: 2048, format: inputFormat) { [weak self] buffer, _ in
+    // Pass converter to resampling function
+    let pcmData = self.convertBufferToData(buffer, converter: capturedConverter, outFormat: capturedFormat)
+    // ...
+}
+```
+
+**注意点**:
+- `audioConverter`と`outputFormat`はMainActor-isolatedなので、タップクロージャ内で直接アクセスできない
+- クロージャ作成時にキャプチャしてバックグラウンドスレッドに渡す必要がある
+
+---
+
+### inputAudioTranscription APIの既知のバグ
+
+**状況** (2026-01時点):
+- GitHubで複数のissueが報告されている
+  - [Issue #478](https://github.com/googleapis/js-genai/issues/478)
+  - [Issue #1212](https://github.com/googleapis/js-genai/issues/1212)
+- `setupComplete`は返るが、転写結果（`inputTranscription`）が返ってこない場合がある
+- Google側のP2優先度バグとして認識されている
+
+**設定の正しい位置**:
+```json
+{
+  "setup": {
+    "model": "models/gemini-2.5-flash-native-audio-preview-12-2025",
+    "generationConfig": {
+      "responseModalities": ["AUDIO"]
+    },
+    "inputAudioTranscription": {}  // setup直下、generationConfig内ではない
+  }
+}
+```
+
+**モデル制約**:
+- `gemini-2.5-flash-native-audio-*`モデルは`responseModalities: ["AUDIO"]`のみサポート
+- `["TEXT"]`を指定すると「Cannot extract voices from a non-audio request」エラー
+
+---
+
 ## 参考リンク
 
 - [WWDC25 - SpeechAnalyzer](https://developer.apple.com/videos/play/wwdc2025/277/)

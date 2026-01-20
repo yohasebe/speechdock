@@ -1,5 +1,5 @@
 import XCTest
-@testable import TypeTalk
+@testable import SpeechDock
 
 @MainActor
 final class WindowLevelCoordinatorTests: XCTestCase {

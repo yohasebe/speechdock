@@ -139,6 +139,7 @@ enum TTSProvider: String, CaseIterable, Identifiable, Codable {
     case openAI = "OpenAI"
     case gemini = "Gemini"
     case elevenLabs = "ElevenLabs"
+    case grok = "Grok"
 
     var id: String { rawValue }
 
@@ -148,6 +149,7 @@ enum TTSProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI: return "OPENAI_API_KEY"
         case .gemini: return "GEMINI_API_KEY"
         case .elevenLabs: return "ELEVENLABS_API_KEY"
+        case .grok: return "GROK_API_KEY"
         }
     }
 
@@ -161,6 +163,7 @@ enum TTSProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI: return "OpenAI TTS (high quality)"
         case .gemini: return "Gemini TTS (multilingual)"
         case .elevenLabs: return "ElevenLabs (natural voices)"
+        case .grok: return "Grok Voice (5 voices)"
         }
     }
 }
@@ -178,6 +181,8 @@ enum TTSFactory {
             return GeminiTTS()
         case .elevenLabs:
             return ElevenLabsTTS()
+        case .grok:
+            return GrokTTS()
         }
     }
 }

@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-# TypeTalk Build Script
-# This script builds the TypeTalk app for release
+# SpeechDock Build Script
+# This script builds the SpeechDock app for release
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VERSION=$(cat "$PROJECT_DIR/VERSION")
 BUILD_DIR="$PROJECT_DIR/build"
-APP_NAME="TypeTalk"
+APP_NAME="SpeechDock"
 
 echo "Building $APP_NAME v$VERSION..."
 

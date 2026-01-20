@@ -68,6 +68,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     case openAI = "OpenAI"
     case gemini = "Gemini"
     case elevenLabs = "ElevenLabs"
+    case grok = "Grok"
 
     var id: String { rawValue }
 
@@ -78,6 +79,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI: return "OPENAI_API_KEY"
         case .gemini: return "GEMINI_API_KEY"
         case .elevenLabs: return "ELEVENLABS_API_KEY"
+        case .grok: return "GROK_API_KEY"
         }
     }
 
@@ -102,6 +104,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI: return "OpenAI Realtime API (high quality)"
         case .gemini: return "Gemini Live API (multimodal)"
         case .elevenLabs: return "ElevenLabs Scribe v2 (150ms latency)"
+        case .grok: return "Grok Voice Agent (low latency)"
         }
     }
 }
@@ -131,6 +134,8 @@ enum RealtimeSTTFactory {
             return GeminiRealtimeSTT()
         case .elevenLabs:
             return ElevenLabsRealtimeSTT()
+        case .grok:
+            return GrokRealtimeSTT()
         }
     }
 }

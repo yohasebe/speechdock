@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# TypeTalk Notarization Script
+# SpeechDock Notarization Script
 # This script notarizes the DMG for distribution
 #
 # Required environment variables:
@@ -12,7 +12,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VERSION=$(cat "$PROJECT_DIR/VERSION")
-APP_NAME="TypeTalk"
+APP_NAME="SpeechDock"
 DMG_FILE="$PROJECT_DIR/$APP_NAME-$VERSION.dmg"
 
 echo "Notarizing $APP_NAME v$VERSION..."
