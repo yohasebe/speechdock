@@ -12,9 +12,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
 
-    // VAD auto-stop settings (OpenAI has built-in VAD, but we expose these for UI consistency)
+    // VAD settings for turn detection
     var vadMinimumRecordingTime: TimeInterval = 10.0
-    var vadSilenceDuration: TimeInterval = 3.0
+    var vadSilenceDuration: TimeInterval = 0.5  // 500ms
 
     private var audioEngine: AVAudioEngine?
     private var webSocketTask: URLSessionWebSocketTask?
@@ -39,6 +39,12 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     private var preBuffer: [Data] = []
     private var isPreBuffering = true
     private let preBufferLock = NSLock()
+    // Maximum pre-buffer size (~5 seconds at 24kHz 16-bit mono = 240KB)
+    private let maxPreBufferSize = 250_000
+
+    // Settling time to skip initial mic noise (in seconds)
+    private let micSettlingTime: TimeInterval = 0.3
+    private var audioStartTime: Date?
 
     func startListening() async throws {
         guard let apiKey = apiKeyManager.getAPIKey(for: .openAI) else {
@@ -51,17 +57,33 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         // Reset state
         accumulatedText = ""
         currentPartialText = ""
+        audioStartTime = nil
         preBufferLock.lock()
         preBuffer.removeAll()
         isPreBuffering = true
         preBufferLock.unlock()
 
+        // Mark when audio capture starts for settling time (applies to both mic and external)
+        audioStartTime = Date()
+
         // Start audio capture FIRST to avoid missing initial audio
         if audioSource == .microphone {
             try await startAudioCapture()
         } else {
-            // For external source, prepare the output format
-            outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: true)
+            // For external source, prepare the output format and converter
+            // SystemAudioCaptureService outputs 16kHz float mono, we need 24kHz int16 mono
+            guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: true) else {
+                throw RealtimeSTTError.audioError("Failed to create output format")
+            }
+            outputFormat = outFormat
+
+            // Create input format matching SystemAudioCaptureService (16kHz float mono)
+            guard let inputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false) else {
+                throw RealtimeSTTError.audioError("Failed to create input format")
+            }
+
+            // Create converter for resampling 16kHz -> 24kHz
+            audioConverter = AVAudioConverter(from: inputFormat, to: outFormat)
         }
 
         isListening = true
@@ -71,7 +93,11 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         // Connect WebSocket (audio is being pre-buffered meanwhile)
         try await connectWebSocket(apiKey: apiKey)
 
-        // Configure the transcription session
+        // Brief calibration period to measure noise floor (audio is being captured)
+        // This allows adaptive VAD parameters based on background noise
+        try await Task.sleep(nanoseconds: 500_000_000)  // 0.5 seconds
+
+        // Configure the transcription session with adaptive VAD parameters
         try await configureSession()
 
         // Flush pre-buffered audio
@@ -176,6 +202,38 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         // Configure the transcription session
         let model = selectedModel.isEmpty ? "gpt-4o-transcribe" : selectedModel
 
+        // VAD parameters differ based on audio source
+        let threshold: NSDecimalNumber
+        let silenceDurationMs: Int
+        let prefixPaddingMs: Int
+
+        if audioSource == .external {
+            // External source (system audio like videos):
+            // - Videos often have background music that never fully stops
+            // - Need lower threshold to detect speech amid background audio
+            // - Need shorter silence duration since true silence is rare
+            threshold = NSDecimalNumber(string: "0.25")
+            silenceDurationMs = 250  // Shorter to finalize faster
+            prefixPaddingMs = 200
+
+            #if DEBUG
+            print("OpenAIRealtimeSTT: External source VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms")
+            #endif
+        } else {
+            // Microphone: Use adaptive VAD parameters based on detected noise floor
+            let adaptiveThreshold = audioLevelMonitor.recommendedVADThreshold()
+            let adaptiveSilenceMs = audioLevelMonitor.recommendedSilenceDuration()
+
+            // Use NSDecimalNumber to ensure exact decimal representation in JSON
+            threshold = NSDecimalNumber(string: String(format: "%.2f", adaptiveThreshold))
+            silenceDurationMs = adaptiveSilenceMs
+            prefixPaddingMs = 300
+
+            #if DEBUG
+            print("OpenAIRealtimeSTT: Microphone VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms, noise floor: \(audioLevelMonitor.noiseFloor)")
+            #endif
+        }
+
         var config: [String: Any] = [
             "type": "transcription_session.update",
             "session": [
@@ -184,9 +242,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
                 ],
                 "turn_detection": [
                     "type": "server_vad",
-                    "threshold": 0.5,
-                    "prefix_padding_ms": 300,
-                    "silence_duration_ms": 500
+                    "threshold": threshold,
+                    "prefix_padding_ms": prefixPaddingMs,
+                    "silence_duration_ms": silenceDurationMs
                 ],
                 "input_audio_format": "pcm16"
             ]
@@ -244,9 +302,24 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         case .string(let text):
             parseMessage(text)
         case .data(let data):
+            // Try UTF-8 first, then fall back to other encodings
+            var decoded = false
             if let text = String(data: data, encoding: .utf8) {
                 parseMessage(text)
+                decoded = true
+            } else if let text = String(data: data, encoding: .utf16) {
+                parseMessage(text)
+                decoded = true
+            } else if let text = String(data: data, encoding: .isoLatin1) {
+                // Last resort - convert to UTF-8 via latin1
+                parseMessage(text)
+                decoded = true
             }
+            #if DEBUG
+            if !decoded {
+                print("OpenAIRealtimeSTT: Failed to decode WebSocket data as string")
+            }
+            #endif
         @unknown default:
             break
         }
@@ -277,17 +350,29 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
             print("OpenAIRealtimeSTT: Session updated")
             #endif
 
-        case "conversation.item.input_audio_transcription.delta":
+        case "conversation.item.input_audio_transcription.delta",
+             "transcription.delta":
             // Incremental transcription (for gpt-4o-transcribe models)
-            if let delta = json["delta"] as? String, !delta.isEmpty {
+            // Handle both event types for compatibility
+            if let rawDelta = json["delta"] as? String, !rawDelta.isEmpty {
+                // Normalize Unicode to NFC form for consistent handling of non-ASCII characters
+                // Also handle potential invalid UTF-8 sequences
+                let delta = sanitizeUnicodeString(rawDelta)
                 currentPartialText += delta
                 let fullText = accumulatedText.isEmpty ? currentPartialText : accumulatedText + " " + currentPartialText
                 delegate?.realtimeSTT(self, didReceivePartialResult: fullText)
+                #if DEBUG
+                print("OpenAIRealtimeSTT: Delta text: '\(delta)'")
+                #endif
             }
 
-        case "conversation.item.input_audio_transcription.completed":
+        case "conversation.item.input_audio_transcription.completed",
+             "transcription.done":
             // Final transcription for a segment
-            if let transcript = json["transcript"] as? String, !transcript.isEmpty {
+            // Handle both event types for compatibility
+            if let rawTranscript = json["transcript"] as? String, !rawTranscript.isEmpty {
+                // Normalize and sanitize Unicode
+                let transcript = sanitizeUnicodeString(rawTranscript)
                 // Commit the transcript
                 if accumulatedText.isEmpty {
                     accumulatedText = transcript
@@ -382,6 +467,13 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     private func sendAudioBuffer(_ buffer: AVAudioPCMBuffer) {
         guard isListening else { return }
 
+        // Skip audio during settling time to avoid initial noise being transcribed
+        // Applies to both microphone and external sources (system/app audio)
+        if let startTime = audioStartTime,
+           Date().timeIntervalSince(startTime) < micSettlingTime {
+            return
+        }
+
         let pcmData: Data
 
         if let converter = audioConverter, let outFormat = outputFormat {
@@ -423,6 +515,15 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
         if shouldPreBuffer {
             preBufferLock.lock()
+            // Limit pre-buffer size to prevent memory issues during slow connections
+            let currentSize = preBuffer.reduce(0) { $0 + $1.count }
+            if currentSize + pcmData.count > maxPreBufferSize {
+                // Remove oldest data to make room (keep most recent audio)
+                var sizeToRemove = currentSize + pcmData.count - maxPreBufferSize
+                while sizeToRemove > 0 && !preBuffer.isEmpty {
+                    sizeToRemove -= preBuffer.removeFirst().count
+                }
+            }
             preBuffer.append(pcmData)
             preBufferLock.unlock()
         } else {
@@ -491,5 +592,27 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         return Data(bytes: int16Data, count: frameLength * 2)
+    }
+
+    /// Sanitize and normalize Unicode string for proper display
+    /// Handles potential encoding issues with non-ASCII characters (Japanese, etc.)
+    private func sanitizeUnicodeString(_ input: String) -> String {
+        // First, normalize to NFC (Canonical Decomposition, followed by Canonical Composition)
+        // This ensures consistent representation of characters like Japanese
+        var result = input.precomposedStringWithCanonicalMapping
+
+        // Remove any invalid Unicode scalar values (replacement characters)
+        result = result.unicodeScalars.filter { scalar in
+            // Keep valid scalars, filter out replacement character (U+FFFD)
+            scalar != Unicode.Scalar(0xFFFD)
+        }.map { String($0) }.joined()
+
+        // Handle potential UTF-8 BOM or other invisible characters at start
+        if let first = result.unicodeScalars.first,
+           first == Unicode.Scalar(0xFEFF) {
+            result = String(result.dropFirst())
+        }
+
+        return result
     }
 }

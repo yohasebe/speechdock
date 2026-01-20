@@ -98,7 +98,7 @@ struct SubtitleOverlayView: View {
                         .fill(Color.red)
                         .frame(width: 8, height: 8)
                     Text("Recording")
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.6))
                 }
             }

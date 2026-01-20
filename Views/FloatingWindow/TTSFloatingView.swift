@@ -316,7 +316,7 @@ struct TTSFloatingView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                     Text(message)
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.red)
                         .lineLimit(2)
                     Spacer()
@@ -352,6 +352,25 @@ struct TTSFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
+            // OCR capture button
+            Button(action: {
+                appState.startOCR()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "text.viewfinder")
+                        .font(.body)
+                    Text("OCR")
+                        .font(.callout)
+                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .cornerRadius(6)
+            }
+            .buttonStyle(.plain)
+            .help("Capture text with OCR (⌃⌥⇧O)")
+            .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
+
             Spacer()
 
             switch appState.ttsState {
@@ -386,7 +405,7 @@ struct TTSFloatingView: View {
                         Text("Save Audio")
                             .font(.body)
                         Text("(\(saveShortcut.displayString))")
-                            .font(.caption2)
+                            .font(.callout)
                     }
                     .padding(.horizontal, 4)
                     .padding(.vertical, 3)
@@ -492,7 +511,7 @@ struct TTSLoadingIndicator: View {
 
             Text("Generating audio...")
                 .foregroundColor(.secondary)
-                .font(.caption)
+                .font(.callout)
         }
         .onAppear {
             startAnimation()
@@ -536,7 +555,7 @@ struct TTSAudioOutputSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Output:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             outputMenu
@@ -570,9 +589,9 @@ struct TTSAudioOutputSelector: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "speaker.wave.2")
-                    .font(.caption)
+                    .font(.callout)
                 Text(currentName)
-                    .font(.caption2)
+                    .font(.callout)
                     .lineLimit(1)
             }
             .padding(.horizontal, 6)
@@ -613,6 +632,8 @@ struct TTSProviderSelector: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return appState.apiKeyManager.hasAPIKey(for: .grok)
         case .macOS:
             return true
         }
@@ -621,7 +642,7 @@ struct TTSProviderSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Provider:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             Menu {
@@ -640,7 +661,7 @@ struct TTSProviderSelector: View {
                 }
             } label: {
                 Text(appState.selectedTTSProvider.rawValue)
-                    .font(.caption2)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -659,8 +680,13 @@ struct TTSVoiceSelector: View {
     var appState: AppState
     @State private var availableVoices: [TTSVoice] = []
 
-    private var currentVoiceName: String {
+    /// Short voice name for display in header (name only, without description after hyphen)
+    private var currentVoiceNameShort: String {
         if let voice = availableVoices.first(where: { $0.id == appState.selectedTTSVoice }) {
+            // Extract just the name part before " - " if present
+            if let hyphenRange = voice.name.range(of: " - ") {
+                return String(voice.name[..<hyphenRange.lowerBound])
+            }
             return voice.name
         }
         return appState.selectedTTSVoice.isEmpty ? "Auto" : appState.selectedTTSVoice
@@ -669,7 +695,7 @@ struct TTSVoiceSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Voice:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             Menu {
@@ -687,8 +713,8 @@ struct TTSVoiceSelector: View {
                     }
                 }
             } label: {
-                Text(currentVoiceName)
-                    .font(.caption2)
+                Text(currentVoiceNameShort)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .lineLimit(1)
                     .padding(.horizontal, 6)
@@ -742,7 +768,7 @@ struct TTSSpeedSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Speed:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             Menu {
@@ -761,7 +787,7 @@ struct TTSSpeedSelector: View {
                 }
             } label: {
                 Text(supportsSpeed ? String(format: "%.1fx", appState.selectedTTSSpeed) : "N/A")
-                    .font(.caption2)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)

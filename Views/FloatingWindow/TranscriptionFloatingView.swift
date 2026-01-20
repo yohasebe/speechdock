@@ -18,7 +18,7 @@ struct ButtonLabelWithShortcut: View {
             Text(title)
                 .font(.body)
             Text(shortcut)
-                .font(.caption2)
+                .font(.callout)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 3)
@@ -41,10 +41,10 @@ struct CompactWindowSelectorButton: View {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.right.circle.fill")
                     .foregroundColor(.accentColor)
-                    .font(.caption)
+                    .font(.callout)
 
                 Text("Target:")
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 if let selected = floatingWindowManager.selectedWindow {
@@ -53,16 +53,15 @@ struct CompactWindowSelectorButton: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 16, height: 16)
+                    } else {
+                        // Fallback icon if no app icon
+                        Image(systemName: "app.fill")
+                            .font(.callout)
+                            .foregroundColor(.secondary)
                     }
-                    Text(selected.displayName)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
                 } else {
                     Text("None")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -96,10 +95,10 @@ struct WindowSelectorButton: View {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.right.circle.fill")
                     .foregroundColor(.accentColor)
-                    .font(.caption)
+                    .font(.callout)
 
                 Text("Paste Target:")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 if let selected = floatingWindowManager.selectedWindow {
@@ -111,24 +110,24 @@ struct WindowSelectorButton: View {
                             .frame(width: 24, height: 24)
                     }
                     Text(selected.displayName)
-                        .font(.caption)
+                        .font(.callout)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 } else {
                     Text("No window selected")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
                 Text(targetSelectShortcut.displayString)
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 8)
@@ -177,7 +176,7 @@ struct WindowSelectorDropdown: View {
                                 .frame(maxWidth: .infinity, maxHeight: 180)
                         }
                         Text(window.ownerName)
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     } else {
@@ -187,7 +186,7 @@ struct WindowSelectorDropdown: View {
                             .foregroundColor(.secondary.opacity(0.5))
                             .frame(maxWidth: .infinity, maxHeight: 180)
                         Text("No Preview")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -284,9 +283,9 @@ struct WindowSelectorDropdown: View {
             // Keyboard navigation hint
             HStack(spacing: 4) {
                 Image(systemName: "arrow.up.arrow.down")
-                    .font(.caption2)
+                    .font(.callout)
                 Text("Use arrow keys to preview")
-                    .font(.caption2)
+                    .font(.callout)
             }
             .foregroundColor(.secondary)
             .padding(.horizontal, 4)
@@ -359,12 +358,12 @@ struct WindowRowView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(window.ownerName)
-                    .font(.caption)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 Text(window.windowTitle.isEmpty ? " " : window.windowTitle)
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -374,7 +373,7 @@ struct WindowRowView: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.accentColor)
             } else {
                 // Placeholder for alignment
@@ -461,7 +460,7 @@ struct STTLoadingIndicator: View {
 
             Text("Transcribing...")
                 .foregroundColor(.secondary)
-                .font(.caption)
+                .font(.callout)
         }
         .onAppear {
             startAnimation()
@@ -550,7 +549,7 @@ struct TranscriptionFloatingView: View {
     @StateObject private var audioLevelMonitor = AudioLevelMonitor.shared
 
     private var isRecording: Bool {
-        appState.transcriptionState == .recording
+        appState.transcriptionState == .recording || appState.transcriptionState == .preparing
     }
 
     // Shortcut helpers
@@ -580,6 +579,47 @@ struct TranscriptionFloatingView: View {
             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
     }
 
+    /// Placeholder overlay when text area is empty during recording/preparing
+    @ViewBuilder
+    private var placeholderOverlay: some View {
+        if editedText.isEmpty && isRecording {
+            if appState.transcriptionState == .preparing {
+                VStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Starting...")
+                        .foregroundColor(.secondary)
+                        .font(.callout)
+                }
+            } else {
+                VStack {
+                    HStack(spacing: 4) {
+                        ForEach(0..<5, id: \.self) { index in
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.red.opacity(0.7))
+                                .frame(width: 3, height: CGFloat.random(in: 8...25))
+                        }
+                    }
+                    Text("Listening...")
+                        .foregroundColor(.secondary)
+                        .font(.callout)
+                }
+            }
+        }
+    }
+
+    /// Recording indicator border overlay
+    @ViewBuilder
+    private var recordingBorderOverlay: some View {
+        if isRecording {
+            let borderColor = appState.transcriptionState == .preparing ? Color.orange : Color.red
+            let opacity = appState.transcriptionState == .preparing ? 1.0 : borderOpacity
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(borderColor, lineWidth: 2)
+                .opacity(opacity)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             // Header
@@ -606,7 +646,7 @@ struct TranscriptionFloatingView: View {
                         Image(systemName: "captions.bubble.fill")
                             .font(.system(size: 10))
                         Text("Subtitle")
-                            .font(.caption2)
+                            .font(.callout)
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
@@ -645,17 +685,6 @@ struct TranscriptionFloatingView: View {
                 // Input selector
                 AudioInputSourceSelector(appState: appState)
                     .disabled(appState.isRecording)
-
-                // Subtitle mode toggle
-                Button(action: {
-                    appState.toggleSubtitleMode()
-                }) {
-                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
-                        .font(.caption)
-                        .foregroundColor(appState.subtitleModeEnabled ? .accentColor : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -665,9 +694,10 @@ struct TranscriptionFloatingView: View {
             }
 
             // Text area with replacement highlighting
+            // Disable editing during recording to prevent user interference
             ScrollableTextView(
                     text: $editedText,
-                    isEditable: true,
+                    isEditable: !isRecording,
                     highlightRange: nil,
                     enableHighlight: false,
                     showReplacementHighlights: true,
@@ -678,35 +708,8 @@ struct TranscriptionFloatingView: View {
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
                 .frame(minHeight: 180, maxHeight: 350)
-                .overlay(
-                    // Placeholder text when empty and recording
-                    Group {
-                        if editedText.isEmpty && appState.transcriptionState == .recording {
-                            VStack {
-                                HStack(spacing: 4) {
-                                    ForEach(0..<5, id: \.self) { index in
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(Color.red.opacity(0.7))
-                                            .frame(width: 3, height: CGFloat.random(in: 8...25))
-                                    }
-                                }
-                                Text("Listening...")
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
-                            }
-                        }
-                    }
-                )
-                .overlay(
-                    // Recording indicator border - only exists while recording
-                    Group {
-                        if isRecording {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.red, lineWidth: 2)
-                                .opacity(borderOpacity)
-                        }
-                    }
-                )
+                .overlay(placeholderOverlay)
+                .overlay(recordingBorderOverlay)
                 .overlay(
                     // Transcription processing overlay
                     Group {
@@ -720,7 +723,7 @@ struct TranscriptionFloatingView: View {
                 if case .error(let message) = appState.transcriptionState {
                     Text(message)
                         .foregroundColor(.red)
-                        .font(.caption)
+                        .font(.callout)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -777,6 +780,9 @@ struct TranscriptionFloatingView: View {
     private var statusIcon: some View {
         Group {
             switch appState.transcriptionState {
+            case .preparing:
+                ProgressView()
+                    .scaleEffect(0.6)
             case .recording:
                 Image(systemName: "mic.fill")
                     .foregroundColor(.red)
@@ -800,6 +806,8 @@ struct TranscriptionFloatingView: View {
 
     private var headerText: String {
         switch appState.transcriptionState {
+        case .preparing:
+            return "Starting..."
         case .recording:
             return "Recording..."
         case .processing:
@@ -829,6 +837,25 @@ struct TranscriptionFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
+            // Subtitle mode toggle
+            Button(action: {
+                appState.toggleSubtitleMode()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
+                        .font(.body)
+                    Text("Subtitle")
+                        .font(.callout)
+                }
+                .foregroundColor(appState.subtitleModeEnabled ? .accentColor : .secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(appState.subtitleModeEnabled ? Color.accentColor.opacity(0.15) : Color.clear)
+                .cornerRadius(6)
+            }
+            .buttonStyle(.plain)
+            .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
+
             // Paste Target selector on the left
             CompactWindowSelectorButton(
                 floatingWindowManager: appState.floatingWindowManager,
@@ -1021,7 +1048,7 @@ struct AudioInputSourceSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Input:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             inputMenu
@@ -1122,13 +1149,13 @@ struct AudioInputSourceSelector: View {
                     Image(nsImage: appIcon)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 14, height: 14)
+                        .frame(width: 16, height: 16)
                 } else {
                     Image(systemName: currentIcon)
-                        .font(.caption)
+                        .font(.system(size: 12))
                 }
                 Text(currentLabel)
-                    .font(.caption2)
+                    .font(.callout)
                     .lineLimit(1)
             }
             .padding(.horizontal, 6)
@@ -1206,6 +1233,8 @@ struct STTProviderSelector: View {
             return appState.apiKeyManager.hasAPIKey(for: .gemini)
         case .elevenLabs:
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
+        case .grok:
+            return appState.apiKeyManager.hasAPIKey(for: .grok)
         case .macOS, .localWhisper:
             return true
         }
@@ -1214,7 +1243,7 @@ struct STTProviderSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Provider:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             Menu {
@@ -1233,7 +1262,7 @@ struct STTProviderSelector: View {
                 }
             } label: {
                 Text(appState.selectedRealtimeProvider.rawValue)
-                    .font(.caption2)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -1268,7 +1297,7 @@ struct STTLanguageSelector: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Language:")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .fixedSize()
             Menu {
@@ -1287,7 +1316,7 @@ struct STTLanguageSelector: View {
                 }
             } label: {
                 Text(currentLanguageDisplay)
-                    .font(.caption2)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
