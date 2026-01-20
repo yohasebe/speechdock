@@ -68,28 +68,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
-    /// Clean up and quit immediately when user requests termination
+    /// Handle termination request - for menubar apps, ⌘Q should close panels, not quit
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // NSApplicationDelegate methods are called on the main thread
         // Use assumeIsolated to safely access @MainActor state synchronously
         return MainActor.assumeIsolated {
             let appState = AppState.shared
 
-            // Clean up any active recordings
-            if appState.floatingWindowManager.isVisible {
+            // Check if any panels are visible
+            let panelVisible = appState.floatingWindowManager.isVisible
+            let subtitleVisible = SubtitleOverlayManager.shared.isVisible
+
+            // If any panel is visible, close it instead of terminating
+            if panelVisible || subtitleVisible {
+                // Clean up any active recordings
                 appState.cancelRecording()
+
+                // Stop TTS if active
+                if appState.ttsState == .speaking || appState.ttsState == .loading {
+                    appState.stopTTS()
+                }
+
+                // Close floating panel
+                appState.floatingWindowManager.hideFloatingWindow()
+
+                // Hide subtitle overlay
+                SubtitleOverlayManager.shared.hide()
+
+                // Cancel termination - panels closed, app stays running
+                return .terminateCancel
             }
 
-            // Stop TTS if active
-            if appState.ttsState == .speaking || appState.ttsState == .loading {
-                appState.stopTTS()
-            }
-
-            // Close all panels
-            appState.floatingWindowManager.hideFloatingWindow()
-            SubtitleOverlayManager.shared.hide()
-
-            // Allow termination immediately
+            // No panels visible - allow termination
             return .terminateNow
         }
     }
