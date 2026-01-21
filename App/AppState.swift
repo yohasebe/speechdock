@@ -624,26 +624,15 @@ final class AppState {
         durationTimer = nil
         recordingStartTime = nil
 
-        // Check if this provider does "record then transcribe" (needs processing state)
-        // Note: Gemini and OpenAI now use realtime streaming, only localWhisper needs processing state
-        let needsProcessingState = [.localWhisper].contains(selectedRealtimeProvider)
+        // All providers now use realtime streaming - immediate result
+        realtimeSTTService?.stopListening()
+        realtimeSTTService = nil
 
-        if needsProcessingState {
-            // Set processing state - the delegate will update when transcription completes
-            transcriptionState = .processing
-            // Keep realtimeSTTService alive - it will be cleared in didReceiveFinalResult
-            realtimeSTTService?.stopListening()
+        // If we have transcription, show result state
+        if !currentTranscription.isEmpty {
+            transcriptionState = .result(currentTranscription)
         } else {
-            // Realtime providers (macOS, ElevenLabs) - immediate result
-            realtimeSTTService?.stopListening()
-            realtimeSTTService = nil
-
-            // If we have transcription, show result state
-            if !currentTranscription.isEmpty {
-                transcriptionState = .result(currentTranscription)
-            } else {
-                transcriptionState = .idle
-            }
+            transcriptionState = .idle
         }
 
         // Stop system audio capture if active
@@ -1286,7 +1275,7 @@ final class AppState {
             return apiKeyManager.hasAPIKey(for: .elevenLabs)
         case .grok:
             return apiKeyManager.hasAPIKey(for: .grok)
-        case .macOS, .localWhisper:
+        case .macOS:
             return true
         }
     }

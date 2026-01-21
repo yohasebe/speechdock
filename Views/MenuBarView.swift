@@ -381,7 +381,7 @@ struct MenuBarView: View {
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
         case .grok:
             return appState.apiKeyManager.hasAPIKey(for: .grok)
-        case .macOS, .localWhisper:
+        case .macOS:
             return true
         }
     }

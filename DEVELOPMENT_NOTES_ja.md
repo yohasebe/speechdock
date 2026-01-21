@@ -216,52 +216,6 @@ protocol TTSService {
 3. `toLocaleIdentifier()`と`toElevenLabsTTSCode()`にマッピングを追加
 4. `commonLanguages`配列に追加（必要に応じてプロバイダ固有の配列にも）
 
-### Local Whisper (WhisperKit) モデルの保存
-
-#### モデルの保存場所
-
-WhisperKitモデルはユーザーのDocumentsフォルダに保存されます：
-
-```
-~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
-```
-
-これはWhisperKitのデフォルト保存場所で、WhisperKitを使用するすべてのアプリで共有されます。
-
-#### 利用可能なモデル
-
-| モデル | タイプ | サイズ | 説明 |
-|-------|-------|-------|------|
-| Tiny | 多言語 | ~39MB | 最速、精度低め |
-| Tiny (English) | 英語専用 | ~39MB | 英語に最適化 |
-| Base | 多言語 | ~74MB | 高速、良好な精度 |
-| Base (English) | 英語専用 | ~74MB | 英語推奨 |
-| Small | 多言語 | ~244MB | バランス型 |
-| Small (English) | 英語専用 | ~244MB | 英語推奨 |
-| Medium | 多言語 | ~769MB | 高精度 |
-| Large v2 | 多言語 | ~1.5GB | 非常に高精度 |
-| Large v3 | 多言語 | ~1.5GB | 最高精度 |
-| Large v3 Turbo | 多言語 | ~800MB | 高速＋高精度 |
-
-#### アプリ削除時の動作
-
-SpeechDockをアンインストールした場合：
-
-| データ | 削除される？ | 場所 |
-|-------|------------|------|
-| SpeechDock.app | はい | /Applications |
-| WhisperKitモデル | **いいえ** | ~/Documents/huggingface/ |
-| ユーザー設定 | アンインストーラによる | ~/Library/Preferences |
-| APIキー | アンインストーラによる | Keychain |
-
-**重要:** WhisperKitモデルはアプリ削除後も残ります。ディスク容量を回復するには手動での削除が必要です：
-
-```bash
-rm -rf ~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
-```
-
-**注意:** この場所は他のWhisperKit利用アプリと共有される可能性があります。
-
 ### 音声出力デバイス選択
 
 カスタム出力デバイスのサポートにAVAudioEngineを使用：

@@ -143,8 +143,7 @@ extension LanguageCode {
          .marathi, .tamil, .telugu]
     }
 
-    /// Languages for Local Whisper, OpenAI, ElevenLabs (all support the same languages)
-    static var whisperLanguages: [LanguageCode] { commonLanguages }
+    /// Languages for OpenAI, ElevenLabs (all support the same languages)
     static var openAILanguages: [LanguageCode] { commonLanguages }
     static var elevenLabsLanguages: [LanguageCode] { commonLanguages }
 
@@ -159,8 +158,6 @@ extension LanguageCode {
         switch provider {
         case .macOS:
             return macOSAvailableLanguages()
-        case .localWhisper:
-            return whisperLanguages
         case .openAI:
             return openAILanguages
         case .gemini:
@@ -202,6 +199,9 @@ extension LanguageCode {
             sorted.append(lang)
         }
 
+        // Add Auto at the beginning (uses system locale)
+        sorted.insert(.auto, at: 0)
+
         return sorted
     }
 
@@ -210,7 +210,7 @@ extension LanguageCode {
         switch provider {
         case .macOS:
             return true  // Uses system locale when Auto is selected
-        case .localWhisper, .openAI, .gemini, .elevenLabs, .grok:
+        case .openAI, .gemini, .elevenLabs, .grok:
             return true
         }
     }

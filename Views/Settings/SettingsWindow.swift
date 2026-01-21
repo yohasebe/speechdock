@@ -19,11 +19,6 @@ struct SettingsWindow: View {
                     Label("Text Replacement", systemImage: "text.badge.plus")
                 }
 
-            WhisperKitSettingsView()
-                .tabItem {
-                    Label("WhisperKit", systemImage: "waveform")
-                }
-
             APISettingsView()
                 .tabItem {
                     Label("API Keys", systemImage: "key")
@@ -72,7 +67,7 @@ struct GeneralSettingsView: View {
                 // Audio Input Device selection (only shown for microphone)
                 AudioInputDevicePicker(appState: appState)
 
-                // VAD Auto-Stop settings (only for Gemini, OpenAI, LocalWhisper)
+                // VAD Auto-Stop settings (only for Gemini, OpenAI)
                 VADAutoStopSettings(appState: appState)
 
                 // STT Panel behavior settings
@@ -172,7 +167,7 @@ struct GeneralSettingsView: View {
             return appState.apiKeyManager.hasAPIKey(for: .elevenLabs)
         case .grok:
             return appState.apiKeyManager.hasAPIKey(for: .grok)
-        case .macOS, .localWhisper:
+        case .macOS:
             return true
         }
     }
@@ -609,7 +604,6 @@ struct TTSVoicePicker: View {
 struct STTModelPicker: View {
     @Bindable var appState: AppState
     @State private var availableModels: [RealtimeSTTModelInfo] = []
-    @ObservedObject private var whisperKitManager = WhisperKitManager.shared
 
     var body: some View {
         Picker("Model", selection: $appState.selectedRealtimeSTTModel) {
@@ -619,29 +613,10 @@ struct STTModelPicker: View {
             }
         }
         .onAppear {
-            Task {
-                await ensureWhisperKitInitialized()
-                loadModels()
-            }
+            loadModels()
         }
         .onChange(of: appState.selectedRealtimeProvider) { _, _ in
-            Task {
-                await ensureWhisperKitInitialized()
-                loadModels()
-            }
-        }
-        // Reload when WhisperKit download states change (for Local Whisper)
-        .onChange(of: whisperKitManager.downloadStates) { _, _ in
-            if appState.selectedRealtimeProvider == .localWhisper {
-                loadModels()
-            }
-        }
-    }
-
-    /// Ensure WhisperKit model states are loaded before displaying
-    private func ensureWhisperKitInitialized() async {
-        if appState.selectedRealtimeProvider == .localWhisper {
-            await whisperKitManager.refreshModelStates()
+            loadModels()
         }
     }
 
@@ -723,28 +698,35 @@ struct TTSSpeedSlider: View {
     }
 
     private var supportsSpeed: Bool {
-        // OpenAI gpt-4o-mini-tts (default when empty) doesn't support speed
-        if appState.selectedTTSProvider == .openAI {
+        switch appState.selectedTTSProvider {
+        case .openAI:
+            // gpt-4o-mini-tts (default when empty) doesn't support speed
             let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
             return model != "gpt-4o-mini-tts"
+        case .grok:
+            return false  // Grok Voice Agent doesn't support speed control
+        case .macOS, .gemini, .elevenLabs:
+            return true
         }
-        return true
     }
 
     private var speedHelpText: String? {
-        if appState.selectedTTSProvider == .openAI {
+        switch appState.selectedTTSProvider {
+        case .openAI:
             let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
             if model == "gpt-4o-mini-tts" {
                 return "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control."
             }
-        }
-        if appState.selectedTTSProvider == .gemini {
+            return nil
+        case .gemini:
             return "Gemini uses natural language pace control (approximate)."
-        }
-        if appState.selectedTTSProvider == .elevenLabs {
+        case .elevenLabs:
             return "ElevenLabs has limited speed range (0.7x-1.2x mapped)."
+        case .grok:
+            return "Grok Voice Agent does not support speed control."
+        case .macOS:
+            return nil
         }
-        return nil
     }
 
     var body: some View {
@@ -904,9 +886,7 @@ struct STTLanguagePicker: View {
     private var languageHelpText: String {
         switch appState.selectedRealtimeProvider {
         case .macOS:
-            return "Select the language for speech recognition. Only system-installed languages are shown."
-        case .localWhisper:
-            return "Auto detects the language. Specifying a language can improve accuracy."
+            return "Auto uses system locale. Select a specific language for better accuracy."
         case .openAI:
             return "Auto detects the language. Specifying a language can improve accuracy."
         case .gemini:
@@ -1055,7 +1035,7 @@ struct VADAutoStopSettings: View {
 
     /// Check if current provider uses VAD for auto-stop
     private var supportsVADAutoStop: Bool {
-        [.gemini, .openAI, .localWhisper].contains(appState.selectedRealtimeProvider)
+        [.gemini, .openAI].contains(appState.selectedRealtimeProvider)
     }
 
     var body: some View {
