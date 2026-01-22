@@ -115,6 +115,30 @@ struct MenuBarView: View {
             }
             .buttonStyle(MenuBarActionButtonStyle())
 
+            // Transcribe Audio File button with provider info
+            Button(action: {
+                StatusBarManager.shared.closePanel()
+                appState.openAudioFileForTranscription()
+            }) {
+                HStack {
+                    Image(systemName: "waveform.badge.magnifyingglass")
+                        .foregroundColor(appState.selectedRealtimeProvider.supportsFileTranscription ? .primary : .secondary)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Transcribe Audio File...")
+                            .foregroundColor(appState.selectedRealtimeProvider.supportsFileTranscription ? .primary : .secondary)
+                        // Show provider-specific info or unavailable message
+                        Text(appState.selectedRealtimeProvider.fileTranscriptionDescription)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(MenuBarActionButtonStyle())
+            .disabled(appState.isRecording || appState.transcriptionState == .transcribingFile)
+
             // STT Provider picker (compact)
             HStack {
                 Text("Provider:")
@@ -553,6 +577,35 @@ struct MenuBarAudioInputSelector: View {
         }
     }
 
+    @ViewBuilder
+    private func appAudioButton(for app: CapturableApplication) -> some View {
+        Button(action: {
+            appState.selectedAudioInputSourceType = .applicationAudio
+            appState.selectedAudioAppBundleID = app.bundleID
+            appState.systemAudioCaptureService.recordAppUsage(bundleID: app.bundleID)
+            // Refresh to update recently used status
+            Task {
+                await appState.systemAudioCaptureService.refreshAvailableApps()
+                availableApps = appState.systemAudioCaptureService.availableApps
+            }
+        }) {
+            HStack {
+                if let icon = app.icon {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 14, height: 14)
+                }
+                Text(app.name)
+                if appState.selectedAudioInputSourceType == .applicationAudio &&
+                   appState.selectedAudioAppBundleID == app.bundleID {
+                    Spacer()
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
+    }
+
     var body: some View {
         Menu {
             // Microphone submenu with device selection
@@ -608,26 +661,24 @@ struct MenuBarAudioInputSelector: View {
                     Text("No apps detected")
                         .foregroundColor(.secondary)
                 } else {
-                    ForEach(availableApps) { app in
-                        Button(action: {
-                            appState.selectedAudioInputSourceType = .applicationAudio
-                            appState.selectedAudioAppBundleID = app.bundleID
-                        }) {
-                            HStack {
-                                if let icon = app.icon {
-                                    Image(nsImage: icon)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 12, height: 12)
-                                }
-                                Text(app.name)
-                                if appState.selectedAudioInputSourceType == .applicationAudio &&
-                                   appState.selectedAudioAppBundleID == app.bundleID {
-                                    Spacer()
-                                    Image(systemName: "checkmark")
-                                }
+                    // Show recently used apps first with a section header if there are any
+                    let recentApps = availableApps.filter { $0.isRecentlyUsed }
+                    let otherApps = availableApps.filter { !$0.isRecentlyUsed }
+
+                    if !recentApps.isEmpty {
+                        Section("Recent") {
+                            ForEach(recentApps) { app in
+                                appAudioButton(for: app)
                             }
                         }
+
+                        if !otherApps.isEmpty {
+                            Divider()
+                        }
+                    }
+
+                    ForEach(otherApps) { app in
+                        appAudioButton(for: app)
                     }
                 }
 
@@ -646,13 +697,11 @@ struct MenuBarAudioInputSelector: View {
             HStack(spacing: 4) {
                 // Show app icon for App Audio, system icon for others
                 if let appIcon = currentAppIcon {
-                    Image(nsImage: appIcon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 14, height: 14)
+                    // Resize NSImage to fixed size before creating SwiftUI Image
+                    Image(nsImage: resizedIcon(appIcon, to: NSSize(width: 12, height: 12)))
                 } else {
                     Image(systemName: currentIcon)
-                        .font(.caption)
+                        .font(.system(size: 10))
                 }
                 Text(currentLabel)
                     .font(.caption)
@@ -660,6 +709,7 @@ struct MenuBarAudioInputSelector: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8))
             }
+            .frame(height: 16)  // Fixed height for entire label
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(sourceBackgroundColor)
@@ -684,6 +734,18 @@ struct MenuBarAudioInputSelector: View {
            !availableMicrophones.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
             appState.selectedAudioInputDeviceUID = ""
         }
+    }
+
+    /// Resize NSImage to a fixed size
+    private func resizedIcon(_ image: NSImage, to size: NSSize) -> NSImage {
+        let newImage = NSImage(size: size)
+        newImage.lockFocus()
+        image.draw(in: NSRect(origin: .zero, size: size),
+                   from: NSRect(origin: .zero, size: image.size),
+                   operation: .copy,
+                   fraction: 1.0)
+        newImage.unlockFocus()
+        return newImage
     }
 }
 

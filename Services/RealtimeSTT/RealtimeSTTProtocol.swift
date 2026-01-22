@@ -104,6 +104,74 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .grok: return "Grok Voice Agent (low latency)"
         }
     }
+
+    /// Whether this provider supports file transcription (batch mode)
+    var supportsFileTranscription: Bool {
+        switch self {
+        case .openAI, .gemini, .elevenLabs:
+            return true
+        case .grok, .macOS:
+            return false
+        }
+    }
+
+    /// Supported audio formats for file transcription
+    var supportedAudioFormats: String {
+        switch self {
+        case .openAI:
+            return "MP3, WAV, M4A, FLAC, WebM, MP4"
+        case .gemini:
+            return "MP3, WAV, AAC, OGG, FLAC"
+        case .elevenLabs:
+            return "MP3, WAV, M4A, OGG, FLAC"
+        case .grok, .macOS:
+            return ""  // Not supported
+        }
+    }
+
+    /// Maximum file size for file transcription (in MB)
+    var maxFileSizeMB: Int {
+        switch self {
+        case .openAI:
+            return 25  // Whisper API limit
+        case .gemini:
+            return 20  // Gemini inline data limit
+        case .elevenLabs:
+            return 25  // Scribe v2 limit
+        case .grok, .macOS:
+            return 0  // Not supported
+        }
+    }
+
+    /// Maximum audio duration for file transcription
+    var maxAudioDuration: String {
+        switch self {
+        case .openAI:
+            return "No limit"  // Limited by file size
+        case .gemini:
+            return "~10 min"  // Approximate based on file size
+        case .elevenLabs:
+            return "~2 hours"  // ElevenLabs supports long audio
+        case .grok, .macOS:
+            return ""  // Not supported
+        }
+    }
+
+    /// Short description for file transcription capability
+    var fileTranscriptionDescription: String {
+        switch self {
+        case .openAI:
+            return "Whisper API (max 25MB)"
+        case .gemini:
+            return "Gemini API (max 20MB)"
+        case .elevenLabs:
+            return "Scribe v2 (max 25MB, ~2h audio)"
+        case .grok:
+            return "Realtime only"
+        case .macOS:
+            return "Realtime only"
+        }
+    }
 }
 
 /// Factory for creating realtime STT services

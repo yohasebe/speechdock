@@ -30,6 +30,19 @@ final class APIKeyManager {
         return getAPIKey(for: provider) != nil
     }
 
+    /// Get API key by environment variable name directly
+    /// Used by services that need to access keys by string name (e.g., Translation)
+    func getAPIKey(for envKeyName: String) -> String? {
+        // 1. Check process environment variable first
+        if let envKey = ProcessInfo.processInfo.environment[envKeyName],
+           !envKey.isEmpty {
+            return envKey
+        }
+
+        // 2. Use Keychain
+        return keychainService.retrieve(key: envKeyName)
+    }
+
     func apiKeySource(for provider: STTProvider) -> APIKeySource {
         // Check process environment
         if let envKey = ProcessInfo.processInfo.environment[provider.envKeyName],

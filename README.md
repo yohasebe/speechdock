@@ -144,8 +144,8 @@ Grant permissions in **System Settings** > **Privacy & Security**. SpeechDock wi
 
 | Action | Default Shortcut |
 |--------|------------------|
-| Start/Stop Recording (STT) | `Cmd + Shift + Space` |
-| Read Selected Text (TTS) | `Ctrl + Option + T` |
+| Toggle STT Panel | `Cmd + Shift + Space` |
+| Toggle TTS Panel | `Ctrl + Option + T` |
 | OCR Region to Speech | `Ctrl + Option + Shift + O` |
 | Toggle Subtitle Mode | `Ctrl + Option + S` |
 

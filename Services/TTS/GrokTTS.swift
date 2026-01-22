@@ -121,6 +121,11 @@ final class GrokTTS: NSObject, TTSService {
         speakCompletion = nil
     }
 
+    /// Set playback rate dynamically during playback (0.25 to 4.0)
+    func setPlaybackRate(_ rate: Float) {
+        streamingPlayer.setPlaybackRate(rate)
+    }
+
     func clearAudioCache() {
         lastAudioData = nil
         accumulatedPCMData = Data()
@@ -245,6 +250,9 @@ final class GrokTTS: NSObject, TTSService {
         }
 
         try await webSocketTask?.send(.string(responseString))
+
+        // Set initial playback rate from selectedSpeed
+        streamingPlayer.setPlaybackRate(Float(selectedSpeed))
 
         // Start streaming player
         try streamingPlayer.startStreaming()

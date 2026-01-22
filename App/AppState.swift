@@ -2,11 +2,13 @@ import SwiftUI
 import Combine
 import AVFoundation
 import ApplicationServices
+import Translation
 
 enum TranscriptionState: Equatable {
     case idle
     case preparing  // Starting up audio capture and connection
     case recording
+    case transcribingFile  // Transcribing an audio file
     case processing
     case result(String)
     case error(String)
@@ -16,6 +18,7 @@ enum TranscriptionState: Equatable {
         case .idle: return ""
         case .preparing: return "Starting..."
         case .recording: return "Recording..."
+        case .transcribingFile: return "Transcribing file..."
         case .processing: return "Processing..."
         case .result: return ""
         case .error(let msg): return "Error: \(msg)"
@@ -45,6 +48,12 @@ final class AppState {
     var isRecording = false
     var currentTranscription = ""
     var transcriptionState: TranscriptionState = .idle
+    /// Current session's transcription text (from STT service, for subtitle display only)
+    private var currentSessionTranscription: String = ""
+    /// Text to display in subtitle (only text from current recording session)
+    var subtitleText: String {
+        return currentSessionTranscription
+    }
     var recordingDuration: TimeInterval = 0  // Cumulative recording duration
     private var recordingStartTime: Date?
     private var durationTimer: Timer?
@@ -145,6 +154,32 @@ final class AppState {
     var lastSynthesizedText = ""  // Track last synthesized text for cache
     var isSavingAudio = false  // Loading state for audio save
 
+    // MARK: - Translation State
+    var translationState: TranslationState = .idle
+    var translationProvider: TranslationProvider = .macOS {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+    var translationTargetLanguage: LanguageCode = .japanese {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+    /// Original text before translation (for reverting)
+    var originalTextBeforeTranslation: String = ""
+    /// Saved TTS language before translation (for restoring when reverting)
+    var savedTTSLanguageBeforeTranslation: String?
+    private var translationTask: Task<Void, Never>?
+    private var translationService: TranslationServiceProtocol?
+
+    /// Language availability cache for macOS Translation (0=unsupported, 1=needs download, 2=installed)
+    var macOSTranslationLanguageCache: [LanguageCode: Int] = [:]
+    var hasCachedMacOSTranslationLanguages = false
+    private var isCheckingLanguageAvailability = false
+
     // MARK: - Language Settings
     var selectedSTTLanguage: String = "" {  // "" = Auto
         didSet {
@@ -238,6 +273,38 @@ final class AppState {
         didSet {
             guard !isLoadingPreferences else { return }
             savePreferences()
+        }
+    }
+
+    /// Default font size for panel text areas
+    static let defaultPanelTextFontSize: Double = 13.0
+    /// Minimum font size for panel text areas
+    static let minPanelTextFontSize: Double = 10.0
+    /// Maximum font size for panel text areas
+    static let maxPanelTextFontSize: Double = 24.0
+    /// Font size step for increase/decrease
+    static let panelTextFontSizeStep: Double = 1.0
+
+    /// Increase panel text font size
+    func increasePanelTextFontSize() {
+        let newSize = min(panelTextFontSize + Self.panelTextFontSizeStep, Self.maxPanelTextFontSize)
+        if newSize != panelTextFontSize {
+            panelTextFontSize = newSize
+        }
+    }
+
+    /// Decrease panel text font size
+    func decreasePanelTextFontSize() {
+        let newSize = max(panelTextFontSize - Self.panelTextFontSizeStep, Self.minPanelTextFontSize)
+        if newSize != panelTextFontSize {
+            panelTextFontSize = newSize
+        }
+    }
+
+    /// Reset panel text font size to default
+    func resetPanelTextFontSize() {
+        if panelTextFontSize != Self.defaultPanelTextFontSize {
+            panelTextFontSize = Self.defaultPanelTextFontSize
         }
     }
 
@@ -401,6 +468,7 @@ final class AppState {
     private var realtimeSTTService: RealtimeSTTService?
     private var isLoadingPreferences = false  // Flag to prevent saving during load
     private var ttsService: TTSService?
+    private var fileTranscriptionTask: Task<Void, Never>?
 
     private init() {
         loadPreferences()
@@ -408,6 +476,8 @@ final class AppState {
         prefetchAvailableAppsInBackground()
         updatePermissionStatus()
         setupOCRCallbacks()
+        // Pre-cache macOS Translation language availability
+        checkMacOSTranslationLanguageAvailability()
     }
 
     private func setupOCRCallbacks() {
@@ -507,8 +577,12 @@ final class AppState {
             ttsText = ""
         }
 
+        // Sync translation provider based on STT provider
+        syncTranslationProviderForSTT()
+
         errorMessage = nil
         currentTranscription = ""
+        currentSessionTranscription = ""
         transcriptionState = .idle
 
         // Show the panel
@@ -531,6 +605,19 @@ final class AppState {
             showTTSWindow = false
             ttsText = ""
         }
+
+        // Sync translation provider based on STT provider (when called directly without showSTTPanel)
+        syncTranslationProviderForSTT()
+
+        // Reset translation state if showing translated text
+        if translationState.isTranslated {
+            translationState = .idle
+            originalTextBeforeTranslation = ""
+            savedTTSLanguageBeforeTranslation = nil
+        }
+
+        // Reset session transcription for subtitle display
+        currentSessionTranscription = ""
 
         errorMessage = nil
 
@@ -717,6 +804,7 @@ final class AppState {
         }
         transcriptionState = .idle
         currentTranscription = ""
+        currentSessionTranscription = ""
         floatingWindowManager.hideFloatingWindow()
         showFloatingWindow = false
     }
@@ -917,6 +1005,11 @@ final class AppState {
         }
     }
 
+    /// Set TTS playback rate dynamically during playback (0.25 to 4.0)
+    func setTTSPlaybackRate(_ rate: Float) {
+        ttsService?.setPlaybackRate(rate)
+    }
+
     /// Stop TTS playback without resetting UI state (used internally)
     private func stopTTSPlayback() {
         ttsService?.stop()
@@ -1055,8 +1148,8 @@ final class AppState {
             savePanel.title = "Save Audio"
             savePanel.message = "Choose a location to save the audio file"
 
-            // Set window level high enough to appear above floating panels
-            savePanel.level = NSWindow.Level(rawValue: Int(NSWindow.Level.floating.rawValue) + 100)
+            // Configure save panel to appear above all floating panels
+            WindowLevelCoordinator.configureSavePanel(savePanel)
 
             savePanel.begin { response in
                 if response == .OK, let url = savePanel.url {
@@ -1076,6 +1169,9 @@ final class AppState {
     }
 
     private func showTTSFloatingWindow() {
+        // Sync translation provider based on TTS provider
+        syncTranslationProviderForTTS()
+
         floatingWindowManager.showTTSFloatingWindow(
             appState: self,
             onClose: { [weak self] in
@@ -1113,6 +1209,352 @@ final class AppState {
     /// Cancel OCR operation
     func cancelOCR() {
         ocrCoordinator.cancel()
+    }
+
+    // MARK: - Translation Provider Sync
+
+    /// Sync translation provider based on STT provider when STT panel opens
+    private func syncTranslationProviderForSTT() {
+        switch selectedRealtimeProvider {
+        case .openAI:
+            if translationProvider != .openAI {
+                translationProvider = .openAI
+            }
+        case .gemini:
+            if translationProvider != .gemini {
+                translationProvider = .gemini
+            }
+        case .elevenLabs, .grok, .macOS:
+            // ElevenLabs/Grok/macOS don't have corresponding translation providers, use macOS
+            if translationProvider != .macOS {
+                translationProvider = .macOS
+            }
+        }
+    }
+
+    /// Sync translation provider based on TTS provider when TTS panel opens
+    private func syncTranslationProviderForTTS() {
+        switch selectedTTSProvider {
+        case .openAI:
+            if translationProvider != .openAI {
+                translationProvider = .openAI
+            }
+        case .gemini:
+            if translationProvider != .gemini {
+                translationProvider = .gemini
+            }
+        case .elevenLabs, .grok, .macOS:
+            // ElevenLabs/Grok/macOS don't have corresponding translation providers, use macOS
+            if translationProvider != .macOS {
+                translationProvider = .macOS
+            }
+        }
+    }
+
+    // MARK: - Translation Methods
+
+    /// Translate text to target language
+    /// - Parameters:
+    ///   - text: Text to translate
+    ///   - targetLanguage: Target language
+    ///   - sourceLanguage: Source language (nil for auto-detect)
+    func translateText(_ text: String, to targetLanguage: LanguageCode, from sourceLanguage: LanguageCode? = nil) {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            #if DEBUG
+            print("Translation: Empty text, skipping")
+            #endif
+            return
+        }
+        guard translationState != .translating else {
+            #if DEBUG
+            print("Translation: Already translating, skipping")
+            #endif
+            return
+        }
+
+        #if DEBUG
+        print("Translation: Starting translation to \(targetLanguage.displayName)")
+        print("Translation: Text length = \(text.count)")
+        #endif
+
+        // Save original text and TTS language for reverting
+        originalTextBeforeTranslation = text
+        savedTTSLanguageBeforeTranslation = selectedTTSLanguage
+
+        // Determine best provider
+        let provider = TranslationFactory.bestAvailableProvider(
+            for: targetLanguage,
+            preferredProvider: translationProvider
+        )
+
+        #if DEBUG
+        print("Translation: Using provider = \(provider.displayName)")
+        #endif
+
+        translationState = .translating
+        translationService = TranslationFactory.makeService(for: provider)
+
+        translationTask = Task { @MainActor in
+            do {
+                #if DEBUG
+                print("Translation: Calling translate API...")
+                #endif
+
+                let result = try await translationService?.translate(
+                    text: text,
+                    to: targetLanguage,
+                    from: sourceLanguage
+                )
+
+                if Task.isCancelled {
+                    #if DEBUG
+                    print("Translation: Task was cancelled")
+                    #endif
+                    translationState = .idle
+                    return
+                }
+
+                if let result = result {
+                    #if DEBUG
+                    print("Translation: Success! Result length = \(result.translatedText.count)")
+                    print("Translation: Result = \(result.translatedText.prefix(100))...")
+                    #endif
+                    translationState = .translated(result.translatedText)
+                    translationTargetLanguage = targetLanguage
+
+                    // Update TTS language to match translation target for seamless TTS
+                    selectedTTSLanguage = targetLanguage.rawValue
+                } else {
+                    #if DEBUG
+                    print("Translation: No result returned")
+                    #endif
+                    translationState = .error("Translation returned no result")
+                }
+            } catch {
+                #if DEBUG
+                print("Translation: Error = \(error.localizedDescription)")
+                #endif
+                if !Task.isCancelled {
+                    translationState = .error(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    /// Cancel ongoing translation
+    func cancelTranslation() {
+        translationTask?.cancel()
+        translationTask = nil
+        translationService?.cancel()
+        translationService = nil
+        translationState = .idle
+    }
+
+    /// Revert to original text before translation
+    func revertToOriginalText() {
+        guard translationState.isTranslated else { return }
+
+        translationState = .idle
+
+        // Restore TTS language
+        if let savedLanguage = savedTTSLanguageBeforeTranslation {
+            selectedTTSLanguage = savedLanguage
+        }
+        savedTTSLanguageBeforeTranslation = nil
+    }
+
+    /// Check if translation is available for a given language
+    func isTranslationAvailable(to targetLanguage: LanguageCode) async -> Bool {
+        let provider = TranslationFactory.bestAvailableProvider(
+            for: targetLanguage,
+            preferredProvider: translationProvider
+        )
+        let service = TranslationFactory.makeService(for: provider)
+        return await service.isAvailable(from: nil, to: targetLanguage)
+    }
+
+    /// Check macOS Translation language availability and cache results
+    func checkMacOSTranslationLanguageAvailability() {
+        guard !isCheckingLanguageAvailability else { return }
+        isCheckingLanguageAvailability = true
+
+        Task { @MainActor in
+            if #available(macOS 15.0, *) {
+                let availability = LanguageAvailability()
+                // Check from both Japanese and English to cover common use cases
+                let sourceLocales = [
+                    Locale.Language(identifier: "ja"),
+                    Locale.Language(identifier: "en")
+                ]
+                let allLanguages = LanguageCode.allCases.filter { $0 != .auto }
+
+                for language in allLanguages {
+                    guard let targetLocale = language.toLocaleLanguage() else { continue }
+
+                    // Check availability from multiple sources and take the best result
+                    var bestStatus: Int = 0  // 0 = unsupported
+                    for sourceLocale in sourceLocales {
+                        // Skip same language pair
+                        if sourceLocale.languageCode == targetLocale.languageCode {
+                            continue
+                        }
+
+                        let status = await availability.status(from: sourceLocale, to: targetLocale)
+                        let statusInt: Int
+                        switch status {
+                        case .installed:
+                            statusInt = 2
+                        case .supported:
+                            statusInt = 1
+                        case .unsupported:
+                            statusInt = 0
+                        @unknown default:
+                            statusInt = 0
+                        }
+
+                        // Keep the best status (installed > supported > unsupported)
+                        if statusInt > bestStatus {
+                            bestStatus = statusInt
+                        }
+                    }
+
+                    macOSTranslationLanguageCache[language] = bestStatus
+                }
+            }
+            hasCachedMacOSTranslationLanguages = true
+            isCheckingLanguageAvailability = false
+
+            #if DEBUG
+            print("AppState: macOS Translation language availability cached")
+            for (lang, status) in macOSTranslationLanguageCache.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+                print("  \(lang.displayName): \(status == 2 ? "installed" : status == 1 ? "needs download" : "unsupported")")
+            }
+            #endif
+        }
+    }
+
+    /// Refresh macOS Translation language availability cache
+    func refreshMacOSTranslationLanguageAvailability() {
+        macOSTranslationLanguageCache.removeAll()
+        hasCachedMacOSTranslationLanguages = false
+        checkMacOSTranslationLanguageAvailability()
+    }
+
+    // MARK: - File Transcription
+
+    /// Show notification alert for file transcription issues
+    private func showFileTranscriptionNotice(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = "File Transcription"
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+
+        // Configure alert to appear above floating panels
+        alert.window.level = .floating + 1
+
+        alert.runModal()
+    }
+
+    /// Transcribe an audio file
+    /// - Parameter url: URL of the audio file to transcribe
+    func transcribeAudioFile(_ url: URL) {
+        // Check if provider supports file transcription
+        guard selectedRealtimeProvider.supportsFileTranscription else {
+            showFileTranscriptionNotice("\(selectedRealtimeProvider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, or ElevenLabs provider.")
+            return
+        }
+
+        // Check if already recording or transcribing
+        guard !isRecording && transcriptionState != .transcribingFile else {
+            return
+        }
+
+        // Mutual exclusivity: close TTS panel if active
+        if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
+            stopTTS()
+            floatingWindowManager.hideFloatingWindow()
+            showTTSWindow = false
+            ttsText = ""
+        }
+
+        // Show STT panel if not already visible
+        if !showFloatingWindow {
+            errorMessage = nil
+            currentTranscription = ""
+            currentSessionTranscription = ""
+            showFloatingWindowWithState()
+        }
+
+        // Start file transcription
+        fileTranscriptionTask = Task { @MainActor in
+            transcriptionState = .transcribingFile
+
+            do {
+                let result = try await FileTranscriptionService.shared.transcribe(
+                    fileURL: url,
+                    provider: selectedRealtimeProvider,
+                    language: selectedSTTLanguage.isEmpty ? nil : selectedSTTLanguage
+                )
+
+                if !Task.isCancelled {
+                    currentTranscription = result.text
+                    transcriptionState = .result(result.text)
+                }
+            } catch {
+                if !Task.isCancelled {
+                    transcriptionState = .idle
+                    showFileTranscriptionNotice(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    /// Cancel ongoing file transcription
+    func cancelFileTranscription() {
+        fileTranscriptionTask?.cancel()
+        fileTranscriptionTask = nil
+        transcriptionState = .idle
+    }
+
+    /// Open file picker for audio file transcription
+    func openAudioFileForTranscription() {
+        // Check provider support first
+        guard selectedRealtimeProvider.supportsFileTranscription else {
+            showFileTranscriptionNotice("\(selectedRealtimeProvider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, or ElevenLabs provider.")
+            return
+        }
+
+        let openPanel = NSOpenPanel()
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.canChooseFiles = true
+
+        // Build allowed content types safely
+        var allowedTypes: [UTType] = [.mp3, .wav, .mpeg4Audio]
+        let additionalExtensions = ["m4a", "aac", "webm", "ogg", "flac", "mp4"]
+        for ext in additionalExtensions {
+            if let type = UTType(filenameExtension: ext) {
+                allowedTypes.append(type)
+            }
+        }
+        openPanel.allowedContentTypes = allowedTypes
+
+        openPanel.title = "Select Audio File"
+        openPanel.message = "Choose an audio file to transcribe"
+
+        // Configure panel to appear above floating panels
+        WindowLevelCoordinator.configureSavePanel(openPanel)
+
+        // Bring app to front
+        NSApp.activate(ignoringOtherApps: true)
+
+        openPanel.begin { [weak self] response in
+            guard let self = self else { return }
+            if response == .OK, let url = openPanel.url {
+                self.transcribeAudioFile(url)
+            }
+        }
     }
 
     // MARK: - Preferences
@@ -1248,6 +1690,16 @@ final class AppState {
             subtitleCustomY = UserDefaults.standard.double(forKey: "subtitleCustomY")
         }
 
+        // Translation settings
+        if let translationProviderRaw = UserDefaults.standard.string(forKey: "translationProvider"),
+           let provider = TranslationProvider(rawValue: translationProviderRaw) {
+            translationProvider = provider
+        }
+        if let translationTargetRaw = UserDefaults.standard.string(forKey: "translationTargetLanguage"),
+           let language = LanguageCode(rawValue: translationTargetRaw) {
+            translationTargetLanguage = language
+        }
+
         // Validate providers: fall back to macOS if selected provider requires API key but it's not available
         validateSelectedProviders()
     }
@@ -1345,6 +1797,10 @@ final class AppState {
         UserDefaults.standard.set(subtitleCustomX, forKey: "subtitleCustomX")
         UserDefaults.standard.set(subtitleCustomY, forKey: "subtitleCustomY")
 
+        // Translation settings
+        UserDefaults.standard.set(translationProvider.rawValue, forKey: "translationProvider")
+        UserDefaults.standard.set(translationTargetLanguage.rawValue, forKey: "translationTargetLanguage")
+
         // Note: selectedAudioAppBundleID is not saved - it's session-only
     }
 }
@@ -1381,12 +1837,18 @@ extension AppState: HotKeyServiceDelegate {
 
 extension AppState: RealtimeSTTDelegate {
     func realtimeSTT(_ service: RealtimeSTTService, didReceivePartialResult text: String) {
+        // Update current transcription (View handles accumulation)
         currentTranscription = text
+        // Store session transcription for subtitle display (current session only)
+        currentSessionTranscription = text
         // Keep in recording state while receiving partial results
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didReceiveFinalResult text: String) {
+        // Update current transcription (View handles accumulation)
         currentTranscription = text
+        // Store session transcription for subtitle display (current session only)
+        currentSessionTranscription = text
 
         // For "record then transcribe" providers, update state when result arrives
         if transcriptionState == .processing {

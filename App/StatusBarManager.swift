@@ -220,6 +220,9 @@ final class StatusBarManager: NSObject {
         let panelX = screenRect.midX - panelWidth / 2
         let panelY = screenRect.minY - panel.frame.height - 4
 
+        // Update level dynamically so this panel appears above other panels
+        panel.level = WindowLevelCoordinator.shared.nextPanelLevel()
+
         panel.setFrameOrigin(NSPoint(x: panelX, y: panelY))
         panel.makeKeyAndOrderFront(nil)
 

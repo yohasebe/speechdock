@@ -33,7 +33,8 @@ struct SubtitleOverlayView: View {
 
     @ViewBuilder
     private var subtitleContent: some View {
-        let text = appState.currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Use subtitleText which only contains text from current recording session
+        let text = appState.subtitleText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Always show the container when recording, even if text is empty
         if appState.isRecording || !text.isEmpty {
@@ -91,7 +92,7 @@ struct SubtitleOverlayView: View {
     @ViewBuilder
     private var headerView: some View {
         HStack(spacing: 12) {
-            // Recording indicator (left side)
+            // Recording indicator with stop shortcut (left side)
             if appState.isRecording {
                 HStack(spacing: 6) {
                     Circle()
@@ -100,6 +101,12 @@ struct SubtitleOverlayView: View {
                     Text("Recording")
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.6))
+                    // Show global hotkey to stop
+                    if let shortcut = appState.hotKeyService?.sttKeyCombo.displayString {
+                        Text("(\(shortcut) to stop)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.4))
+                    }
                 }
             }
 

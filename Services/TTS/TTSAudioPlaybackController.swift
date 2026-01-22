@@ -14,7 +14,11 @@ final class TTSAudioPlaybackController: NSObject {
     private var audioPlayer: AVAudioPlayer?
     private var audioEngine: AVAudioEngine?
     private var audioPlayerNode: AVAudioPlayerNode?
+    private var timePitchNode: AVAudioUnitTimePitch?
     private var audioFile: AVAudioFile?
+
+    /// Current playback rate (0.25 to 4.0, default 1.0)
+    private(set) var currentPlaybackRate: Float = 1.0
     private var currentText = ""
     private var wordRanges: [NSRange] = []
     private var highlightTimer: Timer?
@@ -83,6 +87,8 @@ final class TTSAudioPlaybackController: NSObject {
     private func playWithAudioPlayer(url: URL) throws {
         audioPlayer = try AVAudioPlayer(contentsOf: url)
         audioPlayer?.delegate = self
+        audioPlayer?.enableRate = true
+        audioPlayer?.rate = currentPlaybackRate
         audioPlayer?.prepareToPlay()
 
         audioDuration = audioPlayer?.duration ?? 0
@@ -100,13 +106,21 @@ final class TTSAudioPlaybackController: NSObject {
     private func playWithAudioEngine(url: URL) throws {
         let engine = AVAudioEngine()
         let playerNode = AVAudioPlayerNode()
+        let timePitch = AVAudioUnitTimePitch()
+
+        // Set initial playback rate
+        timePitch.rate = currentPlaybackRate
 
         engine.attach(playerNode)
+        engine.attach(timePitch)
 
         let file = try AVAudioFile(forReading: url)
         audioDuration = Double(file.length) / file.processingFormat.sampleRate
 
-        engine.connect(playerNode, to: engine.mainMixerNode, format: file.processingFormat)
+        // Connect: playerNode → timePitch → mainMixer
+        // Note: Use nil format for timePitch output to let the engine handle format conversion
+        engine.connect(playerNode, to: timePitch, format: file.processingFormat)
+        engine.connect(timePitch, to: engine.mainMixerNode, format: nil)
 
         // Set output device if specified
         if !outputDeviceUID.isEmpty {
@@ -117,6 +131,7 @@ final class TTSAudioPlaybackController: NSObject {
 
         audioEngine = engine
         audioPlayerNode = playerNode
+        timePitchNode = timePitch
         audioFile = file
 
         // Schedule the entire file with .dataPlayedBack completion type
@@ -180,6 +195,7 @@ final class TTSAudioPlaybackController: NSObject {
         audioPlayerNode?.stop()
         audioEngine?.stop()
         audioPlayerNode = nil
+        timePitchNode = nil
         audioEngine = nil
         audioFile = nil
         playbackStartTime = nil
@@ -212,6 +228,20 @@ final class TTSAudioPlaybackController: NSObject {
         }
 
         isPaused = false
+    }
+
+    /// Set playback rate dynamically (0.25 to 4.0)
+    /// Can be called during playback for real-time speed adjustment
+    func setPlaybackRate(_ rate: Float) {
+        let clampedRate = max(0.25, min(4.0, rate))
+        currentPlaybackRate = clampedRate
+
+        // Update active playback
+        if audioEngine != nil {
+            timePitchNode?.rate = clampedRate
+        } else if let player = audioPlayer {
+            player.rate = clampedRate
+        }
     }
 
     /// Stop playback and reset state

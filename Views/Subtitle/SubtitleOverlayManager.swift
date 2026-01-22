@@ -172,7 +172,9 @@ final class SubtitleOverlayManager {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.windowDidMove()
+            Task { @MainActor in
+                self?.windowDidMove()
+            }
         }
     }
 

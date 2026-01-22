@@ -122,16 +122,13 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
         let modelId = selectedModel.isEmpty ? "eleven_v3" : selectedModel
 
-        // Convert normalized speed to ElevenLabs range
-        let clampedSpeed = convertSpeedToElevenLabsRange(selectedSpeed)
-
+        // Note: Speed is controlled locally via AVAudioUnitTimePitch, not via API
         var body: [String: Any] = [
             "text": text,
             "model_id": modelId,
             "voice_settings": [
                 "stability": 0.5,
-                "similarity_boost": 0.75,
-                "speed": clampedSpeed
+                "similarity_boost": 0.75
             ]
         ]
 
@@ -143,6 +140,9 @@ final class ElevenLabsTTS: NSObject, TTSService {
         }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        // Set initial playback rate from selectedSpeed
+        streamingPlayer.setPlaybackRate(Float(selectedSpeed))
 
         // Start streaming player
         try streamingPlayer.startStreaming()
@@ -231,16 +231,24 @@ final class ElevenLabsTTS: NSObject, TTSService {
         request.timeoutInterval = 60
 
         let modelId = selectedModel.isEmpty ? "eleven_v3" : selectedModel
-        let clampedSpeed = convertSpeedToElevenLabsRange(selectedSpeed)
+
+        // Build voice_settings - add speed only when != 1.0 for Save Audio
+        // ElevenLabs speed range is 0.7-1.2 (limited)
+        var voiceSettings: [String: Any] = [
+            "stability": 0.5,
+            "similarity_boost": 0.75
+        ]
+
+        // Add speed for non-streaming (Save Audio) when speed != 1.0
+        if abs(selectedSpeed - 1.0) > 0.01 {
+            let elevenLabsSpeed = convertSpeedToElevenLabsRange(selectedSpeed)
+            voiceSettings["speed"] = elevenLabsSpeed
+        }
 
         var body: [String: Any] = [
             "text": text,
             "model_id": modelId,
-            "voice_settings": [
-                "stability": 0.5,
-                "similarity_boost": 0.75,
-                "speed": clampedSpeed
-            ]
+            "voice_settings": voiceSettings
         ]
 
         // Add language_code if specified (for Turbo/Flash v2.5 models)
@@ -258,22 +266,11 @@ final class ElevenLabsTTS: NSObject, TTSService {
         // Store audio data for saving
         lastAudioData = data
 
+        // Set initial playback rate from selectedSpeed
+        playbackController.setPlaybackRate(Float(selectedSpeed))
+
         // Play the audio
         try playbackController.playAudio(data: data, fileExtension: "mp3")
-    }
-
-    /// Convert normalized speed (0.5-2.0) to ElevenLabs range (0.7-1.2)
-    private func convertSpeedToElevenLabsRange(_ speed: Double) -> Double {
-        // 0.5 -> 0.7, 1.0 -> 1.0, 2.0 -> 1.2
-        let normalizedSpeed: Double
-        if speed <= 1.0 {
-            // Map 0.5-1.0 to 0.7-1.0
-            normalizedSpeed = 0.7 + (speed - 0.5) * (0.3 / 0.5)
-        } else {
-            // Map 1.0-2.0 to 1.0-1.2
-            normalizedSpeed = 1.0 + (speed - 1.0) * (0.2 / 1.0)
-        }
-        return max(0.7, min(1.2, normalizedSpeed))
     }
 
     func pause() {
@@ -297,9 +294,33 @@ final class ElevenLabsTTS: NSObject, TTSService {
         playbackController.stopPlayback()
     }
 
+    /// Set playback rate dynamically during playback (0.25 to 4.0)
+    func setPlaybackRate(_ rate: Float) {
+        if useStreamingMode {
+            streamingPlayer.setPlaybackRate(rate)
+        } else {
+            playbackController.setPlaybackRate(rate)
+        }
+    }
+
     func clearAudioCache() {
         lastAudioData = nil
         accumulatedPCMData = Data()
+    }
+
+    /// Convert normalized speed (0.5-2.0) to ElevenLabs range (0.7-1.2)
+    /// Used only for Save Audio (non-streaming) when speed != 1.0
+    private func convertSpeedToElevenLabsRange(_ speed: Double) -> Double {
+        // 0.5 -> 0.7, 1.0 -> 1.0, 2.0 -> 1.2
+        let normalizedSpeed: Double
+        if speed <= 1.0 {
+            // Map 0.5-1.0 to 0.7-1.0
+            normalizedSpeed = 0.7 + (speed - 0.5) * (0.3 / 0.5)
+        } else {
+            // Map 1.0-2.0 to 1.0-1.2
+            normalizedSpeed = 1.0 + (speed - 1.0) * (0.2 / 1.0)
+        }
+        return max(0.7, min(1.2, normalizedSpeed))
     }
 
     func availableVoices() -> [TTSVoice] {

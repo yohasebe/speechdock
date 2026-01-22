@@ -201,12 +201,12 @@ struct ShortcutSettingsView: View {
         ScrollView {
             Form {
                 Section {
-                    ShortcutRecorderView(title: "Start/Stop Recording (STT)", keyCombo: $sttKeyCombo)
+                    ShortcutRecorderView(title: "Toggle STT Panel", keyCombo: $sttKeyCombo)
                         .onChange(of: sttKeyCombo) { _, newValue in
                             appState.hotKeyService?.sttKeyCombo = newValue
                         }
 
-                    ShortcutRecorderView(title: "Read Selected Text (TTS)", keyCombo: $ttsKeyCombo)
+                    ShortcutRecorderView(title: "Toggle TTS Panel", keyCombo: $ttsKeyCombo)
                         .onChange(of: ttsKeyCombo) { _, newValue in
                             appState.hotKeyService?.ttsKeyCombo = newValue
                         }
@@ -250,6 +250,19 @@ struct ShortcutSettingsView: View {
                     Text("TTS Panel Shortcuts")
                 } footer: {
                     Text("Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // Common Shortcuts (both panels)
+                Section {
+                    ForEach(ShortcutAction.allCases.filter { $0.category == "Common" }, id: \.self) { action in
+                        PanelShortcutRow(action: action, manager: shortcutManager)
+                    }
+                } header: {
+                    Text("Common Shortcuts")
+                } footer: {
+                    Text("Shortcuts available in both STT and TTS panels.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

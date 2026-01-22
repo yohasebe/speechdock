@@ -199,6 +199,9 @@ final class GeminiTTS: NSObject, TTSService {
         print("Gemini TTS: Setup complete")
         #endif
 
+        // Set initial playback rate from selectedSpeed
+        streamingPlayer.setPlaybackRate(Float(selectedSpeed))
+
         // Start streaming player
         try streamingPlayer.startStreaming()
 
@@ -445,16 +448,22 @@ final class GeminiTTS: NSObject, TTSService {
         // Validate voice - use default if invalid, and convert to lowercase
         let validVoice = Self.validVoiceIds.contains(selectedVoice.lowercased()) ? selectedVoice.lowercased() : "zephyr"
 
-        // Prepend pace instruction to text (like monadic-chat does)
-        let paceInstruction = paceInstructionForSpeed(selectedSpeed)
-        let textWithPace = paceInstruction + text
+        // For Save Audio (non-streaming), prepend pace instruction if speed != 1.0
+        // Gemini doesn't have a direct speed parameter, so we use natural language instruction
+        let textToSpeak: String
+        if abs(selectedSpeed - 1.0) > 0.01 {
+            let paceInstruction = paceInstructionForSpeed(selectedSpeed)
+            textToSpeak = paceInstruction + text
+        } else {
+            textToSpeak = text
+        }
 
         let body: [String: Any] = [
             "contents": [
                 [
                     "role": "user",
                     "parts": [
-                        ["text": textWithPace]
+                        ["text": textToSpeak]
                     ]
                 ]
             ],
@@ -531,6 +540,9 @@ final class GeminiTTS: NSObject, TTSService {
             _audioFileExtension = sourceExt
         }
 
+        // Set initial playback rate from selectedSpeed
+        playbackController.setPlaybackRate(Float(selectedSpeed))
+
         // Play the audio
         try playbackController.playAudio(data: finalAudioData, fileExtension: sourceExt)
     }
@@ -561,6 +573,15 @@ final class GeminiTTS: NSObject, TTSService {
         playbackController.stopPlayback()
     }
 
+    /// Set playback rate dynamically during playback (0.25 to 4.0)
+    func setPlaybackRate(_ rate: Float) {
+        if useStreamingMode {
+            streamingPlayer.setPlaybackRate(rate)
+        } else {
+            playbackController.setPlaybackRate(rate)
+        }
+    }
+
     func clearAudioCache() {
         lastAudioData = nil
         accumulatedPCMData = Data()
@@ -570,10 +591,8 @@ final class GeminiTTS: NSObject, TTSService {
     // MARK: - Gemini-specific Helpers
 
     /// Generate pace instruction for Gemini TTS based on speed setting
-    /// Based on monadic-chat's implementation - always include a pace instruction
+    /// Used only for Save Audio (non-streaming) when speed != 1.0
     private func paceInstructionForSpeed(_ speed: Double) -> String {
-        // Map speed multiplier to natural language pace instruction
-        // Always include instruction (even for normal speed) - this is key for Gemini TTS
         switch speed {
         case ..<0.6:
             return "Speak very slowly and deliberately. "
@@ -581,17 +600,14 @@ final class GeminiTTS: NSObject, TTSService {
             return "Speak slowly and take your time. "
         case 0.8..<0.95:
             return "Speak at a slightly slower pace than normal. "
-        case 0.95..<1.15:
-            // Normal speed - still include instruction
-            return "Speak at a natural, conversational pace. "
-        case 1.15..<1.4:
+        case 1.05..<1.3:
             return "Speak at a slightly faster pace than normal. "
-        case 1.4..<1.8:
+        case 1.3..<1.6:
             return "Speak quickly and at a faster pace. "
-        case 1.8...:
-            return "[extremely fast] "
+        case 1.6...:
+            return "Speak very quickly. "
         default:
-            return "Speak at a natural, conversational pace. "
+            return ""  // 0.95-1.05 is considered normal, no instruction needed
         }
     }
 

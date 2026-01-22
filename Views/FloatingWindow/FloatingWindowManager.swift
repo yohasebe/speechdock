@@ -71,6 +71,9 @@ final class FloatingWindowManager: ObservableObject {
         onConfirm: @escaping (String) -> Void,
         onCancel: @escaping () -> Void
     ) {
+        // Close spelling panel if open
+        NSSpellChecker.shared.spellingPanel.orderOut(nil)
+
         // Save frame before closing existing window
         saveWindowFrame()
 
@@ -110,7 +113,7 @@ final class FloatingWindowManager: ObservableObject {
         // For standard window mode, give macOS time to process the activation policy change
         // This ensures the Dock icon appears before the window is shown
         if appState.panelStyle == .standardWindow {
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.03))
         }
 
         // Activate app first, then show window
@@ -368,6 +371,9 @@ final class FloatingWindowManager: ObservableObject {
         appState: AppState,
         onClose: @escaping () -> Void
     ) {
+        // Close spelling panel if open
+        NSSpellChecker.shared.spellingPanel.orderOut(nil)
+
         // Store close callback and appState for use when window is closed externally
         storedOnClose = onClose
         currentAppState = appState
@@ -404,7 +410,7 @@ final class FloatingWindowManager: ObservableObject {
         // For standard window mode, give macOS time to process the activation policy change
         // This ensures the Dock icon appears before the window is shown
         if appState.panelStyle == .standardWindow {
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.03))
         }
 
         // Activate app first, then show window
@@ -428,14 +434,14 @@ final class FloatingWindowManager: ObservableObject {
     /// Retry activation until window becomes key
     /// Apps launched via LaunchServices (`open` command) may need multiple attempts
     private func activateWindowWithRetry(attempt: Int = 0) {
-        guard let window = floatingWindow, attempt < 20 else { return }
+        guard let window = floatingWindow, attempt < 15 else { return }
 
         if window.isKeyWindow { return }
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
             self?.activateWindowWithRetry(attempt: attempt + 1)
         }
     }
@@ -456,16 +462,18 @@ final class FloatingWindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self, weak window] _ in
-            guard let self = self, let window = window else { return }
+            Task { @MainActor in
+                guard let self = self, let window = window else { return }
 
-            // Remove observer after first trigger
-            if let observer = self.windowBecameKeyObserver {
-                NotificationCenter.default.removeObserver(observer)
-                self.windowBecameKeyObserver = nil
+                // Remove observer after first trigger
+                if let observer = self.windowBecameKeyObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    self.windowBecameKeyObserver = nil
+                }
+
+                // Find and focus the text view
+                self.focusTextViewInWindow(window)
             }
-
-            // Find and focus the text view
-            self.focusTextViewInWindow(window)
         }
 
         // If window is already key, focus immediately
@@ -497,9 +505,9 @@ final class FloatingWindowManager: ObservableObject {
 
         if let textView = findTextView(in: contentView) {
             window.makeFirstResponder(textView)
-        } else if attempt < 10 {
+        } else if attempt < 8 {
             // Retry if text view not found yet (SwiftUI might still be setting up)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self, weak window] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self, weak window] in
                 guard let window = window else { return }
                 self?.focusTextViewInWindow(window, attempt: attempt + 1)
             }
@@ -522,30 +530,32 @@ final class FloatingWindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            guard let self = self else { return }
+            Task { @MainActor in
+                guard let self = self else { return }
 
-            // Stop STT recording if active
-            if let onCancel = self.storedOnCancel {
-                onCancel()
-                self.storedOnCancel = nil
-            }
-
-            // Stop TTS playback if active
-            if let onClose = self.storedOnClose {
-                onClose()
-                self.storedOnClose = nil
-            }
-
-            // Additional safety: directly stop via AppState
-            if let appState = self.currentAppState {
-                if appState.isRecording {
-                    appState.cancelRecording()
+                // Stop STT recording if active
+                if let onCancel = self.storedOnCancel {
+                    onCancel()
+                    self.storedOnCancel = nil
                 }
-                if appState.ttsState == .speaking || appState.ttsState == .loading {
-                    appState.stopTTS()
+
+                // Stop TTS playback if active
+                if let onClose = self.storedOnClose {
+                    onClose()
+                    self.storedOnClose = nil
                 }
+
+                // Additional safety: directly stop via AppState
+                if let appState = self.currentAppState {
+                    if appState.isRecording {
+                        appState.cancelRecording()
+                    }
+                    if appState.ttsState == .speaking || appState.ttsState == .loading {
+                        appState.stopTTS()
+                    }
+                }
+                self.currentAppState = nil
             }
-            self.currentAppState = nil
         }
     }
 

@@ -41,6 +41,9 @@ protocol TTSService: AnyObject {
     func resume()
     func stop()
 
+    /// Set playback rate dynamically during playback (0.25 to 4.0)
+    func setPlaybackRate(_ rate: Float)
+
     /// Clear cached audio data to free memory
     func clearAudioCache()
 

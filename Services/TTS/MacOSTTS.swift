@@ -41,6 +41,11 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     private var audioPlayer: AVAudioPlayer?
     private var audioEngine: AVAudioEngine?
     private var audioPlayerNode: AVAudioPlayerNode?
+    private var timePitchNode: AVAudioUnitTimePitch?
+
+    /// Current playback rate (0.25 to 4.0, default 1.0) - for dynamic speed control during playback
+    private(set) var currentPlaybackRate: Float = 1.0
+
     private var currentText = ""
     private var wordRanges: [NSRange] = []
     private var wordWeights: [Double] = []  // Relative weight of each word for timing
@@ -94,16 +99,24 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         let generateProcess = Process()
         generateProcess.executableURL = URL(fileURLWithPath: "/usr/bin/say")
 
+        // Note: For real-time playback, speed is controlled via AVAudioUnitTimePitch
+        // For Save Audio (batch processing), we use the -r option for better quality
         var arguments: [String] = []
         if let voice = voice {
             arguments.append("-v")
             arguments.append(voice)
         }
-        // Apply speed control: default is ~175 wpm, valid range ~50-500
-        let baseRate = 175.0
-        let rate = Int(baseRate * selectedSpeed)
-        arguments.append("-r")
-        arguments.append(String(rate))
+
+        // Add rate option for Save Audio when speed != 1.0
+        // Default ~175 wpm, valid range ~50-500 wpm
+        if abs(selectedSpeed - 1.0) > 0.01 {
+            let baseRate = 175.0
+            let rate = Int(baseRate * selectedSpeed)
+            let clampedRate = max(50, min(500, rate))
+            arguments.append("-r")
+            arguments.append(String(clampedRate))
+        }
+
         arguments.append("-o")
         arguments.append(audioFile.path)
         arguments.append("-f")
@@ -142,6 +155,9 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
             }
         }
 
+        // Set initial playback rate from selectedSpeed
+        currentPlaybackRate = Float(selectedSpeed)
+
         // Load and play the audio file
         do {
             // Use AVAudioEngine if custom output device is specified
@@ -160,6 +176,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     private func playWithAudioPlayer(url: URL) throws {
         audioPlayer = try AVAudioPlayer(contentsOf: url)
         audioPlayer?.delegate = self
+        audioPlayer?.enableRate = true
+        audioPlayer?.rate = currentPlaybackRate
         audioPlayer?.prepareToPlay()
         actualDuration = audioPlayer?.duration ?? 0
 
@@ -180,8 +198,13 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     private func playWithAudioEngine(url: URL) throws {
         let engine = AVAudioEngine()
         let playerNode = AVAudioPlayerNode()
+        let timePitch = AVAudioUnitTimePitch()
+
+        // Set initial playback rate
+        timePitch.rate = currentPlaybackRate
 
         engine.attach(playerNode)
+        engine.attach(timePitch)
 
         let file = try AVAudioFile(forReading: url)
         actualDuration = Double(file.length) / file.processingFormat.sampleRate
@@ -190,7 +213,10 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
             throw TTSError.audioError("Audio file has zero duration")
         }
 
-        engine.connect(playerNode, to: engine.mainMixerNode, format: file.processingFormat)
+        // Connect: playerNode → timePitch → mainMixer
+        // Note: Use nil format for timePitch output to let the engine handle format conversion
+        engine.connect(playerNode, to: timePitch, format: file.processingFormat)
+        engine.connect(timePitch, to: engine.mainMixerNode, format: nil)
 
         // Set output device
         try setOutputDevice(uid: audioOutputDeviceUID, for: engine)
@@ -199,6 +225,7 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
         audioEngine = engine
         audioPlayerNode = playerNode
+        timePitchNode = timePitch
 
         // Schedule the entire file
         playerNode.scheduleFile(file, at: nil) { [weak self] in
@@ -261,6 +288,7 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         audioPlayerNode?.stop()
         audioEngine?.stop()
         audioPlayerNode = nil
+        timePitchNode = nil
         audioEngine = nil
     }
 
@@ -296,6 +324,21 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
         isPaused = false
         startHighlightTimer()
+    }
+
+    /// Set playback rate dynamically (0.25 to 4.0)
+    /// Can be called during playback for real-time speed adjustment
+    @MainActor
+    func setPlaybackRate(_ rate: Float) {
+        let clampedRate = max(0.25, min(4.0, rate))
+        currentPlaybackRate = clampedRate
+
+        // Update active playback
+        if audioEngine != nil {
+            timePitchNode?.rate = clampedRate
+        } else if let player = audioPlayer {
+            player.rate = clampedRate
+        }
     }
 
     @MainActor

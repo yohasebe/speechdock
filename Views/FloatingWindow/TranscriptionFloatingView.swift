@@ -25,6 +25,28 @@ struct ButtonLabelWithShortcut: View {
     }
 }
 
+/// Compact button label for grouped buttons (smaller font)
+struct CompactButtonLabel: View {
+    let title: String
+    let shortcut: String
+    var icon: String? = nil
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.callout)
+            }
+            Text(title)
+                .font(.callout)
+            Text("(\(shortcut))")
+                .font(.caption)
+        }
+        .padding(.horizontal, 3)
+        .padding(.vertical, 2)
+    }
+}
+
 /// Compact window selector button for action bar (triggers popover)
 struct CompactWindowSelectorButton: View {
     @ObservedObject var floatingWindowManager: FloatingWindowManager
@@ -38,43 +60,36 @@ struct CompactWindowSelectorButton: View {
 
     var body: some View {
         Button(action: onToggle) {
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.right.circle.fill")
-                    .foregroundColor(.accentColor)
+            HStack(spacing: 3) {
+                Image(systemName: "macwindow")
                     .font(.callout)
 
                 Text("Target:")
                     .font(.callout)
-                    .foregroundColor(.secondary)
 
                 if let selected = floatingWindowManager.selectedWindow {
                     if let appIcon = selected.appIcon {
                         Image(nsImage: appIcon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 16, height: 16)
+                            .frame(width: 14, height: 14)
                     } else {
-                        // Fallback icon if no app icon
                         Image(systemName: "app.fill")
                             .font(.callout)
-                            .foregroundColor(.secondary)
                     }
                 } else {
                     Text("None")
                         .font(.callout)
-                        .foregroundColor(.secondary)
                 }
 
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 8))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 9))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(Color.green.opacity(0.2))
-            .cornerRadius(6)
+            .padding(.horizontal, 3)
+            .padding(.vertical, 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.bordered)
+        .controlSize(.small)
         .applyCustomShortcut(targetSelectShortcut)
     }
 }
@@ -289,6 +304,7 @@ struct WindowSelectorDropdown: View {
             }
             .foregroundColor(.secondary)
             .padding(.horizontal, 4)
+            .padding(.top, 8)
         }
     }
 
@@ -545,11 +561,21 @@ struct TranscriptionFloatingView: View {
     @State private var isWindowSelectorExpanded: Bool = false
     @State private var dropdownId: UUID = UUID()  // Force recreate dropdown when opened
     @State private var showCopiedFeedback: Bool = false
+    @State private var isDragOver: Bool = false  // Track drag over state for file drop
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
     @StateObject private var audioLevelMonitor = AudioLevelMonitor.shared
 
     private var isRecording: Bool {
         appState.transcriptionState == .recording || appState.transcriptionState == .preparing
+    }
+
+    private var isTranscribingFile: Bool {
+        appState.transcriptionState == .transcribingFile
+    }
+
+    /// Whether any transcription activity is happening (recording or file transcription)
+    private var isBusy: Bool {
+        isRecording || isTranscribingFile
     }
 
     // Shortcut helpers
@@ -559,6 +585,9 @@ struct TranscriptionFloatingView: View {
     private var saveShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttSave) }
     private var targetSelectShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttTargetSelect) }
     private var cancelShortcut: CustomShortcut { shortcutManager.shortcut(for: .sttCancel) }
+    private var fontSizeIncreaseShortcut: CustomShortcut { shortcutManager.shortcut(for: .fontSizeIncrease) }
+    private var fontSizeDecreaseShortcut: CustomShortcut { shortcutManager.shortcut(for: .fontSizeDecrease) }
+    private var fontSizeResetShortcut: CustomShortcut { shortcutManager.shortcut(for: .fontSizeReset) }
 
     // Panel style helpers
     private var isFloatingStyle: Bool { appState.panelStyle == .floating }
@@ -579,30 +608,69 @@ struct TranscriptionFloatingView: View {
             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
     }
 
-    /// Placeholder overlay when text area is empty during recording/preparing
+    /// Placeholder overlay when text area is empty
     @ViewBuilder
     private var placeholderOverlay: some View {
-        if editedText.isEmpty && isRecording {
-            if appState.transcriptionState == .preparing {
-                VStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Starting...")
-                        .foregroundColor(.secondary)
-                        .font(.callout)
-                }
-            } else {
-                VStack {
-                    HStack(spacing: 4) {
-                        ForEach(0..<5, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.red.opacity(0.7))
-                                .frame(width: 3, height: CGFloat.random(in: 8...25))
-                        }
+        if editedText.isEmpty {
+            if isRecording {
+                // Recording state placeholders
+                if appState.transcriptionState == .preparing {
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Starting...")
+                            .foregroundColor(.secondary)
+                            .font(.callout)
                     }
-                    Text("Listening...")
+                } else {
+                    VStack {
+                        HStack(spacing: 4) {
+                            ForEach(0..<5, id: \.self) { index in
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.red.opacity(0.7))
+                                    .frame(width: 3, height: CGFloat.random(in: 8...25))
+                            }
+                        }
+                        Text("Listening...")
+                            .foregroundColor(.secondary)
+                            .font(.callout)
+                    }
+                }
+            } else if !isTranscribingFile {
+                // Idle state - prompt user to start recording or drop a file
+                let recordShortcut = ShortcutSettingsManager.shared.shortcut(for: .sttRecord)
+                let provider = appState.selectedRealtimeProvider
+
+                VStack(spacing: 12) {
+                    Image(systemName: "mic.circle")
+                        .font(.system(size: 28))
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Text("Press Record (\(recordShortcut.displayString)) to start transcription")
                         .foregroundColor(.secondary)
                         .font(.callout)
+
+                    // File drop hint - only show if provider supports file transcription
+                    if provider.supportsFileTranscription {
+                        VStack(spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.down.doc")
+                                    .font(.caption)
+                                Text("Or drop an audio file here")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.secondary.opacity(0.7))
+
+                            // Provider-specific limits
+                            Text("\(provider.supportedAudioFormats) (max \(provider.maxFileSizeMB)MB, \(provider.maxAudioDuration))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary.opacity(0.5))
+                        }
+                    } else {
+                        // Show hint about switching provider for file transcription
+                        Text("Switch to OpenAI, Gemini, or ElevenLabs for file transcription")
+                            .font(.caption2)
+                            .foregroundColor(.secondary.opacity(0.5))
+                    }
                 }
             }
         }
@@ -618,6 +686,222 @@ struct TranscriptionFloatingView: View {
                 .stroke(borderColor, lineWidth: 2)
                 .opacity(opacity)
         }
+    }
+
+    /// File transcription progress overlay
+    @ViewBuilder
+    private var fileTranscriptionOverlay: some View {
+        if isTranscribingFile {
+            ZStack {
+                Color.black.opacity(0.3)
+                    .cornerRadius(8)
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Transcribing file...")
+                        .font(.callout)
+                        .foregroundColor(.white)
+                    Button("Cancel") {
+                        appState.cancelFileTranscription()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding()
+                .background(Color(.windowBackgroundColor).opacity(0.95))
+                .cornerRadius(12)
+                .shadow(radius: 10)
+            }
+        }
+    }
+
+    /// Drag over indicator overlay
+    @ViewBuilder
+    private var dragOverOverlay: some View {
+        if isDragOver && !isBusy {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor, lineWidth: 3)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.accentColor.opacity(0.1))
+                VStack(spacing: 8) {
+                    Image(systemName: "waveform.badge.magnifyingglass")
+                        .font(.system(size: 36))
+                        .foregroundColor(.accentColor)
+                    Text("Drop audio file to transcribe")
+                        .font(.callout)
+                        .fontWeight(.medium)
+                        .foregroundColor(.accentColor)
+                }
+            }
+        }
+    }
+
+    /// Handle audio file drop
+    private func handleAudioFileDrop(_ providers: [NSItemProvider]) -> Bool {
+        // Don't accept drops while recording or transcribing
+        guard !isBusy else { return false }
+
+        for provider in providers {
+            // Try to load as file URL
+            if provider.hasItemConformingToTypeIdentifier("public.file-url") {
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
+                    if let error = error {
+                        #if DEBUG
+                        print("Drop error: \(error)")
+                        #endif
+                        return
+                    }
+
+                    guard let data = item as? Data,
+                          let url = URL(dataRepresentation: data, relativeTo: nil) else {
+                        return
+                    }
+
+                    // Check if it's an audio file
+                    let audioExtensions = ["mp3", "wav", "m4a", "aac", "webm", "ogg", "flac", "mp4"]
+                    let ext = url.pathExtension.lowercased()
+                    guard audioExtensions.contains(ext) else {
+                        Task { @MainActor in
+                            let provider = appState.selectedRealtimeProvider
+                            let formats = provider.supportsFileTranscription ? provider.supportedAudioFormats : "MP3, WAV, M4A, AAC, WebM, OGG, FLAC"
+                            showDropNotice("Unsupported file format: .\(ext)\n\nSupported formats: \(formats)")
+                        }
+                        return
+                    }
+
+                    // Start transcription on main thread
+                    Task { @MainActor in
+                        appState.transcribeAudioFile(url)
+                    }
+                }
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Show notification alert for drop issues
+    private func showDropNotice(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = "File Transcription"
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+
+        alert.window.level = .floating + 1
+
+        alert.runModal()
+    }
+
+    /// Floating action buttons inside text area (Font size, Spell Check, Clear)
+    @ViewBuilder
+    private var textAreaFloatingButtons: some View {
+        // Only show when not busy and text is not empty
+        if !isBusy && !editedText.isEmpty {
+            HStack(spacing: 6) {
+                // Font size stepper
+                HStack(spacing: 2) {
+                    // Decrease font size
+                    Button(action: {
+                        appState.decreasePanelTextFontSize()
+                    }) {
+                        Image(systemName: "minus")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .frame(width: 16, height: 16)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Decrease Font Size (\(shortcutManager.shortcut(for: .fontSizeDecrease).displayString))")
+
+                    // Current size (click to reset)
+                    Button(action: {
+                        appState.resetPanelTextFontSize()
+                    }) {
+                        Text("\(Int(appState.panelTextFontSize))")
+                            .font(.system(size: 10, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundColor(.secondary)
+                            .frame(minWidth: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reset Font Size (\(shortcutManager.shortcut(for: .fontSizeReset).displayString))")
+
+                    // Increase font size
+                    Button(action: {
+                        appState.increasePanelTextFontSize()
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .frame(width: 16, height: 16)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Increase Font Size (\(shortcutManager.shortcut(for: .fontSizeIncrease).displayString))")
+                }
+
+                Divider()
+                    .frame(height: 12)
+
+                // Spell Check button
+                Button(action: {
+                    showSpellingPanel()
+                }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Spell Check")
+
+                // Clear button
+                Button(action: {
+                    editedText = ""
+                    baseText = ""
+                }) {
+                    Image(systemName: "eraser")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear Text")
+            }
+            .padding(6)
+            .background(Color(.windowBackgroundColor).opacity(0.9))
+            .cornerRadius(6)
+            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .padding(8)
+        }
+    }
+
+    /// Translation controls (left side of text area)
+    @ViewBuilder
+    private var translationControlsView: some View {
+        // Don't show translation controls when recording or transcribing
+        if !isBusy {
+            TranslationControls(
+                appState: appState,
+                text: displayTextForTranslation,
+                onTranslate: { translatedText in
+                    editedText = translatedText
+                }
+            )
+            .padding(8)
+        }
+    }
+
+    /// Text to use for translation (translated or original)
+    private var displayTextForTranslation: String {
+        if let translatedText = appState.translationState.translatedText {
+            return translatedText
+        }
+        return editedText
+    }
+
+    /// Show the macOS spelling panel and check spelling
+    private func showSpellingPanel() {
+        // Use the shared holder to trigger spell check on the panel text view
+        PanelTextViewHolder.shared.triggerSpellCheck()
     }
 
     var body: some View {
@@ -694,10 +978,10 @@ struct TranscriptionFloatingView: View {
             }
 
             // Text area with replacement highlighting
-            // Disable editing during recording to prevent user interference
+            // Disable editing during recording/file transcription to prevent user interference
             ScrollableTextView(
                     text: $editedText,
-                    isEditable: !isRecording,
+                    isEditable: !isBusy,
                     highlightRange: nil,
                     enableHighlight: false,
                     showReplacementHighlights: true,
@@ -707,9 +991,10 @@ struct TranscriptionFloatingView: View {
                 .background(Color(.textBackgroundColor))
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
-                .frame(minHeight: 180, maxHeight: 350)
+                .frame(minHeight: 180, maxHeight: .infinity)
                 .overlay(placeholderOverlay)
                 .overlay(recordingBorderOverlay)
+                .overlay(fileTranscriptionOverlay)
                 .overlay(
                     // Transcription processing overlay
                     Group {
@@ -718,6 +1003,18 @@ struct TranscriptionFloatingView: View {
                         }
                     }
                 )
+                .overlay(alignment: .bottomLeading) {
+                    // Translation controls (left side)
+                    translationControlsView
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    // Floating action buttons (Clear, Spell Check)
+                    textAreaFloatingButtons
+                }
+                .overlay(dragOverOverlay)
+                .onDrop(of: [.audio, .fileURL], isTargeted: $isDragOver) { providers in
+                    handleAudioFileDrop(providers)
+                }
 
                 // Error message if any
                 if case .error(let message) = appState.transcriptionState {
@@ -731,20 +1028,57 @@ struct TranscriptionFloatingView: View {
             actionButtons
         }
         .padding(16)
-        .frame(minWidth: 820, idealWidth: 900, maxWidth: 1200)
+        .frame(minWidth: 820, idealWidth: 900, maxWidth: .infinity)
         .background(panelBackground)
         .cornerRadius(panelCornerRadius)
         .onChange(of: appState.currentTranscription) { _, newValue in
-            // Only update editedText from transcription during recording
-            guard isRecording else { return }
-
-            // Append new transcription to base text
-            if baseText.isEmpty {
-                editedText = newValue
-            } else if newValue.isEmpty {
-                editedText = baseText
-            } else {
-                editedText = baseText + " " + newValue
+            // Update editedText during recording (append mode)
+            if isRecording {
+                // Append new transcription to base text
+                if baseText.isEmpty {
+                    editedText = newValue
+                } else if newValue.isEmpty {
+                    editedText = baseText
+                } else {
+                    editedText = baseText + " " + newValue
+                }
+            }
+        }
+        .onChange(of: appState.transcriptionState) { oldState, newState in
+            // Handle file transcription result
+            if case .result(let text) = newState,
+               case .transcribingFile = oldState {
+                // File transcription completed - set the result text
+                editedText = text
+            }
+        }
+        .onChange(of: appState.translationState) { oldState, newState in
+            // Handle translation state changes
+            switch newState {
+            case .translated(let translatedText):
+                // Resign first responder to allow text update through ScrollableTextView
+                NSApp.keyWindow?.makeFirstResponder(nil)
+                // Show translated text
+                editedText = translatedText
+                #if DEBUG
+                print("TranscriptionFloatingView: Translation complete, editedText updated to length \(translatedText.count)")
+                #endif
+            case .idle:
+                // When reverting to original, restore original text
+                if oldState.isTranslated && !appState.originalTextBeforeTranslation.isEmpty {
+                    // Resign first responder to allow text update
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                    editedText = appState.originalTextBeforeTranslation
+                    #if DEBUG
+                    print("TranscriptionFloatingView: Reverted to original text")
+                    #endif
+                }
+            case .error(let message):
+                #if DEBUG
+                print("TranscriptionFloatingView: Translation error: \(message)")
+                #endif
+            case .translating:
+                break
             }
         }
         .onChange(of: isRecording) { _, newValue in
@@ -767,6 +1101,20 @@ struct TranscriptionFloatingView: View {
                 startBorderAnimation()
             }
         }
+        // Font size shortcuts (invisible buttons)
+        .background {
+            Group {
+                Button("") { appState.increasePanelTextFontSize() }
+                    .applyCustomShortcut(fontSizeIncreaseShortcut)
+                    .keyboardShortcut("+", modifiers: .command)  // Also support ⌘+ (shift+=)
+                Button("") { appState.decreasePanelTextFontSize() }
+                    .applyCustomShortcut(fontSizeDecreaseShortcut)
+                Button("") { appState.resetPanelTextFontSize() }
+                    .applyCustomShortcut(fontSizeResetShortcut)
+            }
+            .opacity(0)
+            .allowsHitTesting(false)
+        }
     }
 
     private func startBorderAnimation() {
@@ -787,6 +1135,9 @@ struct TranscriptionFloatingView: View {
                 Image(systemName: "mic.fill")
                     .foregroundColor(.red)
                     .symbolEffect(.pulse)
+            case .transcribingFile:
+                ProgressView()
+                    .scaleEffect(0.6)
             case .processing:
                 Image(systemName: "text.badge.checkmark")
                     .foregroundColor(.accentColor)
@@ -810,6 +1161,8 @@ struct TranscriptionFloatingView: View {
             return "Starting..."
         case .recording:
             return "Recording..."
+        case .transcribingFile:
+            return "Transcribing File..."
         case .processing:
             return "Processing..."
         case .result:
@@ -837,66 +1190,81 @@ struct TranscriptionFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
-            // Subtitle mode toggle
-            Button(action: {
-                appState.toggleSubtitleMode()
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
-                        .font(.body)
-                    Text("Subtitle")
-                        .font(.callout)
-                }
-                .foregroundColor(appState.subtitleModeEnabled ? .accentColor : .secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(appState.subtitleModeEnabled ? Color.accentColor.opacity(0.15) : Color.clear)
-                .cornerRadius(6)
-            }
-            .buttonStyle(.plain)
-            .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
-
-            // Paste Target selector on the left
-            CompactWindowSelectorButton(
-                floatingWindowManager: appState.floatingWindowManager,
-                isExpanded: $isWindowSelectorExpanded,
-                onToggle: {
-                    if !isWindowSelectorExpanded {
-                        appState.floatingWindowManager.refreshAvailableWindows()
-                        dropdownId = UUID()
+            // Subtitle mode toggle (wrapped to match Target+Paste group height)
+            HStack {
+                Button(action: {
+                    appState.toggleSubtitleMode()
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
+                            .font(.callout)
+                        Text("Subtitle")
+                            .font(.callout)
                     }
-                    isWindowSelectorExpanded.toggle()
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 2)
                 }
-            )
-            .popover(isPresented: $isWindowSelectorExpanded) {
-                WindowSelectorDropdown(
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(appState.subtitleModeEnabled ? .accentColor : nil)
+                .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
+                .disabled(isTranscribingFile)
+            }
+            .padding(3)
+            .background(Color.clear)
+            .cornerRadius(8)
+
+            // Target + Paste group
+            HStack(spacing: 2) {
+                // Target selector
+                CompactWindowSelectorButton(
                     floatingWindowManager: appState.floatingWindowManager,
-                    isExpanded: $isWindowSelectorExpanded
-                )
-                .id(dropdownId)
-                .frame(width: 500, height: 400)
-                .padding()
-            }
-
-            // Paste button next to Target selector
-            if case .recording = appState.transcriptionState {
-                if !editedText.isEmpty {
-                    Button {
-                        AppState.shared.stopRecordingAndInsert(editedText)
-                    } label: {
-                        ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
+                    isExpanded: $isWindowSelectorExpanded,
+                    onToggle: {
+                        if !isWindowSelectorExpanded {
+                            appState.floatingWindowManager.refreshAvailableWindows()
+                            dropdownId = UUID()
+                        }
+                        isWindowSelectorExpanded.toggle()
                     }
+                )
+                .popover(isPresented: $isWindowSelectorExpanded) {
+                    WindowSelectorDropdown(
+                        floatingWindowManager: appState.floatingWindowManager,
+                        isExpanded: $isWindowSelectorExpanded
+                    )
+                    .id(dropdownId)
+                    .frame(width: 500, height: 400)
+                    .padding()
+                }
+
+                // Paste button
+                if case .recording = appState.transcriptionState {
+                    if !editedText.isEmpty {
+                        Button {
+                            AppState.shared.stopRecordingAndInsert(editedText)
+                        } label: {
+                            CompactButtonLabel(title: "Paste", shortcut: pasteShortcut.displayString, icon: "doc.on.clipboard")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .applyCustomShortcut(pasteShortcut)
+                    }
+                } else {
+                    Button {
+                        onConfirm(editedText)
+                    } label: {
+                        CompactButtonLabel(title: "Paste", shortcut: pasteShortcut.displayString, icon: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                     .applyCustomShortcut(pasteShortcut)
+                    .disabled(editedText.isEmpty || isTranscribingFile)
                 }
-            } else {
-                Button {
-                    onConfirm(editedText)
-                } label: {
-                    ButtonLabelWithShortcut(title: "Paste", shortcut: "(\(pasteShortcut.displayString))", icon: "arrow.right.circle.fill")
-                }
-                .applyCustomShortcut(pasteShortcut)
-                .disabled(editedText.isEmpty)
             }
+            .padding(3)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(8)
 
             Spacer()
 
@@ -922,6 +1290,15 @@ struct TranscriptionFloatingView: View {
                     }
                     .keyboardShortcut("c", modifiers: [.command, .shift])
                 }
+            } else if isTranscribingFile {
+                // File transcription in progress: Cancel button only
+                Button {
+                    appState.cancelFileTranscription()
+                } label: {
+                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(Esc)", icon: "xmark", isProminent: false)
+                }
+                .buttonStyle(.bordered)
+                .keyboardShortcut(.escape, modifiers: [])
             } else {
                 // Not recording: Record, Save, and Copy buttons
                 Button {
@@ -1108,26 +1485,24 @@ struct AudioInputSourceSelector: View {
                     Text("No apps detected")
                         .foregroundColor(.secondary)
                 } else {
-                    ForEach(availableApps) { app in
-                        Button(action: {
-                            appState.selectedAudioInputSourceType = .applicationAudio
-                            appState.selectedAudioAppBundleID = app.bundleID
-                        }) {
-                            HStack {
-                                if let icon = app.icon {
-                                    Image(nsImage: icon)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 12, height: 12)
-                                }
-                                Text(app.name)
-                                if appState.selectedAudioInputSourceType == .applicationAudio &&
-                                   appState.selectedAudioAppBundleID == app.bundleID {
-                                    Spacer()
-                                    Image(systemName: "checkmark")
-                                }
+                    // Show recently used apps first with a section header if there are any
+                    let recentApps = availableApps.filter { $0.isRecentlyUsed }
+                    let otherApps = availableApps.filter { !$0.isRecentlyUsed }
+
+                    if !recentApps.isEmpty {
+                        Section("Recent") {
+                            ForEach(recentApps) { app in
+                                appAudioButton(for: app)
                             }
                         }
+
+                        if !otherApps.isEmpty {
+                            Divider()
+                        }
+                    }
+
+                    ForEach(otherApps) { app in
+                        appAudioButton(for: app)
                     }
                 }
 
@@ -1145,14 +1520,12 @@ struct AudioInputSourceSelector: View {
         } label: {
             HStack(spacing: 4) {
                 // Show app icon for App Audio, system icon for others
+                // Use same size as Target selector (16x16)
                 if let appIcon = currentAppIcon {
-                    Image(nsImage: appIcon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 16, height: 16)
+                    Image(nsImage: resizedIcon(appIcon, to: NSSize(width: 16, height: 16)))
                 } else {
                     Image(systemName: currentIcon)
-                        .font(.system(size: 12))
+                        .frame(width: 16, height: 16)
                 }
                 Text(currentLabel)
                     .font(.callout)
@@ -1170,6 +1543,35 @@ struct AudioInputSourceSelector: View {
             Task {
                 await appState.systemAudioCaptureService.refreshAvailableApps()
                 availableApps = appState.systemAudioCaptureService.availableApps
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func appAudioButton(for app: CapturableApplication) -> some View {
+        Button(action: {
+            appState.selectedAudioInputSourceType = .applicationAudio
+            appState.selectedAudioAppBundleID = app.bundleID
+            appState.systemAudioCaptureService.recordAppUsage(bundleID: app.bundleID)
+            // Refresh to update recently used status
+            Task {
+                await appState.systemAudioCaptureService.refreshAvailableApps()
+                availableApps = appState.systemAudioCaptureService.availableApps
+            }
+        }) {
+            HStack {
+                if let icon = app.icon {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 14, height: 14)
+                }
+                Text(app.name)
+                if appState.selectedAudioInputSourceType == .applicationAudio &&
+                   appState.selectedAudioAppBundleID == app.bundleID {
+                    Spacer()
+                    Image(systemName: "checkmark")
+                }
             }
         }
     }
@@ -1194,6 +1596,18 @@ struct AudioInputSourceSelector: View {
            !availableMicrophones.contains(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
             appState.selectedAudioInputDeviceUID = ""
         }
+    }
+
+    /// Resize NSImage to a fixed size
+    private func resizedIcon(_ image: NSImage, to size: NSSize) -> NSImage {
+        let newImage = NSImage(size: size)
+        newImage.lockFocus()
+        image.draw(in: NSRect(origin: .zero, size: size),
+                   from: NSRect(origin: .zero, size: image.size),
+                   operation: .copy,
+                   fraction: 1.0)
+        newImage.unlockFocus()
+        return newImage
     }
 }
 

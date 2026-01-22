@@ -127,20 +127,18 @@ final class OpenAITTS: NSObject, TTSService {
         let model = selectedModel.isEmpty ? "gpt-4o-mini-tts" : selectedModel
 
         // Use PCM format for lowest latency streaming
-        var body: [String: Any] = [
+        // Note: Speed is controlled locally via AVAudioUnitTimePitch, not via API
+        let body: [String: Any] = [
             "input": text,
             "model": model,
             "voice": validVoice,
             "response_format": "pcm"  // 24kHz, 16-bit signed, little-endian, mono
         ]
 
-        // Add speed parameter for models that support it
-        if !model.hasPrefix("gpt-4o-mini-tts") {
-            let clampedSpeed = max(0.25, min(4.0, selectedSpeed))
-            body["speed"] = clampedSpeed
-        }
-
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        // Set initial playback rate from selectedSpeed
+        streamingPlayer.setPlaybackRate(Float(selectedSpeed))
 
         // Start streaming player
         try streamingPlayer.startStreaming()
@@ -231,6 +229,7 @@ final class OpenAITTS: NSObject, TTSService {
         let model = selectedModel.isEmpty ? "gpt-4o-mini-tts" : selectedModel
 
         // Build request body
+        // For non-streaming (Save Audio), include speed parameter if supported and not 1.0
         var body: [String: Any] = [
             "input": text,
             "model": model,
@@ -239,9 +238,8 @@ final class OpenAITTS: NSObject, TTSService {
         ]
 
         // Add speed parameter for models that support it (tts-1, tts-1-hd)
-        // Note: gpt-4o-mini-tts models don't support speed parameter
-        if !model.hasPrefix("gpt-4o-mini-tts") {
-            // Clamp speed to valid range (0.25 to 4.0)
+        // Only when speed != 1.0 to avoid quality degradation from unnecessary processing
+        if !model.hasPrefix("gpt-4o-mini-tts") && abs(selectedSpeed - 1.0) > 0.01 {
             let clampedSpeed = max(0.25, min(4.0, selectedSpeed))
             body["speed"] = clampedSpeed
         }
@@ -253,6 +251,9 @@ final class OpenAITTS: NSObject, TTSService {
 
         // Store audio data for saving
         lastAudioData = data
+
+        // Set initial playback rate from selectedSpeed
+        playbackController.setPlaybackRate(Float(selectedSpeed))
 
         // Play the audio
         try playbackController.playAudio(data: data, fileExtension: "mp3")
@@ -279,6 +280,15 @@ final class OpenAITTS: NSObject, TTSService {
         streamingTask = nil
         streamingPlayer.stop()
         playbackController.stopPlayback()
+    }
+
+    /// Set playback rate dynamically during playback (0.25 to 4.0)
+    func setPlaybackRate(_ rate: Float) {
+        if useStreamingMode {
+            streamingPlayer.setPlaybackRate(rate)
+        } else {
+            playbackController.setPlaybackRate(rate)
+        }
     }
 
     func clearAudioCache() {

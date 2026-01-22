@@ -4,6 +4,7 @@ import AVFoundation
 import CoreMedia
 
 /// Delegate protocol for receiving captured audio
+@MainActor
 protocol SystemAudioCaptureDelegate: AnyObject {
     func systemAudioCapture(_ capture: SystemAudioCaptureService, didCaptureAudioBuffer buffer: AVAudioPCMBuffer)
     func systemAudioCapture(_ capture: SystemAudioCaptureService, didFailWithError error: Error)
@@ -26,8 +27,31 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
     private let sampleRate: Double = 16000
     private let channelCount: Int = 1
 
+    // Recently used apps (stored in UserDefaults)
+    private let recentlyUsedAppsKey = "recentlyUsedAudioApps"
+    private let maxRecentApps = 5
+
     private override init() {
         super.init()
+    }
+
+    /// Get recently used app bundle IDs
+    private var recentlyUsedBundleIDs: [String] {
+        UserDefaults.standard.stringArray(forKey: recentlyUsedAppsKey) ?? []
+    }
+
+    /// Record that an app was used for audio capture
+    func recordAppUsage(bundleID: String) {
+        var recent = recentlyUsedBundleIDs
+        // Remove if already exists
+        recent.removeAll { $0 == bundleID }
+        // Add to front
+        recent.insert(bundleID, at: 0)
+        // Limit size
+        if recent.count > maxRecentApps {
+            recent = Array(recent.prefix(maxRecentApps))
+        }
+        UserDefaults.standard.set(recent, forKey: recentlyUsedAppsKey)
     }
 
     /// Refresh the list of available applications for capture
@@ -54,16 +78,37 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
                 seenBundleIDs.insert(bundleID)
 
                 let icon = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first?.icon
+                let isRecentlyUsed = recentlyUsedBundleIDs.contains(bundleID)
 
                 apps.append(CapturableApplication(
                     bundleID: bundleID,
                     name: app.applicationName,
-                    icon: icon
+                    icon: icon,
+                    isRecentlyUsed: isRecentlyUsed
                 ))
             }
 
-            // Sort by name
-            apps.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            // Sort: recently used first (in order of recency), then alphabetically
+            let recentOrder = recentlyUsedBundleIDs
+            apps.sort { app1, app2 in
+                let index1 = recentOrder.firstIndex(of: app1.bundleID)
+                let index2 = recentOrder.firstIndex(of: app2.bundleID)
+
+                switch (index1, index2) {
+                case let (i1?, i2?):
+                    // Both are recent - sort by recency
+                    return i1 < i2
+                case (_?, nil):
+                    // Only app1 is recent - it comes first
+                    return true
+                case (nil, _?):
+                    // Only app2 is recent - it comes first
+                    return false
+                case (nil, nil):
+                    // Neither is recent - sort alphabetically
+                    return app1.name.localizedCaseInsensitiveCompare(app2.name) == .orderedAscending
+                }
+            }
 
             self.availableApps = apps
         } catch {
@@ -91,9 +136,11 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
             "com.apple.Photos",
             "com.apple.Preview",
             "com.apple.VoiceMemos",
-            "com.apple.garageband",
+            "com.apple.garageband10",
             "com.apple.Logic10",
             "com.apple.FinalCut",
+            "com.apple.finder",
+            "com.apple.Terminal",
         ]
 
         // If it's a known Apple audio app, don't skip
@@ -111,20 +158,82 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
             return true
         }
 
-        // Skip known system service bundle ID patterns
-        let systemPatterns = [
+        // Skip known system service bundle ID patterns in bundle ID
+        let bundleIDPatterns = [
             ".accessibility",
             ".Accessibility",
             "loginwindow",
             "ViewService",
             "UIService",
+            ".agent",
+            ".Agent",
+            "XPCService",
+            "Service",  // Catches most XPC/helper services
         ]
 
-        for pattern in systemPatterns {
+        for pattern in bundleIDPatterns {
             if bundleID.contains(pattern) {
                 return true
             }
         }
+
+        // Skip apps whose names indicate they are services/helpers
+        // Check for names ending with service-like suffixes
+        let nameSuffixes = [
+            "Service",
+            "Helper",
+            "Agent",
+            "Daemon",
+        ]
+
+        for suffix in nameSuffixes {
+            if name.hasSuffix(suffix) {
+                return true
+            }
+        }
+
+        // Skip specific system-related names
+        let systemNames = [
+            "自動入力",  // Autofill
+            "Open and Save Panel",
+            "TextInputSwitcher",
+        ]
+
+        for systemName in systemNames {
+            if name.contains(systemName) {
+                return true
+            }
+        }
+
+        // Skip background-only apps (LSBackgroundOnly=YES in Info.plist)
+        if isBackgroundOnlyApp(bundleID: bundleID) {
+            return true
+        }
+
+        return false
+    }
+
+    /// Check if an app is a background-only app (LSBackgroundOnly=YES)
+    private func isBackgroundOnlyApp(bundleID: String) -> Bool {
+        // Get the app's bundle URL
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            return false
+        }
+
+        // Read the Info.plist
+        let infoPlistURL = appURL.appendingPathComponent("Contents/Info.plist")
+        guard let infoPlist = NSDictionary(contentsOf: infoPlistURL) else {
+            return false
+        }
+
+        // Check for LSBackgroundOnly
+        if let backgroundOnly = infoPlist["LSBackgroundOnly"] as? Bool, backgroundOnly {
+            return true
+        }
+
+        // Also check for NSUIElement (menu bar only apps) - but only if it has no windows
+        // Note: We don't skip LSUIElement apps because they can still produce audio
+        // (e.g., Spotify mini player, menu bar music players)
 
         return false
     }

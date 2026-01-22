@@ -215,6 +215,11 @@ enum ShortcutAction: String, CaseIterable, Codable {
     case ttsSave = "tts_save"
     case ttsClose = "tts_close"
 
+    // Common shortcuts (both panels)
+    case fontSizeIncrease = "font_size_increase"
+    case fontSizeDecrease = "font_size_decrease"
+    case fontSizeReset = "font_size_reset"
+
     var displayName: String {
         switch self {
         case .sttRecord: return "Record"
@@ -227,6 +232,9 @@ enum ShortcutAction: String, CaseIterable, Codable {
         case .ttsStop: return "Stop Speaking"
         case .ttsSave: return "Save Audio"
         case .ttsClose: return "Close"
+        case .fontSizeIncrease: return "Increase Font Size"
+        case .fontSizeDecrease: return "Decrease Font Size"
+        case .fontSizeReset: return "Reset Font Size"
         }
     }
 
@@ -236,6 +244,8 @@ enum ShortcutAction: String, CaseIterable, Codable {
             return "STT Panel"
         case .ttsSpeak, .ttsStop, .ttsSave, .ttsClose:
             return "TTS Panel"
+        case .fontSizeIncrease, .fontSizeDecrease, .fontSizeReset:
+            return "Common"
         }
     }
 
@@ -262,6 +272,15 @@ enum ShortcutAction: String, CaseIterable, Codable {
             return CustomShortcut(key: "s", modifiers: .command)
         case .ttsClose:
             return CustomShortcut(keyCode: kVK_ANSI_Period, modifiers: UInt(NSEvent.ModifierFlags.command.rawValue))
+        case .fontSizeIncrease:
+            // ⌘+ (⌘= on US keyboard, ⌘; on JIS keyboard)
+            return CustomShortcut(keyCode: kVK_ANSI_Equal, modifiers: UInt(NSEvent.ModifierFlags.command.rawValue))
+        case .fontSizeDecrease:
+            // ⌘-
+            return CustomShortcut(keyCode: kVK_ANSI_Minus, modifiers: UInt(NSEvent.ModifierFlags.command.rawValue))
+        case .fontSizeReset:
+            // ⌘0
+            return CustomShortcut(key: "0", modifiers: .command)
         }
     }
 }

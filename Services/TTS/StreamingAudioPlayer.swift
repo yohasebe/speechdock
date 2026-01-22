@@ -34,6 +34,11 @@ final class StreamingAudioPlayer {
 
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
+    private var converterMixerNode: AVAudioMixerNode?
+    private var timePitchNode: AVAudioUnitTimePitch?
+
+    /// Current playback rate (0.25 to 4.0, default 1.0)
+    private(set) var currentPlaybackRate: Float = 1.0
 
     /// PCM format for OpenAI TTS: 24kHz, 16-bit signed, mono, little-endian
     private let pcmFormat: AVAudioFormat
@@ -93,12 +98,24 @@ final class StreamingAudioPlayer {
         preRollComplete = false
         totalSamplesScheduled = 0
 
-        // Setup audio engine
+        // Setup audio engine with time pitch node for dynamic speed control
         let engine = AVAudioEngine()
         let player = AVAudioPlayerNode()
+        let converterMixer = AVAudioMixerNode()  // Used for Int16 → Float32 conversion
+        let timePitch = AVAudioUnitTimePitch()
+
+        // Set initial playback rate
+        timePitch.rate = currentPlaybackRate
 
         engine.attach(player)
-        engine.connect(player, to: engine.mainMixerNode, format: pcmFormat)
+        engine.attach(converterMixer)
+        engine.attach(timePitch)
+
+        // Connect: player → converterMixer → timePitch → mainMixer
+        // MixerNode automatically converts Int16 to Float32 which timePitch requires
+        engine.connect(player, to: converterMixer, format: pcmFormat)
+        engine.connect(converterMixer, to: timePitch, format: nil)
+        engine.connect(timePitch, to: engine.mainMixerNode, format: nil)
 
         // Set output device if specified
         if !outputDeviceUID.isEmpty {
@@ -110,6 +127,8 @@ final class StreamingAudioPlayer {
 
         audioEngine = engine
         playerNode = player
+        converterMixerNode = converterMixer
+        timePitchNode = timePitch
         state = .playing
 
         // Note: onPlaybackStarted is now called after pre-roll buffering completes
@@ -204,6 +223,8 @@ final class StreamingAudioPlayer {
         audioEngine?.stop()
 
         playerNode = nil
+        converterMixerNode = nil
+        timePitchNode = nil
         audioEngine = nil
 
         pendingData = Data()
@@ -214,6 +235,14 @@ final class StreamingAudioPlayer {
         totalSamplesScheduled = 0
 
         state = .idle
+    }
+
+    /// Set playback rate dynamically (0.25 to 4.0)
+    /// Can be called during playback for real-time speed adjustment
+    func setPlaybackRate(_ rate: Float) {
+        let clampedRate = max(0.25, min(4.0, rate))
+        currentPlaybackRate = clampedRate
+        timePitchNode?.rate = clampedRate
     }
 
     // MARK: - Private Methods
@@ -274,6 +303,8 @@ final class StreamingAudioPlayer {
         playerNode?.stop()
         audioEngine?.stop()
         playerNode = nil
+        converterMixerNode = nil
+        timePitchNode = nil
         audioEngine = nil
 
         onPlaybackFinished?(true)

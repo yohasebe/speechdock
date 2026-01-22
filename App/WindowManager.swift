@@ -39,11 +39,13 @@ final class WindowManager {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.aboutWindow = nil
-            // Hide from Dock when About closes (only if Settings is not open)
-            let settingsOpen = self?.settingsWindow?.isVisible == true
-            if !settingsOpen {
-                NSApp.setActivationPolicy(.accessory)
+            Task { @MainActor in
+                self?.aboutWindow = nil
+                // Hide from Dock when About closes (only if Settings is not open)
+                let settingsOpen = self?.settingsWindow?.isVisible == true
+                if !settingsOpen {
+                    NSApp.setActivationPolicy(.accessory)
+                }
             }
         }
 
@@ -81,11 +83,13 @@ final class WindowManager {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.settingsWindow = nil
-            // Hide from Dock when Settings closes (only if About is not open)
-            let aboutOpen = self?.aboutWindow?.isVisible == true
-            if !aboutOpen {
-                NSApp.setActivationPolicy(.accessory)
+            Task { @MainActor in
+                self?.settingsWindow = nil
+                // Hide from Dock when Settings closes (only if About is not open)
+                let aboutOpen = self?.aboutWindow?.isVisible == true
+                if !aboutOpen {
+                    NSApp.setActivationPolicy(.accessory)
+                }
             }
         }
 

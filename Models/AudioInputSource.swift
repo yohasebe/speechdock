@@ -73,8 +73,16 @@ struct CapturableApplication: Identifiable, Hashable {
     let bundleID: String
     let name: String
     let icon: NSImage?
+    let isRecentlyUsed: Bool
 
     var id: String { bundleID }
+
+    init(bundleID: String, name: String, icon: NSImage?, isRecentlyUsed: Bool = false) {
+        self.bundleID = bundleID
+        self.name = name
+        self.icon = icon
+        self.isRecentlyUsed = isRecentlyUsed
+    }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(bundleID)
