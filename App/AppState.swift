@@ -580,6 +580,13 @@ final class AppState {
             ttsText = ""
         }
 
+        // Reset translation state when switching panels
+        if translationState.isTranslated {
+            translationState = .idle
+            originalTextBeforeTranslation = ""
+            savedTTSLanguageBeforeTranslation = nil
+        }
+
         // Sync translation provider based on STT provider
         syncTranslationProviderForSTT()
 
@@ -1172,6 +1179,13 @@ final class AppState {
     }
 
     private func showTTSFloatingWindow() {
+        // Reset translation state when switching panels
+        if translationState.isTranslated {
+            translationState = .idle
+            originalTextBeforeTranslation = ""
+            savedTTSLanguageBeforeTranslation = nil
+        }
+
         // Sync translation provider based on TTS provider
         syncTranslationProviderForTTS()
 

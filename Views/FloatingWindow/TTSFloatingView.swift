@@ -182,7 +182,7 @@ struct ScrollableTextView: NSViewRepresentable {
 
     /// Background color for translated text state
     private var translationBackgroundColor: NSColor {
-        NSColor.systemBlue.withAlphaComponent(0.08)
+        NSColor.systemBlue.withAlphaComponent(0.05)
     }
 
     func makeNSView(context: Context) -> NSScrollView {
