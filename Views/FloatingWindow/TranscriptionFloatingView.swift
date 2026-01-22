@@ -890,10 +890,12 @@ struct TranscriptionFloatingView: View {
         }
     }
 
-    /// Text to use for translation (translated or original)
+    /// Text to use for translation - always use original text, not translated text
     private var displayTextForTranslation: String {
-        if let translatedText = appState.translationState.translatedText {
-            return translatedText
+        // When already translated, use the saved original for re-translation
+        // This prevents originalTextBeforeTranslation from being corrupted
+        if appState.translationState.isTranslated && !appState.originalTextBeforeTranslation.isEmpty {
+            return appState.originalTextBeforeTranslation
         }
         return editedText
     }
