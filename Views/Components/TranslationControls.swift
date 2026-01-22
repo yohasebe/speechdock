@@ -65,6 +65,7 @@ struct TranslationControls: View {
             .background(Color(.windowBackgroundColor).opacity(0.9))
             .cornerRadius(6)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .fixedSize()
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 // Re-check availability when app becomes active (after returning from System Settings)
                 if isMacOSProvider {
