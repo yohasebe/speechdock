@@ -988,11 +988,9 @@ struct TranscriptionFloatingView: View {
                     enableHighlight: false,
                     showReplacementHighlights: true,
                     fontSize: CGFloat(appState.panelTextFontSize),
-                    autoScrollToBottom: isRecording  // Auto-scroll while recording
+                    autoScrollToBottom: isRecording,  // Auto-scroll while recording
+                    isShowingTranslation: appState.translationState.isTranslated
                 )
-                .background(appState.translationState.isTranslated
-                    ? Color.blue.opacity(0.15)
-                    : Color(.textBackgroundColor))
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
                 .frame(minHeight: 180, maxHeight: .infinity)

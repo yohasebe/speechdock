@@ -178,6 +178,12 @@ struct ScrollableTextView: NSViewRepresentable {
     var showReplacementHighlights: Bool = true
     var fontSize: CGFloat = NSFont.systemFontSize
     var autoScrollToBottom: Bool = false  // Auto-scroll when text changes
+    var isShowingTranslation: Bool = false  // Show different background for translated text
+
+    /// Background color for translated text state
+    private var translationBackgroundColor: NSColor {
+        NSColor.systemBlue.withAlphaComponent(0.12)
+    }
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -187,7 +193,7 @@ struct ScrollableTextView: NSViewRepresentable {
         textView.isSelectable = true
         textView.allowsUndo = true
         textView.font = NSFont.systemFont(ofSize: fontSize)
-        textView.backgroundColor = NSColor.textBackgroundColor
+        textView.backgroundColor = isShowingTranslation ? translationBackgroundColor : NSColor.textBackgroundColor
         textView.textContainerInset = NSSize(width: 8, height: 8)
         textView.isRichText = false
         textView.delegate = context.coordinator
@@ -211,7 +217,7 @@ struct ScrollableTextView: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
-        scrollView.backgroundColor = NSColor.textBackgroundColor
+        scrollView.backgroundColor = isShowingTranslation ? translationBackgroundColor : NSColor.textBackgroundColor
 
         context.coordinator.textView = textView
         context.coordinator.fontSize = fontSize
@@ -227,6 +233,11 @@ struct ScrollableTextView: NSViewRepresentable {
 
         // Update editable state
         textView.isEditable = isEditable
+
+        // Update background color for translation state
+        let bgColor = isShowingTranslation ? translationBackgroundColor : NSColor.textBackgroundColor
+        textView.backgroundColor = bgColor
+        scrollView.backgroundColor = bgColor
 
         // Update font size if changed
         let currentFontSize = context.coordinator.fontSize
@@ -603,11 +614,9 @@ struct TTSFloatingView: View {
                 isEditable: !isEditorDisabled,
                 highlightRange: nil,
                 enableHighlight: false,
-                fontSize: CGFloat(appState.panelTextFontSize)
+                fontSize: CGFloat(appState.panelTextFontSize),
+                isShowingTranslation: appState.translationState.isTranslated
             )
-            .background(appState.translationState.isTranslated
-                ? Color.blue.opacity(0.15)
-                : Color(.textBackgroundColor))
             .cornerRadius(8)
             .overlay(textAreaBorder)
             .overlay(placeholderOverlay)
