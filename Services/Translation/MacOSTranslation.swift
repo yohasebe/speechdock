@@ -94,6 +94,9 @@ final class MacOSTranslation: TranslationServiceProtocol {
             throw TranslationError.translationUnavailable("Unknown language status")
         }
 
+        // Cancel any existing task (defensive)
+        currentTask?.cancel()
+
         // Create translation task
         currentTask = Task { [weak self] in
             guard self != nil else {

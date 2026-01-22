@@ -36,19 +36,26 @@ final class TTSVoiceCache {
     func getCachedVoices(for provider: TTSProvider) -> [TTSVoice]? {
         let key = cacheKeyPrefix + provider.rawValue
 
-        guard let data = defaults.data(forKey: key),
-              let cached = try? JSONDecoder().decode([CachedVoice].self, from: data) else {
+        guard let data = defaults.data(forKey: key) else {
             return nil
         }
 
-        return cached.map {
-            TTSVoice(
-                id: $0.id,
-                name: $0.name,
-                language: $0.language,
-                isDefault: $0.isDefault,
-                quality: VoiceQuality(rawValue: $0.qualityRawValue) ?? .standard
-            )
+        do {
+            let cached = try JSONDecoder().decode([CachedVoice].self, from: data)
+            return cached.map {
+                TTSVoice(
+                    id: $0.id,
+                    name: $0.name,
+                    language: $0.language,
+                    isDefault: $0.isDefault,
+                    quality: VoiceQuality(rawValue: $0.qualityRawValue) ?? .standard
+                )
+            }
+        } catch {
+            #if DEBUG
+            print("TTSVoiceCache: Failed to decode cached voices for \(provider.rawValue): \(error.localizedDescription)")
+            #endif
+            return nil
         }
     }
 

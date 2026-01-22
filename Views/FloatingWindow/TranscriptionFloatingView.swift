@@ -558,6 +558,7 @@ struct TranscriptionFloatingView: View {
     let onCancel: () -> Void
 
     @State private var editedText: String = ""
+    @State private var forceTextUpdate: Bool = false  // Force text view update (for external text changes)
     @State private var borderOpacity: Double = 1.0
     @State private var baseText: String = ""  // Text to preserve when resuming recording
     @State private var isWindowSelectorExpanded: Bool = false
@@ -992,7 +993,8 @@ struct TranscriptionFloatingView: View {
                     showReplacementHighlights: true,
                     fontSize: CGFloat(appState.panelTextFontSize),
                     autoScrollToBottom: isRecording,  // Auto-scroll while recording
-                    isShowingTranslation: appState.translationState.isTranslated
+                    isShowingTranslation: appState.translationState.isTranslated,
+                    forceTextUpdate: forceTextUpdate
                 )
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
@@ -1039,6 +1041,8 @@ struct TranscriptionFloatingView: View {
         .onChange(of: appState.currentTranscription) { _, newValue in
             // Update editedText during recording (append mode)
             if isRecording {
+                // Force update to ensure text appears even if text view has focus
+                forceTextUpdate = true
                 // Append new transcription to base text
                 if baseText.isEmpty {
                     editedText = newValue
@@ -1047,36 +1051,51 @@ struct TranscriptionFloatingView: View {
                 } else {
                     editedText = baseText + " " + newValue
                 }
+                // Reset force flag after a brief delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    forceTextUpdate = false
+                }
             }
         }
         .onChange(of: appState.transcriptionState) { oldState, newState in
             // Handle file transcription result
             if case .result(let text) = newState,
                case .transcribingFile = oldState {
-                // File transcription completed - set the result text
+                // File transcription completed - force update text
+                forceTextUpdate = true
+                NSApp.keyWindow?.makeFirstResponder(nil)
                 editedText = text
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    forceTextUpdate = false
+                }
             }
         }
         .onChange(of: appState.translationState) { oldState, newState in
             // Handle translation state changes
             switch newState {
             case .translated(let translatedText):
-                // Resign first responder to allow text update through ScrollableTextView
+                // Force update and resign first responder to allow text update
+                forceTextUpdate = true
                 NSApp.keyWindow?.makeFirstResponder(nil)
-                // Show translated text
                 editedText = translatedText
                 #if DEBUG
                 print("TranscriptionFloatingView: Translation complete, editedText updated to length \(translatedText.count)")
                 #endif
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    forceTextUpdate = false
+                }
             case .idle:
                 // When reverting to original, restore original text
                 if oldState.isTranslated && !appState.originalTextBeforeTranslation.isEmpty {
-                    // Resign first responder to allow text update
+                    forceTextUpdate = true
                     NSApp.keyWindow?.makeFirstResponder(nil)
                     editedText = appState.originalTextBeforeTranslation
                     #if DEBUG
                     print("TranscriptionFloatingView: Reverted to original text")
                     #endif
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        forceTextUpdate = false
+                    }
                 }
             case .error(let message):
                 #if DEBUG

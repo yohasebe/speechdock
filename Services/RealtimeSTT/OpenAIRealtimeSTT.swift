@@ -329,6 +329,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let eventType = json["type"] as? String else {
+            #if DEBUG
+            print("OpenAIRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+            #endif
             return
         }
 
@@ -562,6 +565,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
+            #if DEBUG
+            print("OpenAIRealtimeSTT: Failed to serialize audio buffer message")
+            #endif
             return
         }
 

@@ -578,6 +578,9 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
+            #if DEBUG
+            print("GeminiRealtimeSTT: Failed to serialize audio buffer message")
+            #endif
             return
         }
 

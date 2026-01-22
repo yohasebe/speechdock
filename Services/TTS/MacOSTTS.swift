@@ -144,7 +144,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
         // Convert AIFF to M4A (AAC) for smaller file size
         // Await conversion to ensure lastAudioData is ready (important for Save Audio)
-        if let aiffData = try? Data(contentsOf: audioFile) {
+        do {
+            let aiffData = try Data(contentsOf: audioFile)
             if let m4aData = await AudioConverter.convertToAAC(inputData: aiffData, inputExtension: "aiff") {
                 lastAudioData = m4aData
                 _audioFileExtension = "m4a"
@@ -153,6 +154,10 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
                 lastAudioData = aiffData
                 _audioFileExtension = "aiff"
             }
+        } catch {
+            #if DEBUG
+            print("MacOSTTS: Failed to read audio file for conversion: \(error.localizedDescription)")
+            #endif
         }
 
         // Set initial playback rate from selectedSpeed

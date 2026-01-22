@@ -18,16 +18,17 @@ final class TextSelectionService {
 
     /// Gets the currently selected text from the frontmost application
     /// Tries accessibility API first, then falls back to clipboard-based approach
-    func getSelectedText() async -> String? {
+    /// - Parameter targetApp: Optional pre-captured app reference (for hotkey scenarios where frontmost app may change)
+    func getSelectedText(from targetApp: NSRunningApplication? = nil) async -> String? {
+        // Use pre-captured app if provided, otherwise get current frontmost
+        let frontApp = targetApp ?? NSWorkspace.shared.frontmostApplication
+
         #if DEBUG
-        // Log frontmost app at the very start for debugging
-        if let frontApp = NSWorkspace.shared.frontmostApplication {
-            print("TextSelectionService: getSelectedText called, frontmost app: \(frontApp.localizedName ?? "unknown") (bundle: \(frontApp.bundleIdentifier ?? "unknown"))")
-        }
+        print("TextSelectionService: getSelectedText called, target app: \(frontApp?.localizedName ?? "unknown") (bundle: \(frontApp?.bundleIdentifier ?? "unknown")), pre-captured: \(targetApp != nil)")
         #endif
 
         // Try accessibility API first (more reliable, less intrusive)
-        if let text = getSelectedTextViaAccessibility() {
+        if let text = getSelectedTextViaAccessibility(from: frontApp) {
             #if DEBUG
             print("TextSelectionService: Got text via Accessibility API, length: \(text.count)")
             #endif
@@ -35,7 +36,8 @@ final class TextSelectionService {
         }
 
         // Fall back to clipboard-based approach with proper synchronization
-        let clipboardText = await getSelectedTextViaClipboard()
+        // For clipboard approach, we need to activate the target app to send Cmd+C
+        let clipboardText = await getSelectedTextViaClipboard(targetApp: frontApp)
         #if DEBUG
         if let text = clipboardText {
             print("TextSelectionService: Got text via Clipboard fallback, length: \(text.count)")
@@ -48,8 +50,9 @@ final class TextSelectionService {
 
     /// Get selected text using clipboard-based approach with race condition protection
     /// Uses async/await to avoid blocking the main thread during polling
+    /// - Parameter targetApp: The app to copy from (if provided, will be activated before sending Cmd+C)
     @MainActor
-    private func getSelectedTextViaClipboard() async -> String? {
+    private func getSelectedTextViaClipboard(targetApp: NSRunningApplication?) async -> String? {
         // Use actor isolation instead of lock for async context
         let clipboardService = ClipboardService.shared
         let pasteboard = NSPasteboard.general
@@ -61,6 +64,27 @@ final class TextSelectionService {
         // Clear clipboard to detect if copy succeeds
         pasteboard.clearContents()
         let clearedChangeCount = pasteboard.changeCount
+
+        // If we have a target app, ALWAYS activate it to ensure it receives the key event
+        // This is critical when SpeechDock's panel is open, as the hotkey handling might have
+        // caused SpeechDock to become active
+        if let targetApp = targetApp {
+            #if DEBUG
+            let currentFrontmost = NSWorkspace.shared.frontmostApplication
+            print("TextSelectionService: Current frontmost: \(currentFrontmost?.localizedName ?? "none"), target: \(targetApp.localizedName ?? "unknown")")
+            #endif
+
+            // Force activate the target app, ignoring other apps
+            targetApp.activate(options: .activateIgnoringOtherApps)
+
+            // Wait for activation to complete - apps like Chrome need more time
+            try? await Task.sleep(nanoseconds: 150_000_000)  // 150ms
+
+            #if DEBUG
+            let newFrontmost = NSWorkspace.shared.frontmostApplication
+            print("TextSelectionService: After activation, frontmost: \(newFrontmost?.localizedName ?? "none")")
+            #endif
+        }
 
         // Small delay before sending copy command to ensure target app is ready
         try? await Task.sleep(nanoseconds: 50_000_000)  // 50ms
@@ -229,19 +253,20 @@ final class TextSelectionService {
     }
 
     /// Alternative method using Accessibility API (requires accessibility permissions)
-    func getSelectedTextViaAccessibility() -> String? {
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+    /// - Parameter targetApp: The app to get selected text from (if nil, uses current frontmost)
+    func getSelectedTextViaAccessibility(from targetApp: NSRunningApplication? = nil) -> String? {
+        guard let app = targetApp ?? NSWorkspace.shared.frontmostApplication else {
             #if DEBUG
-            print("TextSelectionService: No frontmost application")
+            print("TextSelectionService: No target application")
             #endif
             return nil
         }
 
         #if DEBUG
-        print("TextSelectionService: Frontmost app is \(frontApp.localizedName ?? "unknown") (bundle: \(frontApp.bundleIdentifier ?? "unknown"))")
+        print("TextSelectionService: Trying Accessibility API for \(app.localizedName ?? "unknown") (bundle: \(app.bundleIdentifier ?? "unknown"))")
         #endif
 
-        let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
 
         var focusedElement: AnyObject?
         let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedElement)

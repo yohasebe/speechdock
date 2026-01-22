@@ -8,7 +8,7 @@
 
 **メニューバーからいつでもアクセス可能** - グローバルホットキーでMacのどこからでもSTT/TTSを利用できます。マイク音声だけでなく、システム音声や特定アプリの音声も文字起こし可能。テキスト入力、貼り付け、画面からのOCRキャプチャなど、多様な方法でテキストを読み上げられます。
 
-**インストール後すぐに使用可能** - APIキーや追加ダウンロードは不要です。macOS標準のSTT/TTSがすぐに動作します。クラウドプロバイダやLocal Whisperはオプションの拡張機能です。
+**インストール後すぐに使用可能** - APIキーや追加ダウンロードは不要です。macOS標準のSTT/TTSがすぐに動作します。クラウドプロバイダはオプションの拡張機能です。
 
 [English](README.md) | 日本語
 
@@ -21,10 +21,10 @@
 | プロバイダ | モデル | APIキー |
 |----------|--------|---------|
 | **macOS Native** | System Default（macOS 26+ではSpeechAnalyzer） | 不要 |
-| **Local Whisper** | Tiny, Base, Small, Medium, Large v2/v3, Large v3 Turbo | 不要 |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | 必要 |
 | **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | 必要 |
 | **ElevenLabs** | Scribe v2 Realtime | 必要 |
+| **Grok** | Grok Realtime | 必要 |
 
 **注意**: macOS 26+では、ネイティブSTTはAppleの新しいSpeechAnalyzerフレームワークを使用し、時間制限なしのリアルタイム文字起こしと高いパフォーマンスを提供します。
 
@@ -38,6 +38,7 @@
 | **OpenAI** | GPT-4o Mini TTS (Dec 2025), GPT-4o Mini TTS, TTS-1, TTS-1 HD | 必要 |
 | **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | 必要 |
 | **ElevenLabs** | Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5, Monolingual v1 | 必要 |
+| **Grok** | Grok Voice | 必要 |
 
 ### OCR読み上げ
 
@@ -110,21 +111,6 @@ macOS Vision Frameworkを使用してテキスト認識を行います。画面�
    - **ElevenLabs**: [ElevenLabs Settings](https://elevenlabs.io/app/settings/api-keys)
 
 APIキーはmacOSキーチェーンに安全に保存されます。
-
-### Local Whisper（オプション）
-
-Local Whisperは音声をクラウドに送信せず、完全にMac上で音声認識を実行します。モデルは初回使用時にダウンロードされます：
-
-| モデル | サイズ | 説明 |
-|--------|--------|------|
-| Tiny | 約39 MB | 最速、精度は低め |
-| Base | 約74 MB | 高速、基本的な精度 |
-| Small | 約244 MB | 速度と精度のバランス |
-| Medium | 約769 MB | 高精度 |
-| Large v3 Turbo | 約800 MB | 高速＋高精度（推奨） |
-| Large v2/v3 | 約1.5 GB | 最高精度、低速 |
-
-モデルは `~/Library/Caches/com.speechdock.app/` に保存され、削除してディスク容量を解放できます。
 
 ### 権限
 
@@ -261,8 +247,7 @@ STTとTTSの両方で言語選択が可能です：
 
 - **APIキー**: macOSキーチェーンに安全に保存され、各プロバイダへの送信以外には使用されません
 - **macOS Native**: 音声は完全にデバイス上で処理され、外部に送信されません
-- **Local Whisper**: 音声は完全にデバイス上で処理され、外部に送信されません
-- **クラウドプロバイダ**: 音声はプロバイダのAPI（OpenAI、Google、ElevenLabs）に送信され、各社のプライバシーポリシーに従って処理されます
+- **クラウドプロバイダ**: 音声はプロバイダのAPI（OpenAI、Google、ElevenLabs、Grok）に送信され、各社のプライバシーポリシーに従って処理されます
 - **テレメトリなし**: SpeechDockは使用データの収集・送信を行いません
 
 ## ライセンス

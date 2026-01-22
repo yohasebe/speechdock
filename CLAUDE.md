@@ -90,6 +90,106 @@ private func sanitizeUnicodeString(_ input: String) -> String {
 **問題**: Gemini Live APIが期待する16kHzサンプルレートとマイクの48kHzが不一致
 **解決**: AudioResamplerを追加してリアルタイムリサンプリング
 
+### テキスト選択のCGEvent実装 (2026-01-22)
+**問題**: AppleScriptでのCmd+Cシミュレーションが権限問題で失敗（特にLINE等の一部アプリ）
+**解決**: CGEventを使用した低レベル実装に変更
+
+```swift
+/// Simulate Cmd+C using CGEvent (no System Events permission required)
+private func copySelectionWithCGEvent() {
+    let keyCodeC: CGKeyCode = 8
+    let source = CGEventSource(stateID: .hidSystemState)
+
+    guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: true),
+          let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: false) else { return }
+
+    keyDown.flags = .maskCommand
+    keyUp.flags = .maskCommand
+
+    keyDown.post(tap: .cghidEventTap)
+    keyUp.post(tap: .cghidEventTap)
+}
+```
+
+**利点**:
+- System Eventsの自動化権限が不要
+- `.hidSystemState`でハードウェア入力としてシミュレート
+- より多くのアプリで動作
+
+### TTSホットキーでのテキストキャプチャ (2026-01-22)
+**問題**: TTSパネルが開いている状態でホットキーを押すと、他アプリからテキストがキャプチャできない
+
+**解決策**:
+1. ホットキーハンドラ内で即座にCmd+Cを送信（非同期スケジューリング前）
+2. ターゲットアプリを`activate()`で明示的にアクティブ化
+3. クリップボードの変更を監視してテキストを取得
+4. 取得したテキストをMainActorタスクに渡す
+
+```swift
+nonisolated func ttsHotKeyPressed() {
+    let frontmostApp = NSWorkspace.shared.frontmostApplication
+    let savedClipboardState = ClipboardService.shared.saveClipboardState()
+
+    if let targetApp = frontmostApp {
+        targetApp.activate()
+        Thread.sleep(forTimeInterval: 0.05)  // アクティベーション待機
+        sendCopyCommand()
+        Thread.sleep(forTimeInterval: 0.15)  // クリップボード待機
+        copiedText = NSPasteboard.general.string(forType: .string)
+        ClipboardService.shared.restoreClipboardState(savedClipboardState)  // 復元
+    }
+
+    Task { @MainActor in
+        self.toggleTTS(frontmostApp: frontmostApp, precopiedText: copiedText)
+    }
+}
+```
+
+### forceTextUpdate機構 (2026-01-22)
+**問題**: ScrollableTextViewがフォーカスを持っている間、外部からのテキスト更新がブロックされる
+
+**解決**: `forceTextUpdate`フラグを追加して強制更新を可能に
+
+```swift
+// ScrollableTextView
+var forceTextUpdate: Bool = false
+
+func updateNSView(_ scrollView: NSScrollView, context: Context) {
+    let isFirstResponder = textView.window?.firstResponder === textView
+    let textChanged = textView.string != text
+    // forceTextUpdate時はフォーカスに関係なく更新
+    let shouldUpdate = textChanged && (!isFirstResponder || text.isEmpty || !isEditable || forceTextUpdate)
+
+    if shouldUpdate {
+        textView.string = text
+    }
+}
+
+// 使用側（TTSFloatingView, TranscriptionFloatingView）
+.onChange(of: appState.ttsText) { _, newValue in
+    forceTextUpdate = true
+    editableText = newValue
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        forceTextUpdate = false
+    }
+}
+```
+
+**適用箇所**:
+- TTSパネル: ホットキーでのテキストキャプチャ、翻訳結果表示
+- STTパネル: リアルタイム文字起こし、ファイル文字起こし結果、翻訳結果表示
+
+### ElevenLabs TTS language_code問題 (2026-01-22)
+**問題**: `Model 'eleven_v3' does not support the language_code eng` エラー
+**解決**: v2/multilingualモデルのみに`language_code`パラメータを送信
+
+```swift
+let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
+if supportsLanguageCode, let langCode = langCode.toElevenLabsTTSCode() {
+    body["language_code"] = elevenLabsCode
+}
+```
+
 ## 設計パターン・規約
 
 ### パネルの排他制御

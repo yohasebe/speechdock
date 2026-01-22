@@ -56,6 +56,9 @@ final class LLMTranslation: TranslationServiceProtocol {
             )
         }
 
+        // Cancel any existing task (defensive)
+        currentTask?.cancel()
+
         currentTask = Task { [weak self] in
             guard let self = self else {
                 throw TranslationError.cancelled
@@ -85,7 +88,7 @@ final class LLMTranslation: TranslationServiceProtocol {
                     apiKey: apiKey
                 )
             case .macOS:
-                fatalError("LLMTranslation should not be used for macOS provider")
+                throw TranslationError.translationUnavailable("LLMTranslation does not support macOS provider. Use MacOSTranslation instead.")
             }
 
             if Task.isCancelled {

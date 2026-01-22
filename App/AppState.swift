@@ -882,29 +882,32 @@ final class AppState {
 
     // MARK: - TTS Methods
 
-    func toggleTTS() {
+    func toggleTTS(frontmostApp: NSRunningApplication? = nil, precopiedText: String? = nil) {
         if ttsState == .speaking || ttsState == .paused {
             stopTTS()
         } else {
-            startTTS()
+            startTTS(frontmostApp: frontmostApp, precopiedText: precopiedText)
         }
     }
 
-    func startTTS() {
+    func startTTS(frontmostApp: NSRunningApplication? = nil, precopiedText: String? = nil) {
         #if DEBUG
-        print("TTS: startTTS called")
+        print("TTS: startTTS called, frontmostApp: \(frontmostApp?.localizedName ?? "nil"), precopiedText: \(precopiedText != nil)")
         #endif
 
-        // IMPORTANT: Get selected text FIRST, before any window manipulation
-        // This ensures we capture text from the user's app before SpeechDock becomes frontmost
-        Task {
-            // Capture selected text immediately while user's app is still frontmost
-            let selectedText = await TextSelectionService.shared.getSelectedText()
+        // Mutual exclusivity: close STT panel and cancel recording if active
+        if showFloatingWindow || isRecording {
+            cancelRecording()
+        }
 
-            // Now safe to do window management
-            // Mutual exclusivity: close STT panel and cancel recording if active
-            if showFloatingWindow || isRecording {
-                cancelRecording()
+        // Use precopied text if available (from immediate Cmd+C in hotkey handler)
+        // Otherwise, try to get selected text via accessibility/clipboard
+        Task {
+            var selectedText = precopiedText
+
+            // If no precopied text, try accessibility API (doesn't require clipboard)
+            if selectedText == nil || selectedText?.isEmpty == true {
+                selectedText = TextSelectionService.shared.getSelectedTextViaAccessibility(from: frontmostApp)
             }
 
             if let selectedText = selectedText, !selectedText.isEmpty {
@@ -1300,6 +1303,10 @@ final class AppState {
             return
         }
 
+        // Cancel any existing translation task (defensive)
+        translationTask?.cancel()
+        translationTask = nil
+
         #if DEBUG
         print("Translation: Starting translation to \(targetLanguage.displayName)")
         print("Translation: Text length = \(text.count)")
@@ -1502,6 +1509,10 @@ final class AppState {
         guard !isRecording && transcriptionState != .transcribingFile else {
             return
         }
+
+        // Cancel any existing file transcription task (defensive)
+        fileTranscriptionTask?.cancel()
+        fileTranscriptionTask = nil
 
         // Mutual exclusivity: close TTS panel if active
         if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
@@ -1848,9 +1859,76 @@ extension AppState: HotKeyServiceDelegate {
     }
 
     nonisolated func ttsHotKeyPressed() {
-        Task { @MainActor in
-            self.toggleTTS()
+        // Capture frontmost app IMMEDIATELY before any async scheduling
+        let frontmostApp = NSWorkspace.shared.frontmostApplication
+
+        // Skip if SpeechDock itself is frontmost (no text to copy from ourselves)
+        let isSpeechDockFrontmost = frontmostApp?.bundleIdentifier == "com.speechdock.app"
+
+        #if DEBUG
+        print("TTS HotKey: Captured frontmost app: \(frontmostApp?.localizedName ?? "none") (bundle: \(frontmostApp?.bundleIdentifier ?? "none")), isSpeechDock: \(isSpeechDockFrontmost)")
+        #endif
+
+        var copiedText: String? = nil
+
+        if !isSpeechDockFrontmost, let targetApp = frontmostApp {
+            // Save original clipboard content before overwriting
+            let savedClipboardState = ClipboardService.shared.saveClipboardState()
+
+            // Ensure target app is activated and has keyboard focus
+            targetApp.activate()
+            Thread.sleep(forTimeInterval: 0.05)  // 50ms for activation
+
+            // Send Cmd+C while target app is frontmost
+            let clipboardChangeCount = NSPasteboard.general.changeCount
+            sendCopyCommand()
+
+            // Wait for copy to complete
+            Thread.sleep(forTimeInterval: 0.15)  // 150ms for clipboard
+
+            // Check if clipboard was updated
+            let newChangeCount = NSPasteboard.general.changeCount
+            if newChangeCount != clipboardChangeCount {
+                copiedText = NSPasteboard.general.string(forType: .string)
+            }
+
+            #if DEBUG
+            print("TTS HotKey: Clipboard changed: \(newChangeCount != clipboardChangeCount), text length: \(copiedText?.count ?? 0)")
+            #endif
+
+            // Restore original clipboard content after capturing text
+            if copiedText != nil {
+                ClipboardService.shared.restoreClipboardState(savedClipboardState)
+                #if DEBUG
+                print("TTS HotKey: Restored original clipboard content")
+                #endif
+            }
         }
+
+        Task { @MainActor in
+            self.toggleTTS(frontmostApp: frontmostApp, precopiedText: copiedText)
+        }
+    }
+
+    /// Send Cmd+C via CGEvent (called synchronously from hotkey handler)
+    private nonisolated func sendCopyCommand() {
+        let keyCodeC: CGKeyCode = 8
+        let source = CGEventSource(stateID: .hidSystemState)
+
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: false) else {
+            return
+        }
+
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+
+        #if DEBUG
+        print("TTS HotKey: Sent Cmd+C immediately")
+        #endif
     }
 
     nonisolated func ocrHotKeyPressed() {

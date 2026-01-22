@@ -193,6 +193,9 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let messageType = json["message_type"] as? String else {
+            #if DEBUG
+            print("ElevenLabsRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+            #endif
             return
         }
 
@@ -355,6 +358,10 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         if let jsonData = try? JSONSerialization.data(withJSONObject: message),
            let jsonString = String(data: jsonData, encoding: .utf8) {
             webSocketTask.send(.string(jsonString)) { _ in }
+        } else {
+            #if DEBUG
+            print("ElevenLabsRealtimeSTT: Failed to serialize audio buffer message")
+            #endif
         }
     }
 

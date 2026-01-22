@@ -179,6 +179,7 @@ struct ScrollableTextView: NSViewRepresentable {
     var fontSize: CGFloat = NSFont.systemFontSize
     var autoScrollToBottom: Bool = false  // Auto-scroll when text changes
     var isShowingTranslation: Bool = false  // Show different background for translated text
+    var forceTextUpdate: Bool = false  // Force text update even if text view has focus
 
     /// Background color for translated text state (light blue)
     private var translationBackgroundColor: NSColor {
@@ -264,9 +265,10 @@ struct ScrollableTextView: NSViewRepresentable {
         // Exceptions:
         // - Always allow clearing text (text.isEmpty)
         // - Always allow updates when not editable (e.g., during STT recording)
+        // - Always allow updates when forceTextUpdate is true (e.g., hotkey text capture)
         let isFirstResponder = textView.window?.firstResponder === textView
         let textChanged = textView.string != text
-        let shouldUpdate = textChanged && (!isFirstResponder || text.isEmpty || !isEditable)
+        let shouldUpdate = textChanged && (!isFirstResponder || text.isEmpty || !isEditable || forceTextUpdate)
 
         if shouldUpdate {
             let selectedRanges = textView.selectedRanges
@@ -359,6 +361,7 @@ struct TTSFloatingView: View {
     let onClose: () -> Void
 
     @State private var editableText: String = ""
+    @State private var forceTextUpdate: Bool = false  // Force text view update (for hotkey captures)
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     init(appState: AppState, onClose: @escaping () -> Void) {
@@ -499,8 +502,9 @@ struct TTSFloatingView: View {
                 #if DEBUG
                 print("TTSFloatingView: Updating editableText to new value")
                 #endif
+                // Force text update to override focus-based protection
+                forceTextUpdate = true
                 // Resign first responder to allow text update through ScrollableTextView
-                // This is necessary because the text view won't update if it has focus
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 // Reset translation state when new text comes in
                 if appState.translationState.isTranslated {
@@ -508,6 +512,10 @@ struct TTSFloatingView: View {
                     appState.originalTextBeforeTranslation = ""
                 }
                 editableText = newValue
+                // Reset force flag after a brief delay to allow SwiftUI to process the update
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    forceTextUpdate = false
+                }
             }
         }
         .onChange(of: appState.translationState) { oldState, newState in
@@ -631,7 +639,8 @@ struct TTSFloatingView: View {
                 highlightRange: nil,
                 enableHighlight: false,
                 fontSize: CGFloat(appState.panelTextFontSize),
-                isShowingTranslation: appState.translationState.isTranslated
+                isShowingTranslation: appState.translationState.isTranslated,
+                forceTextUpdate: forceTextUpdate
             )
             .cornerRadius(8)
             .overlay(textAreaBorder)

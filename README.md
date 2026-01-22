@@ -8,7 +8,7 @@ A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) w
 
 **Always accessible from your menu bar** - Use STT and TTS anywhere on your Mac with global hotkeys. Transcribe not only your voice but also system audio or audio from specific apps. Read aloud typed text, pasted content, or text captured via OCR from any screen region.
 
-**Ready to use immediately after installation** - No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers and Local Whisper are optional enhancements.
+**Ready to use immediately after installation** - No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers are optional enhancements.
 
 English | [日本語](README_ja.md)
 
@@ -21,10 +21,10 @@ Convert speech to text using:
 | Provider | Models | API Key |
 |----------|--------|---------|
 | **macOS Native** | System Default (SpeechAnalyzer on macOS 26+) | Not required |
-| **Local Whisper** | Tiny, Base, Small, Medium, Large v2/v3, Large v3 Turbo | Not required |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | Required |
 | **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | Required |
 | **ElevenLabs** | Scribe v2 Realtime | Required |
+| **Grok** | Grok Realtime | Required |
 
 **Note**: On macOS 26+, the native STT uses Apple's new SpeechAnalyzer framework, providing real-time transcription without time limits and improved performance.
 
@@ -38,6 +38,7 @@ Convert text to speech using:
 | **OpenAI** | GPT-4o Mini TTS (Dec 2025), GPT-4o Mini TTS, TTS-1, TTS-1 HD | Required |
 | **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | Required |
 | **ElevenLabs** | Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5, Monolingual v1 | Required |
+| **Grok** | Grok Voice | Required |
 
 ### OCR to Speech
 
@@ -110,21 +111,6 @@ To use cloud providers, you need to configure API keys:
    - **ElevenLabs**: [ElevenLabs Settings](https://elevenlabs.io/app/settings/api-keys)
 
 API keys are securely stored in macOS Keychain.
-
-### Local Whisper (Optional)
-
-Local Whisper runs speech recognition entirely on your Mac without sending audio to the cloud. Models are downloaded on first use:
-
-| Model | Size | Description |
-|-------|------|-------------|
-| Tiny | ~39 MB | Fastest, lower accuracy |
-| Base | ~74 MB | Fast, basic accuracy |
-| Small | ~244 MB | Balanced speed/accuracy |
-| Medium | ~769 MB | High accuracy |
-| Large v3 Turbo | ~800 MB | Fast + accurate (recommended) |
-| Large v2/v3 | ~1.5 GB | Best accuracy, slower |
-
-Models are stored in `~/Library/Caches/com.speechdock.app/` and can be deleted to free disk space.
 
 ### Permissions
 
@@ -261,8 +247,7 @@ Enable **Launch at Login** in **Settings** > **General** to start SpeechDock aut
 
 - **API Keys**: Stored securely in macOS Keychain, never transmitted except to the respective provider
 - **macOS Native**: Audio processed entirely on-device, no data sent externally
-- **Local Whisper**: Audio processed entirely on-device, no data sent externally
-- **Cloud Providers**: Audio sent to provider APIs (OpenAI, Google, ElevenLabs) for processing according to their privacy policies
+- **Cloud Providers**: Audio sent to provider APIs (OpenAI, Google, ElevenLabs, Grok) for processing according to their privacy policies
 - **No Telemetry**: SpeechDock does not collect or transmit usage data
 
 ## License
