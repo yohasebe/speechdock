@@ -991,7 +991,7 @@ struct TranscriptionFloatingView: View {
                     autoScrollToBottom: isRecording  // Auto-scroll while recording
                 )
                 .background(appState.translationState.isTranslated
-                    ? Color.blue.opacity(0.08)
+                    ? Color.blue.opacity(0.15)
                     : Color(.textBackgroundColor))
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
