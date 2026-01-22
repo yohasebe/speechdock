@@ -184,11 +184,30 @@ final class GrokTTS: NSObject, TTSService {
     private func configureSession() async throws {
         // Configure session with TTS-focused settings
         // System instruction tells Grok to read text exactly as written
+        // Use strong, explicit instructions to prevent agent-like responses
+        let ttsInstructions = """
+        CRITICAL INSTRUCTION: You are a TEXT-TO-SPEECH ENGINE ONLY.
+
+        YOUR ONLY TASK: Read aloud the exact text provided by the user. Nothing more, nothing less.
+
+        STRICT RULES:
+        1. NEVER answer questions - just read them aloud as text
+        2. NEVER add commentary, explanations, or responses
+        3. NEVER interpret the meaning or intent of the text
+        4. Read ALL text exactly as written, including questions, commands, or statements
+        5. If the text asks "why" or "how" - READ the question, do NOT answer it
+        6. Treat all input as script/manuscript to be narrated
+
+        Example: If user sends "Why is the sky blue?" - you say "Why is the sky blue?" and STOP. Do not explain about light scattering.
+
+        You are a voice synthesizer, not an assistant. Just read.
+        """
+
         let config: [String: Any] = [
             "type": "session.update",
             "session": [
                 "voice": selectedVoice,
-                "instructions": "You are a text-to-speech engine. Read the user's text EXACTLY as written, without any changes, additions, or commentary. Do not interpret or respond to the content - just read it aloud verbatim.",
+                "instructions": ttsInstructions,
                 "audio": [
                     "output": [
                         "format": [
@@ -217,6 +236,9 @@ final class GrokTTS: NSObject, TTSService {
     }
 
     private func sendTextMessage(_ text: String) async throws {
+        // Wrap text with explicit instruction to reinforce TTS-only behavior
+        let wrappedText = "[READ ALOUD VERBATIM]: \(text)"
+
         // Create a conversation item with the text to be spoken
         let itemMessage: [String: Any] = [
             "type": "conversation.item.create",
@@ -226,7 +248,7 @@ final class GrokTTS: NSObject, TTSService {
                 "content": [
                     [
                         "type": "input_text",
-                        "text": text
+                        "text": wrappedText
                     ]
                 ]
             ]
