@@ -215,6 +215,9 @@ struct ScrollableTextView: NSViewRepresentable {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
 
+        // Support RTL languages (Arabic, Hebrew, etc.) - auto-detect from content
+        textView.baseWritingDirection = .natural
+
         // Enable spell checking
         textView.isContinuousSpellCheckingEnabled = true
         textView.isGrammarCheckingEnabled = true

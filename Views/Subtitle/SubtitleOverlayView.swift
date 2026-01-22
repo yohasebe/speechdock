@@ -10,6 +10,48 @@ struct SubtitleOverlayView: View {
         appState.subtitleFontSize * 1.4
     }
 
+    /// Detect if text is primarily RTL (Arabic, Hebrew, etc.)
+    /// Uses character counting to handle mixed LTR/RTL content
+    private func isRTLText(_ text: String) -> Bool {
+        guard !text.isEmpty else { return false }
+
+        var rtlCount = 0
+        var ltrCount = 0
+
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            // RTL scripts: Arabic, Hebrew, Syriac, Thaana, etc.
+            // Arabic: 0x0600-0x06FF, 0x0750-0x077F, 0x08A0-0x08FF, 0xFB50-0xFDFF, 0xFE70-0xFEFF
+            // Hebrew: 0x0590-0x05FF, 0xFB1D-0xFB4F
+            if (0x0590...0x05FF).contains(value) ||
+               (0x0600...0x06FF).contains(value) ||
+               (0x0750...0x077F).contains(value) ||
+               (0x08A0...0x08FF).contains(value) ||
+               (0xFB1D...0xFB4F).contains(value) ||
+               (0xFB50...0xFDFF).contains(value) ||
+               (0xFE70...0xFEFF).contains(value) {
+                rtlCount += 1
+            }
+            // Basic Latin letters (A-Z, a-z) and extended Latin
+            else if (0x0041...0x005A).contains(value) ||  // A-Z
+                    (0x0061...0x007A).contains(value) ||  // a-z
+                    (0x00C0...0x024F).contains(value) {   // Latin Extended
+                ltrCount += 1
+            }
+            // CJK characters count as LTR for alignment purposes
+            else if (0x4E00...0x9FFF).contains(value) ||  // CJK Unified
+                    (0x3040...0x309F).contains(value) ||  // Hiragana
+                    (0x30A0...0x30FF).contains(value) ||  // Katakana
+                    (0xAC00...0xD7AF).contains(value) {   // Hangul
+                ltrCount += 1
+            }
+        }
+
+        // RTL if more than 50% of directional characters are RTL
+        let total = rtlCount + ltrCount
+        return total > 0 && rtlCount > total / 2
+    }
+
     /// Maximum height for the text area based on max lines setting
     private var maxTextHeight: CGFloat {
         lineHeight * CGFloat(appState.subtitleMaxLines)
@@ -35,10 +77,13 @@ struct SubtitleOverlayView: View {
     private var subtitleContent: some View {
         // Use subtitleText which only contains text from current recording session
         let text = appState.subtitleText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isRTL = isRTLText(text)
+        let textAlignment: TextAlignment = isRTL ? .trailing : .leading
+        let frameAlignment: Alignment = isRTL ? .trailing : .leading
 
         // Always show the container when recording, even if text is empty
         if appState.isRecording || !text.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: isRTL ? .trailing : .leading, spacing: 8) {
                 // Header with recording indicator and controls
                 headerView
 
@@ -49,8 +94,8 @@ struct SubtitleOverlayView: View {
                             Text(text)
                                 .font(.system(size: appState.subtitleFontSize, weight: .medium))
                                 .foregroundColor(.white.opacity(appState.subtitleOpacity))
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .multilineTextAlignment(textAlignment)
+                                .frame(maxWidth: .infinity, alignment: frameAlignment)
                                 .id("subtitleText")
                         }
                         .frame(maxHeight: maxTextHeight)
@@ -81,7 +126,7 @@ struct SubtitleOverlayView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: frameAlignment)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.black.opacity(appState.subtitleBackgroundOpacity))
