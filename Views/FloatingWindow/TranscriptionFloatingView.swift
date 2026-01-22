@@ -980,17 +980,19 @@ struct TranscriptionFloatingView: View {
             }
 
             // Text area with replacement highlighting
-            // Disable editing during recording/file transcription to prevent user interference
+            // Disable editing during recording/file transcription or when showing translated text
             ScrollableTextView(
                     text: $editedText,
-                    isEditable: !isBusy,
+                    isEditable: !isBusy && !appState.translationState.isTranslated,
                     highlightRange: nil,
                     enableHighlight: false,
                     showReplacementHighlights: true,
                     fontSize: CGFloat(appState.panelTextFontSize),
                     autoScrollToBottom: isRecording  // Auto-scroll while recording
                 )
-                .background(Color(.textBackgroundColor))
+                .background(appState.translationState.isTranslated
+                    ? Color.blue.opacity(0.08)
+                    : Color(.textBackgroundColor))
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
                 .frame(minHeight: 180, maxHeight: .infinity)

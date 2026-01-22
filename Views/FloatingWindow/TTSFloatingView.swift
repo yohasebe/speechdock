@@ -354,6 +354,10 @@ struct TTSFloatingView: View {
 
     // Whether the text editor should be disabled (read-only but still scrollable)
     private var isEditorDisabled: Bool {
+        // Disable when speaking/loading/paused or showing translated text
+        if appState.translationState.isTranslated {
+            return true
+        }
         switch appState.ttsState {
         case .speaking, .loading, .paused:
             return true
@@ -596,6 +600,9 @@ struct TTSFloatingView: View {
                 enableHighlight: false,
                 fontSize: CGFloat(appState.panelTextFontSize)
             )
+            .background(appState.translationState.isTranslated
+                ? Color.blue.opacity(0.08)
+                : Color(.textBackgroundColor))
             .cornerRadius(8)
             .overlay(textAreaBorder)
             .overlay(placeholderOverlay)
