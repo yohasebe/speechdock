@@ -475,6 +475,11 @@ struct TTSFloatingView: View {
                 #if DEBUG
                 print("TTSFloatingView: Updating editableText to new value")
                 #endif
+                // Reset translation state when new text comes in
+                if appState.translationState.isTranslated {
+                    appState.translationState = .idle
+                    appState.originalTextBeforeTranslation = ""
+                }
                 editableText = newValue
             }
         }
