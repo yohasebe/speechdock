@@ -1,11 +1,16 @@
 import Foundation
-import Translation
 import NaturalLanguage
+
+// Conditionally import Translation framework for macOS 26+
+#if compiler(>=6.1)
+import Translation
+#endif
 
 // MARK: - macOS 26+ Implementation
 
 /// macOS native translation using the Translation framework
 /// Direct TranslationSession initialization is available starting macOS 26.0
+#if compiler(>=6.1)
 @available(macOS 26.0, *)
 @MainActor
 final class MacOSTranslation: TranslationServiceProtocol {
@@ -217,6 +222,7 @@ final class MacOSTranslation: TranslationServiceProtocol {
         return Locale.Language(identifier: identifier)
     }
 }
+#endif
 
 // MARK: - Fallback for older macOS versions
 

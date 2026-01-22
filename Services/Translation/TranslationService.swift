@@ -72,11 +72,15 @@ enum TranslationFactory {
         switch provider {
         case .macOS:
             // macOS Translation direct API is available starting macOS 26
+            #if compiler(>=6.1)
             if #available(macOS 26.0, *) {
                 return MacOSTranslation()
             } else {
                 return MacOSTranslationFallback()
             }
+            #else
+            return MacOSTranslationFallback()
+            #endif
         case .openAI:
             return LLMTranslation(provider: .openAI)
         case .gemini:
@@ -86,10 +90,14 @@ enum TranslationFactory {
 
     /// Check if macOS native translation is available (requires macOS 26+)
     static var isMacOSTranslationAvailable: Bool {
+        #if compiler(>=6.1)
         if #available(macOS 26.0, *) {
             return true
         }
         return false
+        #else
+        return false
+        #endif
     }
 
     /// Get the best available translation provider based on target language and API key availability

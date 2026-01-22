@@ -2,7 +2,10 @@ import SwiftUI
 import Combine
 import AVFoundation
 import ApplicationServices
+
+#if compiler(>=6.1)
 import Translation
+#endif
 
 enum TranscriptionState: Equatable {
     case idle
@@ -1375,6 +1378,7 @@ final class AppState {
 
     /// Check macOS Translation language availability and cache results
     func checkMacOSTranslationLanguageAvailability() {
+        #if compiler(>=6.1)
         guard !isCheckingLanguageAvailability else { return }
         isCheckingLanguageAvailability = true
 
@@ -1431,6 +1435,10 @@ final class AppState {
             }
             #endif
         }
+        #else
+        // Translation framework not available on older SDKs
+        hasCachedMacOSTranslationLanguages = true
+        #endif
     }
 
     /// Refresh macOS Translation language availability cache
