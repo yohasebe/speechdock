@@ -180,9 +180,22 @@ struct ScrollableTextView: NSViewRepresentable {
     var autoScrollToBottom: Bool = false  // Auto-scroll when text changes
     var isShowingTranslation: Bool = false  // Show different background for translated text
 
-    /// Background color for translated text state
+    /// Background color for translated text state (light blue)
     private var translationBackgroundColor: NSColor {
         NSColor.systemBlue.withAlphaComponent(0.05)
+    }
+
+    /// Background color for editable text state (notepad-like beige)
+    private var editableBackgroundColor: NSColor {
+        NSColor(name: nil) { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                // Dark mode: warm dark gray
+                return NSColor(red: 0.14, green: 0.13, blue: 0.12, alpha: 1.0)
+            } else {
+                // Light mode: subtle warm beige
+                return NSColor(red: 1.0, green: 0.99, blue: 0.96, alpha: 1.0)
+            }
+        }
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -193,7 +206,7 @@ struct ScrollableTextView: NSViewRepresentable {
         textView.isSelectable = true
         textView.allowsUndo = true
         textView.font = NSFont.systemFont(ofSize: fontSize)
-        textView.backgroundColor = isShowingTranslation ? translationBackgroundColor : NSColor.textBackgroundColor
+        textView.backgroundColor = isShowingTranslation ? translationBackgroundColor : editableBackgroundColor
         textView.textContainerInset = NSSize(width: 8, height: 8)
         textView.isRichText = false
         textView.delegate = context.coordinator
@@ -217,7 +230,7 @@ struct ScrollableTextView: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
-        scrollView.backgroundColor = isShowingTranslation ? translationBackgroundColor : NSColor.textBackgroundColor
+        scrollView.backgroundColor = isShowingTranslation ? translationBackgroundColor : editableBackgroundColor
 
         context.coordinator.textView = textView
         context.coordinator.fontSize = fontSize
@@ -235,7 +248,7 @@ struct ScrollableTextView: NSViewRepresentable {
         textView.isEditable = isEditable
 
         // Update background color for translation state
-        let bgColor = isShowingTranslation ? translationBackgroundColor : NSColor.textBackgroundColor
+        let bgColor = isShowingTranslation ? translationBackgroundColor : editableBackgroundColor
         textView.backgroundColor = bgColor
         scrollView.backgroundColor = bgColor
 
@@ -365,8 +378,8 @@ struct TTSFloatingView: View {
 
     // Whether the text editor should be disabled (read-only but still scrollable)
     private var isEditorDisabled: Bool {
-        // Disable when speaking/loading/paused or showing translated text
-        if appState.translationState.isTranslated {
+        // Disable when speaking/loading/paused, translating, or showing translated text
+        if appState.translationState.isTranslating || appState.translationState.isTranslated {
             return true
         }
         switch appState.ttsState {
@@ -486,6 +499,9 @@ struct TTSFloatingView: View {
                 #if DEBUG
                 print("TTSFloatingView: Updating editableText to new value")
                 #endif
+                // Resign first responder to allow text update through ScrollableTextView
+                // This is necessary because the text view won't update if it has focus
+                NSApp.keyWindow?.makeFirstResponder(nil)
                 // Reset translation state when new text comes in
                 if appState.translationState.isTranslated {
                     appState.translationState = .idle
@@ -702,7 +718,7 @@ struct TTSFloatingView: View {
                 .buttonStyle(.plain)
                 .help("Spell Check")
 
-                // Clear button
+                // Clear button (disabled during translation)
                 Button(action: {
                     editableText = ""
                     appState.ttsText = ""
@@ -712,7 +728,9 @@ struct TTSFloatingView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Clear Text")
+                .disabled(appState.translationState.isTranslated)
+                .opacity(appState.translationState.isTranslated ? 0.5 : 1.0)
+                .help(appState.translationState.isTranslated ? "Press Original to edit" : "Clear Text")
             }
             .padding(6)
             .background(Color(.windowBackgroundColor).opacity(0.9))

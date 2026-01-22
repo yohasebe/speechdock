@@ -895,14 +895,17 @@ final class AppState {
         print("TTS: startTTS called")
         #endif
 
-        // Mutual exclusivity: close STT panel and cancel recording if active
-        if showFloatingWindow || isRecording {
-            cancelRecording()
-        }
-
-        // Get selected text from frontmost app asynchronously
+        // IMPORTANT: Get selected text FIRST, before any window manipulation
+        // This ensures we capture text from the user's app before SpeechDock becomes frontmost
         Task {
+            // Capture selected text immediately while user's app is still frontmost
             let selectedText = await TextSelectionService.shared.getSelectedText()
+
+            // Now safe to do window management
+            // Mutual exclusivity: close STT panel and cancel recording if active
+            if showFloatingWindow || isRecording {
+                cancelRecording()
+            }
 
             if let selectedText = selectedText, !selectedText.isEmpty {
                 #if DEBUG
@@ -1241,8 +1244,12 @@ final class AppState {
             if translationProvider != .gemini {
                 translationProvider = .gemini
             }
-        case .elevenLabs, .grok, .macOS:
-            // ElevenLabs/Grok/macOS don't have corresponding translation providers, use macOS
+        case .grok:
+            if translationProvider != .grok {
+                translationProvider = .grok
+            }
+        case .elevenLabs, .macOS:
+            // ElevenLabs/macOS don't have corresponding translation providers, use macOS
             if translationProvider != .macOS {
                 translationProvider = .macOS
             }
@@ -1260,8 +1267,12 @@ final class AppState {
             if translationProvider != .gemini {
                 translationProvider = .gemini
             }
-        case .elevenLabs, .grok, .macOS:
-            // ElevenLabs/Grok/macOS don't have corresponding translation providers, use macOS
+        case .grok:
+            if translationProvider != .grok {
+                translationProvider = .grok
+            }
+        case .elevenLabs, .macOS:
+            // ElevenLabs/macOS don't have corresponding translation providers, use macOS
             if translationProvider != .macOS {
                 translationProvider = .macOS
             }

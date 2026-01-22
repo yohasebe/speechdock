@@ -85,6 +85,8 @@ enum TranslationFactory {
             return LLMTranslation(provider: .openAI)
         case .gemini:
             return LLMTranslation(provider: .gemini)
+        case .grok:
+            return LLMTranslation(provider: .grok)
         }
     }
 
@@ -139,6 +141,12 @@ enum TranslationFactory {
         if let apiKey = APIKeyManager.shared.getAPIKey(for: "GEMINI_API_KEY"),
            !apiKey.isEmpty {
             return .gemini
+        }
+
+        // 4. Grok (if API key available)
+        if let apiKey = APIKeyManager.shared.getAPIKey(for: "GROK_API_KEY"),
+           !apiKey.isEmpty {
+            return .grok
         }
 
         // Default to macOS (will show error if language not supported)

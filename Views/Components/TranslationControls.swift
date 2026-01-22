@@ -61,11 +61,12 @@ struct TranslationControls: View {
                     providerIndicator
                 }
             }
-            .padding(6)
+            .padding(.horizontal, 4)
+            .frame(height: 28)
             .background(Color(.windowBackgroundColor).opacity(0.9))
             .cornerRadius(6)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-            .fixedSize()
+            .fixedSize(horizontal: true, vertical: false)
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 // Re-check availability when app becomes active (after returning from System Settings)
                 if isMacOSProvider {
@@ -142,6 +143,7 @@ struct TranslationControls: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
             }
+            .fixedSize()
             .foregroundColor(.secondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
@@ -166,6 +168,7 @@ struct TranslationControls: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 8, weight: .semibold))
             }
+            .fixedSize()
             .foregroundColor(.accentColor)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
@@ -179,15 +182,25 @@ struct TranslationControls: View {
     /// Translating indicator
     @ViewBuilder
     private var translatingIndicator: some View {
-        HStack(spacing: 4) {
-            ProgressView()
-                .controlSize(.mini)
-            Text("Translating...")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+        Button(action: {
+            appState.cancelTranslation()
+        }) {
+            HStack(spacing: 4) {
+                ProgressView()
+                    .controlSize(.mini)
+                Text("Translating...")
+                    .font(.system(size: 11))
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 10))
+            }
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(4)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
+        .buttonStyle(.plain)
+        .help("Cancel translation")
     }
 
     /// Provider indicator (text-based)

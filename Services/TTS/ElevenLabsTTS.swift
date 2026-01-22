@@ -132,8 +132,11 @@ final class ElevenLabsTTS: NSObject, TTSService {
             ]
         ]
 
-        // Add language_code if specified (for Turbo/Flash v2.5 models)
-        if !selectedLanguage.isEmpty,
+        // Add language_code only for models that support it (Turbo/Flash v2.5, Multilingual v2)
+        // eleven_v3 and eleven_monolingual_v1 do NOT support language_code parameter
+        let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
+        if supportsLanguageCode,
+           !selectedLanguage.isEmpty,
            let langCode = LanguageCode(rawValue: selectedLanguage),
            let elevenLabsCode = langCode.toElevenLabsTTSCode() {
             body["language_code"] = elevenLabsCode
@@ -251,8 +254,11 @@ final class ElevenLabsTTS: NSObject, TTSService {
             "voice_settings": voiceSettings
         ]
 
-        // Add language_code if specified (for Turbo/Flash v2.5 models)
-        if !selectedLanguage.isEmpty,
+        // Add language_code only for models that support it (Turbo/Flash v2.5, Multilingual v2)
+        // eleven_v3 and eleven_monolingual_v1 do NOT support language_code parameter
+        let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
+        if supportsLanguageCode,
+           !selectedLanguage.isEmpty,
            let langCode = LanguageCode(rawValue: selectedLanguage),
            let elevenLabsCode = langCode.toElevenLabsTTSCode() {
             body["language_code"] = elevenLabsCode

@@ -1,7 +1,7 @@
 import Foundation
 import NaturalLanguage
 
-/// LLM-based translation service supporting OpenAI and Gemini
+/// LLM-based translation service supporting OpenAI, Gemini, and Grok
 @MainActor
 final class LLMTranslation: TranslationServiceProtocol {
     let provider: TranslationProvider
@@ -9,7 +9,7 @@ final class LLMTranslation: TranslationServiceProtocol {
     private let languageRecognizer = NLLanguageRecognizer()
 
     init(provider: TranslationProvider) {
-        precondition(provider == .openAI || provider == .gemini, "LLMTranslation only supports OpenAI and Gemini")
+        precondition(provider == .openAI || provider == .gemini || provider == .grok, "LLMTranslation only supports OpenAI, Gemini, and Grok")
         self.provider = provider
     }
 
@@ -72,6 +72,13 @@ final class LLMTranslation: TranslationServiceProtocol {
                 )
             case .gemini:
                 translatedText = try await self.translateWithGemini(
+                    text: text,
+                    targetLanguage: targetLanguage,
+                    sourceLanguage: sourceLanguage,
+                    apiKey: apiKey
+                )
+            case .grok:
+                translatedText = try await self.translateWithGrok(
                     text: text,
                     targetLanguage: targetLanguage,
                     sourceLanguage: sourceLanguage,
@@ -243,6 +250,71 @@ final class LLMTranslation: TranslationServiceProtocol {
         #endif
 
         return resultText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - Grok Translation
+
+    private func translateWithGrok(
+        text: String,
+        targetLanguage: LanguageCode,
+        sourceLanguage: LanguageCode?,
+        apiKey: String
+    ) async throws -> String {
+        // Grok uses OpenAI-compatible API format
+        let endpoint = "https://api.x.ai/v1/chat/completions"
+        let model = "grok-3-fast"
+
+        let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
+
+        let requestBody: [String: Any] = [
+            "model": model,
+            "messages": [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": text]
+            ],
+            "temperature": 0.3
+        ]
+
+        var request = URLRequest(url: URL(string: endpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        request.timeoutInterval = 60
+
+        #if DEBUG
+        print("Grok Translation: Sending request...")
+        #endif
+
+        let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "Grok")
+
+        #if DEBUG
+        print("Grok Translation: Response status = \(httpResponse.statusCode)")
+        #endif
+
+        guard httpResponse.statusCode == 200 else {
+            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TranslationError.apiError("Grok API Error (\(httpResponse.statusCode)): \(errorBody)")
+        }
+
+        // Parse response (OpenAI-compatible format)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            #if DEBUG
+            print("Grok Translation: Invalid response format")
+            print("Grok Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
+            #endif
+            throw TranslationError.apiError("Invalid response format from Grok")
+        }
+
+        #if DEBUG
+        print("Grok Translation: Success, content length = \(content.count)")
+        #endif
+
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - Translation Prompt

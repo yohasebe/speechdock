@@ -1,5 +1,4 @@
 import AppKit
-import Carbon
 
 final class ClipboardService {
     static let shared = ClipboardService()
@@ -70,46 +69,44 @@ final class ClipboardService {
         // Short delay to allow clipboard to stabilize before pasting
         try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
 
-        // Perform paste
+        // Perform paste using CGEvent (more reliable, no System Events permission required)
         await MainActor.run {
-            pasteWithAppleScript()
+            simulatePasteWithCGEvent()
         }
     }
 
-    private func pasteWithAppleScript() {
-        let script = """
-        tell application "System Events"
-            keystroke "v" using command down
-        end tell
-        """
-
-        var error: NSDictionary?
-        if let scriptObject = NSAppleScript(source: script) {
-            scriptObject.executeAndReturnError(&error)
-            if let error = error {
-                #if DEBUG
-                print("AppleScript error: \(error)")
-                #endif
-                // Fallback to CGEvent
-                simulatePasteWithCGEvent()
-            }
-        }
-    }
-
+    /// Simulate Cmd+V using CGEvent (no System Events permission required)
     private func simulatePasteWithCGEvent() {
-        let source = CGEventSource(stateID: .combinedSessionState)
-
         // Key code for 'V' is 9
-        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
-              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
+        let keyCodeV: CGKeyCode = 9
+
+        let source = CGEventSource(stateID: .hidSystemState)
+
+        // Create key down event with Command modifier
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCodeV, keyDown: true) else {
+            #if DEBUG
+            print("ClipboardService: Failed to create key down event")
+            #endif
             return
         }
-
         keyDown.flags = .maskCommand
+
+        // Create key up event with Command modifier
+        guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCodeV, keyDown: false) else {
+            #if DEBUG
+            print("ClipboardService: Failed to create key up event")
+            #endif
+            return
+        }
         keyUp.flags = .maskCommand
 
+        // Post events to the HID system
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
+
+        #if DEBUG
+        print("ClipboardService: Sent Cmd+V via CGEvent")
+        #endif
     }
 
     // MARK: - Clipboard State Preservation

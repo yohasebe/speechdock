@@ -5,7 +5,8 @@ final class TextSelectionService {
     static let shared = TextSelectionService()
 
     /// Maximum time to wait for copy operation (seconds)
-    private let maxCopyWaitTime: TimeInterval = 0.3
+    /// Chrome, LINE, and other apps may need more time due to multi-process architecture
+    private let maxCopyWaitTime: TimeInterval = 0.8
 
     /// Polling interval for clipboard change detection
     private let pollInterval: TimeInterval = 0.02
@@ -18,6 +19,13 @@ final class TextSelectionService {
     /// Gets the currently selected text from the frontmost application
     /// Tries accessibility API first, then falls back to clipboard-based approach
     func getSelectedText() async -> String? {
+        #if DEBUG
+        // Log frontmost app at the very start for debugging
+        if let frontApp = NSWorkspace.shared.frontmostApplication {
+            print("TextSelectionService: getSelectedText called, frontmost app: \(frontApp.localizedName ?? "unknown") (bundle: \(frontApp.bundleIdentifier ?? "unknown"))")
+        }
+        #endif
+
         // Try accessibility API first (more reliable, less intrusive)
         if let text = getSelectedTextViaAccessibility() {
             #if DEBUG
@@ -54,17 +62,29 @@ final class TextSelectionService {
         pasteboard.clearContents()
         let clearedChangeCount = pasteboard.changeCount
 
-        // Simulate Cmd+C to copy selection
-        copySelectionWithAppleScript()
+        // Small delay before sending copy command to ensure target app is ready
+        try? await Task.sleep(nanoseconds: 50_000_000)  // 50ms
+
+        // Simulate Cmd+C to copy selection using CGEvent (no System Events permission required)
+        copySelectionWithCGEvent()
 
         // Poll for clipboard change with timeout using async sleep
         var selectedText: String? = nil
         let startTime = Date()
         let pollIntervalNanoseconds = UInt64(pollInterval * 1_000_000_000)
 
+        #if DEBUG
+        print("TextSelectionService: Clipboard fallback - waiting for copy response (timeout: \(maxCopyWaitTime)s)")
+        #endif
+
         while Date().timeIntervalSince(startTime) < maxCopyWaitTime {
             if pasteboard.changeCount != clearedChangeCount {
                 // Clipboard was updated
+                #if DEBUG
+                let availableTypes = pasteboard.types?.map { $0.rawValue } ?? []
+                print("TextSelectionService: Clipboard updated, available types: \(availableTypes)")
+                #endif
+
                 // Try to get rich text formats for better layout preservation
 
                 // 1. Try HTML first (web browsers)
@@ -87,12 +107,26 @@ final class TextSelectionService {
                 // 3. Fall back to plain text if rich text conversion failed or unavailable
                 if selectedText == nil || selectedText?.isEmpty == true {
                     selectedText = pasteboard.string(forType: .string)
+                    #if DEBUG
+                    if selectedText != nil {
+                        print("TextSelectionService: Got plain text from clipboard")
+                    }
+                    #endif
                 }
                 break
             }
             // Use Task.sleep instead of Thread.sleep to avoid blocking
             try? await Task.sleep(nanoseconds: pollIntervalNanoseconds)
         }
+
+        #if DEBUG
+        let elapsed = Date().timeIntervalSince(startTime)
+        if selectedText != nil {
+            print("TextSelectionService: Clipboard fallback succeeded in \(String(format: "%.3f", elapsed))s")
+        } else {
+            print("TextSelectionService: Clipboard fallback timed out after \(String(format: "%.3f", elapsed))s")
+        }
+        #endif
 
         // Restore original clipboard contents if not modified by another app
         // We check if the clipboard was modified more than expected
@@ -160,29 +194,52 @@ final class TextSelectionService {
         return result.isEmpty ? nil : result
     }
 
-    private func copySelectionWithAppleScript() {
-        let script = """
-        tell application "System Events"
-            keystroke "c" using command down
-        end tell
-        """
+    /// Simulate Cmd+C using CGEvent (no System Events permission required)
+    private func copySelectionWithCGEvent() {
+        // Key code for 'C' is 8
+        let keyCodeC: CGKeyCode = 8
 
-        var error: NSDictionary?
-        if let scriptObject = NSAppleScript(source: script) {
-            scriptObject.executeAndReturnError(&error)
+        let source = CGEventSource(stateID: .hidSystemState)
+
+        // Create key down event with Command modifier
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: true) else {
             #if DEBUG
-            if let error = error {
-                print("AppleScript error: \(error)")
-            }
+            print("TextSelectionService: Failed to create key down event")
             #endif
+            return
         }
+        keyDown.flags = .maskCommand
+
+        // Create key up event with Command modifier
+        guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: false) else {
+            #if DEBUG
+            print("TextSelectionService: Failed to create key up event")
+            #endif
+            return
+        }
+        keyUp.flags = .maskCommand
+
+        // Post events to the HID system
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+
+        #if DEBUG
+        print("TextSelectionService: Sent Cmd+C via CGEvent")
+        #endif
     }
 
     /// Alternative method using Accessibility API (requires accessibility permissions)
     func getSelectedTextViaAccessibility() -> String? {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+            #if DEBUG
+            print("TextSelectionService: No frontmost application")
+            #endif
             return nil
         }
+
+        #if DEBUG
+        print("TextSelectionService: Frontmost app is \(frontApp.localizedName ?? "unknown") (bundle: \(frontApp.bundleIdentifier ?? "unknown"))")
+        #endif
 
         let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
 
@@ -192,6 +249,9 @@ final class TextSelectionService {
         guard focusResult == .success,
               let element = focusedElement,
               CFGetTypeID(element) == AXUIElementGetTypeID() else {
+            #if DEBUG
+            print("TextSelectionService: Accessibility API failed to get focused element (result: \(focusResult.rawValue))")
+            #endif
             return nil
         }
 
@@ -201,6 +261,9 @@ final class TextSelectionService {
         let textResult = AXUIElementCopyAttributeValue(axElement, kAXSelectedTextAttribute as CFString, &selectedText)
 
         guard textResult == .success, let text = selectedText as? String else {
+            #if DEBUG
+            print("TextSelectionService: Accessibility API failed to get selected text (result: \(textResult.rawValue))")
+            #endif
             return nil
         }
 

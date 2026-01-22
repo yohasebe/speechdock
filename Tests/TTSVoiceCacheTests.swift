@@ -80,7 +80,8 @@ final class TTSVoiceCacheTests: XCTestCase {
         XCTAssertTrue(providers.contains(.openAI))
         XCTAssertTrue(providers.contains(.gemini))
         XCTAssertTrue(providers.contains(.elevenLabs))
-        XCTAssertEqual(providers.count, 4)
+        XCTAssertTrue(providers.contains(.grok))
+        XCTAssertEqual(providers.count, 5)
     }
 
     func testTTSProviderRawValues() {
@@ -89,6 +90,7 @@ final class TTSVoiceCacheTests: XCTestCase {
         XCTAssertEqual(TTSProvider.openAI.rawValue, "OpenAI")
         XCTAssertEqual(TTSProvider.gemini.rawValue, "Gemini")
         XCTAssertEqual(TTSProvider.elevenLabs.rawValue, "ElevenLabs")
+        XCTAssertEqual(TTSProvider.grok.rawValue, "Grok")
     }
 
     // MARK: - CachedVoice Backward Compatibility Tests

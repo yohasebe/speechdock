@@ -110,6 +110,9 @@ final class TTSAudioPlaybackController: NSObject {
 
         // Set initial playback rate
         timePitch.rate = currentPlaybackRate
+        // Higher overlap values (3-32) improve audio quality for time stretching
+        // Default is 8, using 16 for better voice quality during rate changes
+        timePitch.overlap = 16
 
         engine.attach(playerNode)
         engine.attach(timePitch)

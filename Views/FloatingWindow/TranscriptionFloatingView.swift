@@ -32,18 +32,19 @@ struct CompactButtonLabel: View {
     var icon: String? = nil
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             if let icon = icon {
                 Image(systemName: icon)
-                    .font(.callout)
+                    .font(.system(size: 10))
             }
             Text(title)
-                .font(.callout)
+                .font(.system(size: 11, weight: .medium))
             Text("(\(shortcut))")
-                .font(.caption)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 3)
-        .padding(.vertical, 2)
+        .fixedSize()
+        .padding(5)
     }
 }
 
@@ -60,36 +61,37 @@ struct CompactWindowSelectorButton: View {
 
     var body: some View {
         Button(action: onToggle) {
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 Image(systemName: "macwindow")
-                    .font(.callout)
+                    .font(.system(size: 10))
 
                 Text("Target:")
-                    .font(.callout)
+                    .font(.system(size: 11, weight: .medium))
 
                 if let selected = floatingWindowManager.selectedWindow {
                     if let appIcon = selected.appIcon {
                         Image(nsImage: appIcon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 14, height: 14)
+                            .frame(width: 12, height: 12)
                     } else {
                         Image(systemName: "app.fill")
-                            .font(.callout)
+                            .font(.system(size: 10))
                     }
                 } else {
                     Text("None")
-                        .font(.callout)
+                        .font(.system(size: 11, weight: .medium))
                 }
 
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 9))
+                    .font(.system(size: 8, weight: .semibold))
             }
-            .padding(.horizontal, 3)
-            .padding(.vertical, 2)
+            .fixedSize()
+            .padding(5)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(4)
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
+        .buttonStyle(.plain)
         .applyCustomShortcut(targetSelectShortcut)
     }
 }
@@ -866,7 +868,8 @@ struct TranscriptionFloatingView: View {
                 .buttonStyle(.plain)
                 .help("Clear Text")
             }
-            .padding(6)
+            .padding(.horizontal, 8)
+            .frame(height: 28)
             .background(Color(.windowBackgroundColor).opacity(0.9))
             .cornerRadius(6)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
@@ -980,10 +983,10 @@ struct TranscriptionFloatingView: View {
             }
 
             // Text area with replacement highlighting
-            // Disable editing during recording/file transcription or when showing translated text
+            // Disable editing during recording/file transcription, translating, or showing translated text
             ScrollableTextView(
                     text: $editedText,
-                    isEditable: !isBusy && !appState.translationState.isTranslated,
+                    isEditable: !isBusy && !appState.translationState.isTranslating && !appState.translationState.isTranslated,
                     highlightRange: nil,
                     enableHighlight: false,
                     showReplacementHighlights: true,
@@ -1192,32 +1195,30 @@ struct TranscriptionFloatingView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
-            // Subtitle mode toggle (wrapped to match Target+Paste group height)
-            HStack {
-                Button(action: {
-                    appState.toggleSubtitleMode()
-                }) {
-                    HStack(spacing: 3) {
-                        Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
-                            .font(.callout)
-                        Text("Subtitle")
-                            .font(.callout)
-                    }
-                    .padding(.horizontal, 3)
-                    .padding(.vertical, 2)
+            // Subtitle mode toggle
+            Button(action: {
+                appState.toggleSubtitleMode()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
+                        .font(.system(size: 10))
+                    Text("Subtitle")
+                        .font(.system(size: 11, weight: .medium))
+                    Text("(⌃⌥S)")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(appState.subtitleModeEnabled ? .accentColor : nil)
-                .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
-                .disabled(isTranscribingFile)
+                .fixedSize()
+                .padding(5)
+                .background(appState.subtitleModeEnabled ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.1))
+                .cornerRadius(4)
             }
-            .padding(3)
-            .background(Color.clear)
-            .cornerRadius(8)
+            .buttonStyle(.plain)
+            .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
+            .disabled(isTranscribingFile)
 
             // Target + Paste group
-            HStack(spacing: 2) {
+            HStack(spacing: 4) {
                 // Target selector
                 CompactWindowSelectorButton(
                     floatingWindowManager: appState.floatingWindowManager,
@@ -1247,9 +1248,10 @@ struct TranscriptionFloatingView: View {
                             AppState.shared.stopRecordingAndInsert(editedText)
                         } label: {
                             CompactButtonLabel(title: "Paste", shortcut: pasteShortcut.displayString, icon: "doc.on.clipboard")
+                                .background(Color.secondary.opacity(0.1))
+                                .cornerRadius(4)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .buttonStyle(.plain)
                         .applyCustomShortcut(pasteShortcut)
                     }
                 } else {
@@ -1257,15 +1259,16 @@ struct TranscriptionFloatingView: View {
                         onConfirm(editedText)
                     } label: {
                         CompactButtonLabel(title: "Paste", shortcut: pasteShortcut.displayString, icon: "doc.on.clipboard")
+                            .background(Color.secondary.opacity(0.1))
+                            .cornerRadius(4)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(.plain)
                     .applyCustomShortcut(pasteShortcut)
                     .disabled(editedText.isEmpty || isTranscribingFile)
                 }
             }
-            .padding(3)
-            .background(Color.secondary.opacity(0.1))
+            .padding(4)
+            .background(Color.secondary.opacity(0.08))
             .cornerRadius(8)
 
             Spacer()

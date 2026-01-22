@@ -40,11 +40,13 @@ macOS メニューバー常駐型の音声認識（STT）・音声合成（TTS�
 | macOS | `MacOSTranslation.swift` | オンデバイス、APIキー不要、macOS 26+ |
 | OpenAI | `LLMTranslation.swift` | GPT-4o-mini、高品質 |
 | Gemini | `LLMTranslation.swift` | Gemini 2.0 Flash、高品質 |
+| Grok | `LLMTranslation.swift` | Grok 3 Fast、高品質 |
 
 **プロバイダ選択ロジック**:
 1. macOS Translation (macOS 26+、対応言語の場合)
 2. OpenAI (APIキーがある場合)
 3. Gemini (APIキーがある場合)
+4. Grok (APIキーがある場合)
 
 ### ウィンドウ管理
 - `FloatingWindowManager.swift` - STT/TTSパネル管理（排他制御）
@@ -200,6 +202,46 @@ Press Record ([ショートカット]) to start transcription
 - 小さいラベル: `.caption` (約12pt)
 - アイコンサイズ: セレクタ内は 16x16、ボタン内は `.body`
 
+### コンパクトボタンスタイリング規約 (2026-01-22)
+パネル下部の Subtitle、Target、Paste ボタンと翻訳コントロール（Translate/Original）は統一されたスタイリングを使用。
+
+**コンパクトボタン共通スタイル**:
+```swift
+HStack(spacing: 4) {
+    Image(systemName: "icon.name")
+        .font(.system(size: 10))  // アイコン: 10pt
+    Text("Label")
+        .font(.system(size: 11, weight: .medium))  // ラベル: 11pt medium
+    Text("(⌘X)")
+        .font(.system(size: 10))  // ショートカット: 10pt
+        .foregroundColor(.secondary)
+}
+.fixedSize()  // テキスト折り返し防止
+.padding(5)   // 4方向均等パディング
+.background(Color.secondary.opacity(0.1))
+.cornerRadius(4)
+// .buttonStyle(.plain) を使用
+```
+
+**翻訳コントロール (Translate/Original)**:
+```swift
+// 内部ボタン
+.padding(.horizontal, 6)
+.padding(.vertical, 3)
+.background(...)
+.cornerRadius(4)
+
+// コンテナ
+.padding(.horizontal, 4)
+.frame(height: 28)  // 固定高さ
+```
+
+**フローティングコントロール（フォントサイズ、スペルチェック等）**:
+```swift
+.padding(.horizontal, 8)
+.frame(height: 28)  // 固定高さ（翻訳コントロールと同じ）
+```
+
 ### 翻訳機能 (2026-01-22)
 テキストエリアの左下にフローティング翻訳コントロールを配置。
 
@@ -232,7 +274,8 @@ idle → translating → translated → idle (Original押下)
 |------------------|---------------|
 | OpenAI | OpenAI |
 | Gemini | Gemini |
-| ElevenLabs/Grok/macOS | macOS |
+| Grok | Grok |
+| ElevenLabs/macOS | macOS |
 
 実装: `syncTranslationProviderForSTT()`, `syncTranslationProviderForTTS()` (AppState.swift)
 

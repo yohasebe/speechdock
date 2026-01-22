@@ -28,6 +28,8 @@
     <string>SpeechDock uses speech recognition for real-time transcription.</string>
     <key>NSScreenCaptureUsageDescription</key>
     <string>SpeechDock needs screen recording access to show window thumbnails when selecting a paste target.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>SpeechDock needs automation access to copy selected text from other applications for text-to-speech.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 

@@ -5,6 +5,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
     case macOS = "macOS"
     case openAI = "OpenAI"
     case gemini = "Gemini"
+    case grok = "Grok"
 
     var id: String { rawValue }
 
@@ -13,6 +14,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         case .macOS: return "macOS"
         case .openAI: return "OpenAI"
         case .gemini: return "Gemini"
+        case .grok: return "Grok"
         }
     }
 
@@ -21,6 +23,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         case .macOS: return nil  // No API key required
         case .openAI: return "OPENAI_API_KEY"
         case .gemini: return "GEMINI_API_KEY"
+        case .grok: return "GROK_API_KEY"
         }
     }
 
@@ -40,6 +43,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         case .macOS: return "System"
         case .openAI: return "gpt-4o-mini"
         case .gemini: return "gemini-2.0-flash-001"
+        case .grok: return "grok-3-fast"
         }
     }
 
@@ -56,6 +60,8 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
             return "GPT-4o-mini, high quality"
         case .gemini:
             return "Gemini 2.0 Flash, high quality"
+        case .grok:
+            return "Grok 3 Fast, high quality"
         }
     }
 
@@ -68,7 +74,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
                 return true
             }
             return false
-        case .openAI, .gemini:
+        case .openAI, .gemini, .grok:
             // LLM providers are always available (API key check is separate)
             return true
         }
@@ -118,7 +124,7 @@ extension TranslationProvider {
         switch self {
         case .macOS:
             return TranslationProvider.macOSTranslationLanguages
-        case .openAI, .gemini:
+        case .openAI, .gemini, .grok:
             // LLM providers support all languages in LanguageCode
             return LanguageCode.allCases.filter { $0 != .auto }
         }
