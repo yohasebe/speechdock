@@ -34,7 +34,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app
         PRODUCT_NAME: SpeechDock
-        MARKETING_VERSION: "0.1.22"
+        MARKETING_VERSION: "0.1.23"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SpeechDock.entitlements
