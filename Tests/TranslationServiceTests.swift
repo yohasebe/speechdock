@@ -121,6 +121,72 @@ final class TranslationServiceTests: XCTestCase {
     }
     #endif
 
+    // MARK: - TranslationModelInfo Tests
+
+    func testTranslationModelInfo_OpenAI() {
+        let models = TranslationProvider.openAI.availableModels
+        XCTAssertEqual(models.count, 3)
+        XCTAssertEqual(models[0].id, "gpt-5-nano")
+        XCTAssertTrue(models[0].isDefault)
+        XCTAssertEqual(models[1].id, "gpt-5-mini")
+        XCTAssertFalse(models[1].isDefault)
+        XCTAssertEqual(models[2].id, "gpt-5.2")
+        XCTAssertFalse(models[2].isDefault)
+    }
+
+    func testTranslationModelInfo_Gemini() {
+        let models = TranslationProvider.gemini.availableModels
+        XCTAssertEqual(models.count, 2)
+        XCTAssertEqual(models[0].id, "gemini-3-flash-preview")
+        XCTAssertTrue(models[0].isDefault)
+        XCTAssertEqual(models[1].id, "gemini-3-pro-preview")
+        XCTAssertFalse(models[1].isDefault)
+    }
+
+    func testTranslationModelInfo_Grok() {
+        let models = TranslationProvider.grok.availableModels
+        XCTAssertEqual(models.count, 2)
+        XCTAssertEqual(models[0].id, "grok-3-fast")
+        XCTAssertTrue(models[0].isDefault)
+        XCTAssertEqual(models[1].id, "grok-3-mini-fast")
+        XCTAssertFalse(models[1].isDefault)
+    }
+
+    func testTranslationModelInfo_MacOS() {
+        let models = TranslationProvider.macOS.availableModels
+        XCTAssertEqual(models.count, 1)
+        XCTAssertEqual(models[0].id, "system")
+        XCTAssertTrue(models[0].isDefault)
+    }
+
+    func testTranslationProvider_DefaultModelId() {
+        XCTAssertEqual(TranslationProvider.openAI.defaultModelId, "gpt-5-nano")
+        XCTAssertEqual(TranslationProvider.gemini.defaultModelId, "gemini-3-flash-preview")
+        XCTAssertEqual(TranslationProvider.grok.defaultModelId, "grok-3-fast")
+        XCTAssertEqual(TranslationProvider.macOS.defaultModelId, "system")
+    }
+
+    @MainActor
+    func testTranslationFactory_MakeService_WithModel() {
+        let service = TranslationFactory.makeService(for: .openAI, model: "gpt-5.2")
+        XCTAssertEqual(service.provider, .openAI)
+        if let llmService = service as? LLMTranslation {
+            XCTAssertEqual(llmService.model, "gpt-5.2")
+        } else {
+            XCTFail("Expected LLMTranslation instance")
+        }
+    }
+
+    @MainActor
+    func testTranslationFactory_MakeService_DefaultModel() {
+        let service = TranslationFactory.makeService(for: .gemini)
+        if let llmService = service as? LLMTranslation {
+            XCTAssertEqual(llmService.model, "gemini-3-flash-preview")
+        } else {
+            XCTFail("Expected LLMTranslation instance")
+        }
+    }
+
     // MARK: - TranslationState Tests
 
     func testTranslationState_Equatable() {

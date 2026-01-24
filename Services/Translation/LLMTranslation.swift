@@ -5,12 +5,14 @@ import NaturalLanguage
 @MainActor
 final class LLMTranslation: TranslationServiceProtocol {
     let provider: TranslationProvider
+    let model: String
     private var currentTask: Task<TranslationResult, Error>?
     private let languageRecognizer = NLLanguageRecognizer()
 
-    init(provider: TranslationProvider) {
+    init(provider: TranslationProvider, model: String? = nil) {
         precondition(provider == .openAI || provider == .gemini || provider == .grok, "LLMTranslation only supports OpenAI, Gemini, and Grok")
         self.provider = provider
+        self.model = model ?? provider.defaultModelId
     }
 
     func translate(
@@ -131,18 +133,31 @@ final class LLMTranslation: TranslationServiceProtocol {
         apiKey: String
     ) async throws -> String {
         let endpoint = "https://api.openai.com/v1/chat/completions"
-        let model = "gpt-4o-mini"
 
         let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
 
-        let requestBody: [String: Any] = [
-            "model": model,
+        var requestBody: [String: Any] = [
+            "model": self.model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": text]
-            ],
-            "temperature": 0.3
+            ]
         ]
+
+        if self.model.hasPrefix("gpt-5") {
+            // GPT-5 family: no temperature support, use reasoning_effort instead
+            // gpt-5.2: supports "none" (default is already "none")
+            // gpt-5, gpt-5-mini, gpt-5-nano: lowest is "minimal"
+            if self.model.contains("5.") {
+                // gpt-5.1, gpt-5.2 etc. support "none"
+                requestBody["reasoning_effort"] = "none"
+            } else {
+                // gpt-5, gpt-5-mini, gpt-5-nano: lowest is "minimal"
+                requestBody["reasoning_effort"] = "minimal"
+            }
+        } else {
+            requestBody["temperature"] = 0.3
+        }
 
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "POST"
@@ -152,7 +167,7 @@ final class LLMTranslation: TranslationServiceProtocol {
         request.timeoutInterval = 60
 
         #if DEBUG
-        print("OpenAI Translation: Sending request...")
+        print("OpenAI Translation: Sending request with model=\(self.model)...")
         #endif
 
         let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "OpenAI")
@@ -194,9 +209,7 @@ final class LLMTranslation: TranslationServiceProtocol {
         sourceLanguage: LanguageCode?,
         apiKey: String
     ) async throws -> String {
-        // Use gemini-2.0-flash-001 for text generation (stable model)
-        let model = "gemini-2.0-flash-001"
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent"
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(self.model):generateContent"
 
         let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
 
@@ -221,7 +234,7 @@ final class LLMTranslation: TranslationServiceProtocol {
         request.timeoutInterval = 60
 
         #if DEBUG
-        print("Gemini Translation: Sending request to \(endpoint)...")
+        print("Gemini Translation: Sending request with model=\(self.model)...")
         #endif
 
         let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "Gemini")
@@ -265,12 +278,11 @@ final class LLMTranslation: TranslationServiceProtocol {
     ) async throws -> String {
         // Grok uses OpenAI-compatible API format
         let endpoint = "https://api.x.ai/v1/chat/completions"
-        let model = "grok-3-fast"
 
         let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
 
         let requestBody: [String: Any] = [
-            "model": model,
+            "model": self.model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": text]
@@ -286,7 +298,7 @@ final class LLMTranslation: TranslationServiceProtocol {
         request.timeoutInterval = 60
 
         #if DEBUG
-        print("Grok Translation: Sending request...")
+        print("Grok Translation: Sending request with model=\(self.model)...")
         #endif
 
         let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "Grok")

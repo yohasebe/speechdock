@@ -68,7 +68,7 @@ protocol TranslationServiceProtocol: AnyObject {
 /// Factory for creating translation services
 @MainActor
 enum TranslationFactory {
-    static func makeService(for provider: TranslationProvider) -> TranslationServiceProtocol {
+    static func makeService(for provider: TranslationProvider, model: String? = nil) -> TranslationServiceProtocol {
         switch provider {
         case .macOS:
             // macOS Translation direct API is available starting macOS 26
@@ -82,11 +82,11 @@ enum TranslationFactory {
             return MacOSTranslationFallback()
             #endif
         case .openAI:
-            return LLMTranslation(provider: .openAI)
+            return LLMTranslation(provider: .openAI, model: model)
         case .gemini:
-            return LLMTranslation(provider: .gemini)
+            return LLMTranslation(provider: .gemini, model: model)
         case .grok:
-            return LLMTranslation(provider: .grok)
+            return LLMTranslation(provider: .grok, model: model)
         }
     }
 

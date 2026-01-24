@@ -1,5 +1,12 @@
 import Foundation
 
+/// Model information for translation providers
+struct TranslationModelInfo: Identifiable {
+    let id: String       // Model ID used in API calls
+    let name: String     // Display name
+    let isDefault: Bool  // Whether this is the default model for the provider
+}
+
 /// Translation service provider
 enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
     case macOS = "macOS"
@@ -37,14 +44,43 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         self == .macOS
     }
 
-    /// Model name used for translation
+    /// Default model name used for translation
     var modelName: String {
         switch self {
         case .macOS: return "System"
-        case .openAI: return "gpt-4o-mini"
-        case .gemini: return "gemini-2.0-flash-001"
+        case .openAI: return "gpt-5-nano"
+        case .gemini: return "gemini-3-flash-preview"
         case .grok: return "grok-3-fast"
         }
+    }
+
+    /// Available models for this provider
+    var availableModels: [TranslationModelInfo] {
+        switch self {
+        case .macOS:
+            return [TranslationModelInfo(id: "system", name: "System", isDefault: true)]
+        case .openAI:
+            return [
+                TranslationModelInfo(id: "gpt-5-nano", name: "GPT-5 Nano", isDefault: true),
+                TranslationModelInfo(id: "gpt-5-mini", name: "GPT-5 Mini", isDefault: false),
+                TranslationModelInfo(id: "gpt-5.2", name: "GPT-5.2", isDefault: false)
+            ]
+        case .gemini:
+            return [
+                TranslationModelInfo(id: "gemini-3-flash-preview", name: "Gemini 3 Flash", isDefault: true),
+                TranslationModelInfo(id: "gemini-3-pro-preview", name: "Gemini 3 Pro", isDefault: false)
+            ]
+        case .grok:
+            return [
+                TranslationModelInfo(id: "grok-3-fast", name: "Grok 3 Fast", isDefault: true),
+                TranslationModelInfo(id: "grok-3-mini-fast", name: "Grok 3 Mini Fast", isDefault: false)
+            ]
+        }
+    }
+
+    /// Default model ID for this provider
+    var defaultModelId: String {
+        availableModels.first(where: { $0.isDefault })?.id ?? modelName
     }
 
     /// Description for UI
@@ -57,9 +93,9 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
                 return "Requires macOS 26+"
             }
         case .openAI:
-            return "GPT-4o-mini, high quality"
+            return "GPT-5 Nano (default), high quality"
         case .gemini:
-            return "Gemini 2.0 Flash, high quality"
+            return "Gemini 3 Flash (default), high quality"
         case .grok:
             return "Grok 3 Fast, high quality"
         }

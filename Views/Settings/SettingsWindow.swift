@@ -117,6 +117,13 @@ struct GeneralSettingsView: View {
                 Text("Text-to-Speech")
             }
 
+            // Translation Section
+            Section {
+                TranslationModelSettings(appState: appState)
+            } header: {
+                Text("Translation")
+            }
+
             // Appearance Section
             Section {
                 PanelAppearanceSettings(appState: appState)
@@ -195,6 +202,7 @@ struct ShortcutSettingsView: View {
     @State private var ttsKeyCombo: KeyCombo = .ttsDefault
     @State private var ocrKeyCombo: KeyCombo = .ocrDefault
     @State private var subtitleKeyCombo: KeyCombo = .subtitleDefault
+    @State private var shortcutHUDKeyCombo: KeyCombo = .shortcutHUDDefault
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     var body: some View {
@@ -219,6 +227,11 @@ struct ShortcutSettingsView: View {
                     ShortcutRecorderView(title: "Toggle Subtitle Mode", keyCombo: $subtitleKeyCombo)
                         .onChange(of: subtitleKeyCombo) { _, newValue in
                             appState.hotKeyService?.subtitleKeyCombo = newValue
+                        }
+
+                    ShortcutRecorderView(title: "Show Shortcuts", keyCombo: $shortcutHUDKeyCombo)
+                        .onChange(of: shortcutHUDKeyCombo) { _, newValue in
+                            appState.hotKeyService?.shortcutHUDKeyCombo = newValue
                         }
                 } header: {
                     Text("Global Hotkeys")
@@ -273,10 +286,12 @@ struct ShortcutSettingsView: View {
                         ttsKeyCombo = .ttsDefault
                         ocrKeyCombo = .ocrDefault
                         subtitleKeyCombo = .subtitleDefault
+                        shortcutHUDKeyCombo = .shortcutHUDDefault
                         appState.hotKeyService?.sttKeyCombo = .sttDefault
                         appState.hotKeyService?.ttsKeyCombo = .ttsDefault
                         appState.hotKeyService?.ocrKeyCombo = .ocrDefault
                         appState.hotKeyService?.subtitleKeyCombo = .subtitleDefault
+                        appState.hotKeyService?.shortcutHUDKeyCombo = .shortcutHUDDefault
                     }
 
                     Button("Reset Panel Shortcuts") {
@@ -294,6 +309,7 @@ struct ShortcutSettingsView: View {
                 ttsKeyCombo = service.ttsKeyCombo
                 ocrKeyCombo = service.ocrKeyCombo
                 subtitleKeyCombo = service.subtitleKeyCombo
+                shortcutHUDKeyCombo = service.shortcutHUDKeyCombo
             }
         }
     }
@@ -1187,6 +1203,41 @@ struct TTSPanelBehaviorSettings: View {
             }
         }
         .padding(.top, 4)
+    }
+}
+
+/// Translation provider and model settings
+struct TranslationModelSettings: View {
+    @Bindable var appState: AppState
+
+    /// Available translation providers (only those with API keys or not requiring them)
+    private var availableProviders: [TranslationProvider] {
+        TranslationProvider.allCases.filter { provider in
+            if !provider.requiresAPIKey { return provider.isAvailable }
+            guard let envKey = provider.envKeyName else { return false }
+            let apiKey = APIKeyManager.shared.getAPIKey(for: envKey)
+            return apiKey != nil && !apiKey!.isEmpty
+        }
+    }
+
+    var body: some View {
+        Picker("Provider", selection: $appState.translationProvider) {
+            ForEach(availableProviders) { provider in
+                Text(provider.displayName).tag(provider)
+            }
+        }
+
+        Text(appState.translationProvider.description)
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+        if appState.translationProvider != .macOS {
+            Picker("Model", selection: $appState.selectedTranslationModel) {
+                ForEach(appState.translationProvider.availableModels) { model in
+                    Text(model.name).tag(model.id)
+                }
+            }
+        }
     }
 }
 

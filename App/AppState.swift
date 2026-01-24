@@ -162,6 +162,17 @@ final class AppState {
     var translationProvider: TranslationProvider = .macOS {
         didSet {
             guard !isLoadingPreferences else { return }
+            // Reset model if current selection is not available for the new provider
+            let availableIds = translationProvider.availableModels.map { $0.id }
+            if !availableIds.contains(selectedTranslationModel) {
+                selectedTranslationModel = translationProvider.defaultModelId
+            }
+            savePreferences()
+        }
+    }
+    var selectedTranslationModel: String = "system" {
+        didSet {
+            guard !isLoadingPreferences else { return }
             savePreferences()
         }
     }
@@ -549,6 +560,21 @@ final class AppState {
     /// Toggle subtitle mode on/off
     func toggleSubtitleMode() {
         subtitleModeEnabled.toggle()
+    }
+
+    /// Toggle shortcut HUD panel
+    func toggleShortcutHUD() {
+        let actions: [String: () -> Void] = [
+            "toggleSTT": { [weak self] in self?.toggleRecording() },
+            "toggleTTS": { [weak self] in self?.toggleTTS() },
+            "ocr": { [weak self] in self?.startOCR() },
+            "subtitle": { [weak self] in self?.toggleSubtitleMode() },
+        ]
+        ShortcutHUDManager.shared.toggle(
+            hotKeyService: hotKeyService,
+            shortcutManager: ShortcutSettingsManager.shared,
+            globalActions: actions
+        )
     }
 
     /// Update subtitle overlay visibility based on current state
@@ -1327,7 +1353,7 @@ final class AppState {
         #endif
 
         translationState = .translating
-        translationService = TranslationFactory.makeService(for: provider)
+        translationService = TranslationFactory.makeService(for: provider, model: selectedTranslationModel)
 
         translationTask = Task { @MainActor in
             do {
@@ -1739,6 +1765,16 @@ final class AppState {
            let provider = TranslationProvider(rawValue: translationProviderRaw) {
             translationProvider = provider
         }
+        if let savedModel = UserDefaults.standard.string(forKey: "selectedTranslationModel") {
+            let availableIds = translationProvider.availableModels.map { $0.id }
+            if availableIds.contains(savedModel) {
+                selectedTranslationModel = savedModel
+            } else {
+                selectedTranslationModel = translationProvider.defaultModelId
+            }
+        } else {
+            selectedTranslationModel = translationProvider.defaultModelId
+        }
         if let translationTargetRaw = UserDefaults.standard.string(forKey: "translationTargetLanguage"),
            let language = LanguageCode(rawValue: translationTargetRaw) {
             translationTargetLanguage = language
@@ -1843,6 +1879,7 @@ final class AppState {
 
         // Translation settings
         UserDefaults.standard.set(translationProvider.rawValue, forKey: "translationProvider")
+        UserDefaults.standard.set(selectedTranslationModel, forKey: "selectedTranslationModel")
         UserDefaults.standard.set(translationTargetLanguage.rawValue, forKey: "translationTargetLanguage")
 
         // Note: selectedAudioAppBundleID is not saved - it's session-only
@@ -1940,6 +1977,12 @@ extension AppState: HotKeyServiceDelegate {
     nonisolated func subtitleHotKeyPressed() {
         Task { @MainActor in
             self.toggleSubtitleMode()
+        }
+    }
+
+    nonisolated func shortcutHUDHotKeyPressed() {
+        Task { @MainActor in
+            self.toggleShortcutHUD()
         }
     }
 }

@@ -34,19 +34,9 @@ macOS メニューバー常駐型の音声認識（STT）・音声合成（TTS�
 - `ElevenLabsTTS.swift` - 複数モデル対応
 - `GrokTTS.swift` - Grok Voice
 
-### 翻訳プロバイダ (`Services/Translation/`)
-| プロバイダ | ファイル | 特徴 |
-|-----------|---------|------|
-| macOS | `MacOSTranslation.swift` | オンデバイス、APIキー不要、macOS 26+ |
-| OpenAI | `LLMTranslation.swift` | GPT-4o-mini、高品質 |
-| Gemini | `LLMTranslation.swift` | Gemini 2.0 Flash、高品質 |
-| Grok | `LLMTranslation.swift` | Grok 3 Fast、高品質 |
-
-**プロバイダ選択ロジック**:
-1. macOS Translation (macOS 26+、対応言語の場合)
-2. OpenAI (APIキーがある場合)
-3. Gemini (APIキーがある場合)
-4. Grok (APIキーがある場合)
+### 翻訳 (`Services/Translation/`)
+デフォルトはmacOSオンデバイス翻訳（`MacOSTranslation.swift`、APIキー不要、macOS 26+）。
+追加のAPIキーがあれば外部LLMプロバイダも利用可能（詳細は後述の「翻訳の発展設定」を参照）。
 
 ### ウィンドウ管理
 - `FloatingWindowManager.swift` - STT/TTSパネル管理（排他制御）
@@ -344,16 +334,11 @@ HStack(spacing: 4) {
 
 ### 翻訳機能 (2026-01-22)
 テキストエリアの左下にフローティング翻訳コントロールを配置。
+デフォルトはmacOSオンデバイス翻訳（APIキー不要、~18言語対応）。
 
-**コントロール構成**:
+**基本操作**:
 - `[🌐 日本語 ▼]` - 言語セレクター（選択すると翻訳実行）
 - `[🌐 Original ◀]` - 翻訳表示中に表示（オリジナルに戻す）
-- `[⚡]` - プロバイダ切り替え（macOS/OpenAI/Gemini）
-
-**対応プロバイダ**:
-- **macOS**: オンデバイス翻訳（macOS 26+、APIキー不要、~18言語）
-- **OpenAI**: GPT-4o-mini（APIキー必要、100+言語）
-- **Gemini**: Gemini 2.0 Flash（APIキー必要、100+言語）
 
 **状態フロー**:
 ```
@@ -368,14 +353,34 @@ idle → translating → translated → idle (Original押下)
 - テキストが3文字以上ある場合のみ表示
 - 録音中/文字起こし中/TTS再生中は非表示
 
-**プロバイダ自動同期** (2026-01-22):
-パネル切り替え時に翻訳プロバイダをSTT/TTSプロバイダに合わせて自動同期:
+#### 翻訳の発展設定
+
+APIキーを設定すると外部LLMプロバイダが利用可能になり、100+言語への翻訳やより高品質な翻訳が可能。
+
+**プロバイダとモデル** (Settings > General > Translation で変更):
+| プロバイダ | モデル | 備考 |
+|-----------|--------|------|
+| macOS (デフォルト) | System | オンデバイス、APIキー不要 |
+| OpenAI | GPT-5 Nano (default), GPT-5 Mini, GPT-5.2 | APIキー必要 |
+| Gemini | Gemini 3 Flash (default), Gemini 3 Pro | APIキー必要 |
+| Grok | Grok 3 Fast (default), Grok 3 Mini Fast | APIキー必要 |
+
+**パネル内プロバイダ切り替え**:
+- `[⚡]` ボタンで即時切り替え可能
+
+**プロバイダ自動同期**:
+パネル切り替え時にSTT/TTSプロバイダに合わせて翻訳プロバイダを自動同期:
 | STT/TTSプロバイダ | 翻訳プロバイダ |
 |------------------|---------------|
 | OpenAI | OpenAI |
 | Gemini | Gemini |
 | Grok | Grok |
 | ElevenLabs/macOS | macOS |
+
+**GPT-5系の技術的制約**:
+- `temperature`パラメータ非対応（推論モデルのため）
+- `reasoning_effort`で推論量を制御: `gpt-5-nano/mini` → `"minimal"`, `gpt-5.2` → `"none"`
+- これにより翻訳タスクでのレスポンスを高速化
 
 実装: `syncTranslationProviderForSTT()`, `syncTranslationProviderForTTS()` (AppState.swift)
 
