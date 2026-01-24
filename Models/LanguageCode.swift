@@ -97,6 +97,51 @@ enum LanguageCode: String, CaseIterable, Identifiable {
         return mapping[self]
     }
 
+    /// English name for the language (used for AppleScript lookups)
+    var englishName: String {
+        switch self {
+        case .auto: return "Auto"
+        case .english: return "English"
+        case .japanese: return "Japanese"
+        case .chinese: return "Chinese"
+        case .korean: return "Korean"
+        case .spanish: return "Spanish"
+        case .french: return "French"
+        case .german: return "German"
+        case .italian: return "Italian"
+        case .portuguese: return "Portuguese"
+        case .russian: return "Russian"
+        case .arabic: return "Arabic"
+        case .hindi: return "Hindi"
+        case .dutch: return "Dutch"
+        case .polish: return "Polish"
+        case .turkish: return "Turkish"
+        case .indonesian: return "Indonesian"
+        case .vietnamese: return "Vietnamese"
+        case .thai: return "Thai"
+        case .bengali: return "Bengali"
+        case .gujarati: return "Gujarati"
+        case .kannada: return "Kannada"
+        case .malayalam: return "Malayalam"
+        case .marathi: return "Marathi"
+        case .tamil: return "Tamil"
+        case .telugu: return "Telugu"
+        }
+    }
+
+    /// Look up a LanguageCode by name (case-insensitive, matches English names, native names, and raw codes)
+    static func fromName(_ name: String) -> LanguageCode? {
+        let lowered = name.lowercased()
+        for lang in LanguageCode.allCases where lang != .auto {
+            if lang.englishName.lowercased() == lowered
+                || lang.displayName.lowercased() == lowered
+                || lang.rawValue == lowered {
+                return lang
+            }
+        }
+        return nil
+    }
+
     /// Convert to ElevenLabs TTS language code (ISO 639-2/3 format)
     func toElevenLabsTTSCode() -> String? {
         guard self != .auto else { return nil }

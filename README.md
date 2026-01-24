@@ -12,6 +12,14 @@ A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) w
 
 English | [日本語](README_ja.md)
 
+## Documentation
+
+| | |
+|---|---|
+| **[Basic Features](docs/index.md)** | Getting started, macOS native STT/TTS, OCR, subtitles, shortcuts |
+| **[Advanced Features](docs/advanced.md)** | Cloud providers, API keys, file transcription, translation |
+| **[AppleScript Automation](docs/applescript.md)** | Scripting commands, properties, examples, error codes |
+
 ## Features
 
 ### Speech-to-Text (STT)
@@ -82,6 +90,8 @@ Toggle with hotkey (`Ctrl + Option + S` by default) or from the STT panel/menu b
 - Voice and model selection per provider
 - VAD (Voice Activity Detection) auto-stop for hands-free recording
 - Text replacement rules for STT output correction
+- Translation (macOS on-device or cloud LLMs)
+- [AppleScript support](docs/applescript.md) for automation
 - Automatic updates via Sparkle
 - Launch at login option
 

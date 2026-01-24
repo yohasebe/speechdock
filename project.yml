@@ -28,6 +28,8 @@ targets:
       - path: Utilities
       - path: Resources/Assets.xcassets
         buildPhase: resources
+      - path: Resources/SpeechDock.sdef
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app

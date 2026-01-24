@@ -33,6 +33,12 @@
     <key>NSHighResolutionCapable</key>
     <true/>
 
+    <!-- AppleScript Support -->
+    <key>NSAppleScriptEnabled</key>
+    <true/>
+    <key>OSAScriptingDefinition</key>
+    <string>SpeechDock.sdef</string>
+
     <!-- Sparkle Auto-Update Configuration -->
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/yohasebe/speechdock/main/appcast.xml</string>

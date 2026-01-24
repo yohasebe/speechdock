@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dictionary SYSTEM "file://localhost/System/Library/DTDs/sdef.dtd">
+<dictionary title="SpeechDock Terminology">
+    <suite name="SpeechDock Suite" code="SDck" description="Commands for controlling SpeechDock text-to-speech, transcription, and translation.">
+
+        <!-- Classes -->
+        <class name="application" code="capp" description="The SpeechDock application.">
+            <cocoa class="NSApplication"/>
+            <property name="tts provider" code="TTSp" type="text" access="rw" description="The current TTS provider (macOS, OpenAI, Gemini, ElevenLabs, Grok).">
+                <cocoa key="scriptTTSProvider"/>
+            </property>
+            <property name="tts voice" code="TTSv" type="text" access="rw" description="The current TTS voice name.">
+                <cocoa key="scriptTTSVoice"/>
+            </property>
+            <property name="tts speed" code="TTSs" type="real" access="rw" description="The TTS playback speed (0.25 to 4.0, default 1.0).">
+                <cocoa key="scriptTTSSpeed"/>
+            </property>
+            <property name="stt provider" code="STTp" type="text" access="rw" description="The current STT provider (macOS, OpenAI, Gemini, ElevenLabs, Grok).">
+                <cocoa key="scriptSTTProvider"/>
+            </property>
+            <property name="translation provider" code="TrPv" type="text" access="rw" description="The current translation provider (macOS, OpenAI, Gemini, Grok).">
+                <cocoa key="scriptTranslationProvider"/>
+            </property>
+            <property name="is speaking" code="IsSp" type="boolean" access="r" description="Whether TTS is currently speaking.">
+                <cocoa key="scriptIsSpeaking"/>
+            </property>
+            <property name="is recording" code="IsRc" type="boolean" access="r" description="Whether STT is currently recording.">
+                <cocoa key="scriptIsRecording"/>
+            </property>
+        </class>
+
+        <!-- TTS Commands -->
+        <command name="speak text" code="SDckSpTx" description="Speak the given text using the current TTS provider and voice.">
+            <cocoa class="SpeechDock.SpeakTextCommand"/>
+            <direct-parameter type="text" description="The text to speak."/>
+        </command>
+
+        <command name="stop speaking" code="SDckStSp" description="Stop the current TTS playback.">
+            <cocoa class="SpeechDock.StopSpeakingCommand"/>
+        </command>
+
+        <command name="pause speaking" code="SDckPaSp" description="Pause the current TTS playback.">
+            <cocoa class="SpeechDock.PauseSpeakingCommand"/>
+        </command>
+
+        <command name="resume speaking" code="SDckReSp" description="Resume paused TTS playback.">
+            <cocoa class="SpeechDock.ResumeSpeakingCommand"/>
+        </command>
+
+        <command name="save audio" code="SDckSvAu" description="Synthesize text to an audio file using the current TTS provider.">
+            <cocoa class="SpeechDock.SaveAudioCommand"/>
+            <direct-parameter type="text" description="The text to synthesize."/>
+            <parameter name="to file" code="SvPa" type="text" description="The file path to save the audio to.">
+                <cocoa key="toFile"/>
+            </parameter>
+            <result type="text" description="The path of the saved audio file."/>
+        </command>
+
+        <!-- Translation Command -->
+        <command name="translate" code="SDckTrTx" description="Translate text to the specified language using the current translation provider.">
+            <cocoa class="SpeechDock.TranslateCommand"/>
+            <direct-parameter type="text" description="The text to translate."/>
+            <parameter name="to" code="TrTo" type="text" description="The target language name (e.g. Japanese, French, German).">
+                <cocoa key="toLanguage"/>
+            </parameter>
+            <result type="text" description="The translated text."/>
+        </command>
+
+        <!-- Transcription Command -->
+        <command name="transcribe file" code="SDckTrFi" description="Transcribe an audio file using the current STT provider.">
+            <cocoa class="SpeechDock.TranscribeFileCommand"/>
+            <direct-parameter type="text" description="The POSIX path of the audio file to transcribe."/>
+            <result type="text" description="The transcribed text."/>
+        </command>
+
+        <!-- Clipboard Commands -->
+        <command name="copy to clipboard" code="SDckCpCl" description="Copy the given text to the system clipboard.">
+            <cocoa class="SpeechDock.CopyToClipboardCommand"/>
+            <direct-parameter type="text" description="The text to copy."/>
+        </command>
+
+        <command name="paste text" code="SDckPsTx" description="Paste the given text into the frontmost application.">
+            <cocoa class="SpeechDock.PasteTextCommand"/>
+            <direct-parameter type="text" description="The text to paste."/>
+        </command>
+
+    </suite>
+</dictionary>

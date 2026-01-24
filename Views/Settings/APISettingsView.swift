@@ -18,7 +18,9 @@ struct APIKeySection: View {
     @State private var apiKey: String = ""
     @State private var showKey: Bool = false
     @State private var isSaving: Bool = false
+    @State private var isValidating: Bool = false
     @State private var saveMessage: String?
+    @State private var saveMessageColor: Color = .green
 
     private let apiKeyManager = APIKeyManager.shared
 
@@ -47,16 +49,24 @@ struct APIKeySection: View {
 
                     Spacer()
 
-                    if let message = saveMessage {
+                    if isValidating {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Validating...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else if let message = saveMessage {
                         Text(message)
                             .font(.caption)
-                            .foregroundColor(message.contains("Error") ? .red : .green)
+                            .foregroundColor(saveMessageColor)
                     }
 
                     Button("Save to Keychain") {
-                        saveAPIKey()
+                        Task {
+                            await saveAPIKey()
+                        }
                     }
-                    .disabled(apiKey.isEmpty || isSaving)
+                    .disabled(apiKey.isEmpty || isSaving || isValidating)
 
                     if apiKeyManager.apiKeySource(for: provider) == .keychain {
                         Button("Remove") {
@@ -102,21 +112,46 @@ struct APIKeySection: View {
         }
     }
 
-    private func saveAPIKey() {
-        isSaving = true
+    private func saveAPIKey() async {
+        isValidating = true
         saveMessage = nil
 
-        do {
-            try apiKeyManager.setAPIKey(apiKey, for: provider)
-            saveMessage = "Saved!"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                saveMessage = nil
+        let result = await APIKeyValidator.validate(key: apiKey, for: provider)
+        isValidating = false
+
+        switch result {
+        case .valid:
+            isSaving = true
+            do {
+                try apiKeyManager.setAPIKey(apiKey, for: provider)
+                saveMessageColor = .green
+                saveMessage = "Valid ✓ Saved!"
+            } catch {
+                saveMessageColor = .red
+                saveMessage = "Error: \(error.localizedDescription)"
             }
-        } catch {
-            saveMessage = "Error: \(error.localizedDescription)"
+            isSaving = false
+
+        case .invalid(let reason):
+            saveMessageColor = .red
+            saveMessage = reason
+
+        case .networkError:
+            isSaving = true
+            do {
+                try apiKeyManager.setAPIKey(apiKey, for: provider)
+                saveMessageColor = .orange
+                saveMessage = "Could not verify (saved anyway)"
+            } catch {
+                saveMessageColor = .red
+                saveMessage = "Error: \(error.localizedDescription)"
+            }
+            isSaving = false
         }
 
-        isSaving = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            saveMessage = nil
+        }
     }
 
     private func removeAPIKey() {

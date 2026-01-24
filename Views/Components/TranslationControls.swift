@@ -59,6 +59,11 @@ struct TranslationControls: View {
                 // Provider indicator (shows current provider)
                 if !isTranslating {
                     providerIndicator
+
+                    // Model selector (only for non-macOS providers)
+                    if !isMacOSProvider {
+                        modelIndicator
+                    }
                 }
             }
             .padding(.horizontal, 4)
@@ -235,6 +240,35 @@ struct TranslationControls: View {
         }
         .menuStyle(.borderlessButton)
         .help("Translation provider: \(provider.displayName)")
+    }
+
+    /// Model selector (text-based menu for non-macOS providers)
+    @ViewBuilder
+    private var modelIndicator: some View {
+        let models = appState.translationProvider.availableModels
+        let currentModel = models.first(where: { $0.id == appState.selectedTranslationModel })
+            ?? models.first(where: { $0.isDefault })
+
+        Menu {
+            ForEach(models) { model in
+                Button(action: {
+                    appState.selectedTranslationModel = model.id
+                }) {
+                    HStack {
+                        Text(model.name)
+                        if model.id == appState.selectedTranslationModel {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            Text(currentModel?.name ?? "")
+                .font(.system(size: 10))
+                .foregroundColor(.secondary.opacity(0.7))
+        }
+        .menuStyle(.borderlessButton)
+        .help("Translation model: \(currentModel?.name ?? "")")
     }
 
     /// Get the effective provider (considering API key availability)
