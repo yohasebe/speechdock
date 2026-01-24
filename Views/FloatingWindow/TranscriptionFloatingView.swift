@@ -1190,11 +1190,11 @@ struct TranscriptionFloatingView: View {
         case .processing:
             return "Processing..."
         case .result:
-            return "Ready"  // User can continue recording or paste
+            return "Speech-to-Text"
         case .error:
             return "Error"
         case .idle:
-            return "Ready"
+            return "Speech-to-Text"
         }
     }
 

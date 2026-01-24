@@ -9,6 +9,7 @@ protocol HotKeyServiceDelegate: AnyObject {
     func ttsHotKeyPressed()
     func ocrHotKeyPressed()
     func subtitleHotKeyPressed()
+    func shortcutHUDHotKeyPressed()
 }
 
 final class HotKeyService {
@@ -16,6 +17,7 @@ final class HotKeyService {
     private var ttsHotKey: HotKey?
     private var ocrHotKey: HotKey?
     private var subtitleHotKey: HotKey?
+    private var shortcutHUDHotKey: HotKey?
     private var isLoadingShortcuts = false
 
     weak var delegate: HotKeyServiceDelegate?
@@ -52,12 +54,21 @@ final class HotKeyService {
         }
     }
 
+    var shortcutHUDKeyCombo: KeyCombo {
+        didSet {
+            guard !isLoadingShortcuts else { return }
+            saveShortcuts()
+            registerShortcutHUDHotKey()
+        }
+    }
+
     init() {
         // Load saved shortcuts or use defaults
         self.sttKeyCombo = KeyCombo.sttDefault
         self.ttsKeyCombo = KeyCombo.ttsDefault
         self.ocrKeyCombo = KeyCombo.ocrDefault
         self.subtitleKeyCombo = KeyCombo.subtitleDefault
+        self.shortcutHUDKeyCombo = KeyCombo.shortcutHUDDefault
         loadShortcuts()
     }
 
@@ -117,11 +128,24 @@ final class HotKeyService {
         }
     }
 
+    func registerShortcutHUDHotKey() {
+        shortcutHUDHotKey = nil
+
+        shortcutHUDHotKey = HotKey(key: shortcutHUDKeyCombo.key, modifiers: shortcutHUDKeyCombo.modifiers)
+        logger.info("ShortcutHUD HotKey registered: \(self.shortcutHUDKeyCombo.displayString)")
+
+        shortcutHUDHotKey?.keyDownHandler = { [weak self] in
+            logger.info("ShortcutHUD HotKey pressed!")
+            self?.delegate?.shortcutHUDHotKeyPressed()
+        }
+    }
+
     func registerAllHotKeys() {
         registerHotKey()
         registerTTSHotKey()
         registerOCRHotKey()
         registerSubtitleHotKey()
+        registerShortcutHUDHotKey()
     }
 
     func unregisterAllHotKeys() {
@@ -129,6 +153,7 @@ final class HotKeyService {
         ttsHotKey = nil
         ocrHotKey = nil
         subtitleHotKey = nil
+        shortcutHUDHotKey = nil
     }
 
     // MARK: - Persistence
@@ -166,6 +191,13 @@ final class HotKeyService {
            let key = Key(carbonKeyCode: subtitleKeyCode) {
             subtitleKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: subtitleModifiers))
         }
+
+        // Load ShortcutHUD shortcut
+        if let hudKeyCode = defaults.object(forKey: "shortcutHUDKeyCode") as? UInt32,
+           let hudModifiers = defaults.object(forKey: "shortcutHUDModifiers") as? UInt,
+           let key = Key(carbonKeyCode: hudKeyCode) {
+            shortcutHUDKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: hudModifiers))
+        }
     }
 
     private func saveShortcuts() {
@@ -186,6 +218,10 @@ final class HotKeyService {
         // Save Subtitle shortcut
         defaults.set(subtitleKeyCombo.key.carbonKeyCode, forKey: "subtitleKeyCode")
         defaults.set(subtitleKeyCombo.modifiers.rawValue, forKey: "subtitleModifiers")
+
+        // Save ShortcutHUD shortcut
+        defaults.set(shortcutHUDKeyCombo.key.carbonKeyCode, forKey: "shortcutHUDKeyCode")
+        defaults.set(shortcutHUDKeyCombo.modifiers.rawValue, forKey: "shortcutHUDModifiers")
     }
 }
 
@@ -223,6 +259,7 @@ struct KeyCombo: Equatable {
     static let ttsDefault = KeyCombo(key: .t, modifiers: [.control, .option])
     static let ocrDefault = KeyCombo(key: .o, modifiers: [.control, .option, .shift])
     static let subtitleDefault = KeyCombo(key: .s, modifiers: [.control, .option])
+    static let shortcutHUDDefault = KeyCombo(key: .slash, modifiers: [.control, .option])
 }
 
 // MARK: - Shortcut Recorder View
