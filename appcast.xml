@@ -7,14 +7,14 @@
         <language>en</language>
         <item>
             <title>Version 0.1.24</title>
-            <pubDate>Sun, 25 Jan 2026 06:47:28 +0000</pubDate>
+            <pubDate>Sun, 25 Jan 2026 09:37:07 +0000</pubDate>
             <sparkle:version>1</sparkle:version>
             <sparkle:shortVersionString>0.1.24</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/yohasebe/speechdock/releases/download/v0.1.24/SpeechDock-0.1.24.dmg"
-                sparkle:edSignature="sparkle:edSignature="+vGmvyFJvIXQO65AGwTZ020lgyaXYuEXu2QhZmug0xHC/5Br8B+m6edog7TbM4LcBo0RSLiS+/jvvluh7JiaBQ==" length="4229353""
-                length="4229353"
+                sparkle:edSignature="sparkle:edSignature="Abh112Fkz7ookeY3Xg7Rcna7zqNGSE9ZTflre6RA7fMg9ibH7q5Bxge4CPbF7//G84kXNizEw3cGM5RoYsWUDw==" length="4230639""
+                length="4230639"
                 type="application/octet-stream"/>
         </item>
     </channel>
