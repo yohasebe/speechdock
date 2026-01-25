@@ -285,6 +285,4 @@ Yoichiro Hasebe
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-For developers: See [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md) for build instructions and technical details.
+Contributions are welcome! Please open an issue or pull request on GitHub.
