@@ -573,6 +573,20 @@ final class AppState {
         }
     }
 
+    /// Toggle quick transcription (start/stop recording via floating mic button)
+    func toggleQuickTranscription() {
+        let manager = FloatingMicButtonManager.shared
+
+        // If floating mic button is not visible, show it first
+        if !showFloatingMicButton {
+            showFloatingMicButton = true
+            manager.show(appState: self)
+        }
+
+        // Toggle recording
+        manager.toggleRecording()
+    }
+
     /// Toggle shortcut HUD panel
     func toggleShortcutHUD() {
         let actions: [String: () -> Void] = [
@@ -2026,6 +2040,12 @@ extension AppState: HotKeyServiceDelegate {
     nonisolated func shortcutHUDHotKeyPressed() {
         Task { @MainActor in
             self.toggleShortcutHUD()
+        }
+    }
+
+    nonisolated func quickTranscriptionHotKeyPressed() {
+        Task { @MainActor in
+            self.toggleQuickTranscription()
         }
     }
 }

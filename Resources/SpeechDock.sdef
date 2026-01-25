@@ -27,6 +27,9 @@
             <property name="is recording" code="IsRc" type="boolean" access="r" description="Whether STT is currently recording.">
                 <cocoa key="scriptIsRecording"/>
             </property>
+            <property name="quick transcription visible" code="QTVs" type="boolean" access="rw" description="Whether the quick transcription floating button is visible.">
+                <cocoa key="scriptShowQuickTranscription"/>
+            </property>
         </class>
 
         <!-- TTS Commands -->
@@ -87,6 +90,20 @@
         <!-- UI Commands -->
         <command name="show shortcuts" code="SDckShSc" description="Show the keyboard shortcuts cheat sheet panel.">
             <cocoa class="SpeechDock.ShowShortcutsCommand"/>
+        </command>
+
+        <!-- Quick Transcription Commands -->
+        <command name="start quick transcription" code="SDckStQT" description="Start quick transcription using the floating mic button. Transcribed text is pasted when stopped.">
+            <cocoa class="SpeechDock.StartQuickTranscriptionCommand"/>
+        </command>
+
+        <command name="stop quick transcription" code="SDckSpQT" description="Stop quick transcription and return the transcribed text.">
+            <cocoa class="SpeechDock.StopQuickTranscriptionCommand"/>
+            <result type="text" description="The transcribed text, or empty if nothing was transcribed."/>
+        </command>
+
+        <command name="toggle quick transcription" code="SDckTgQT" description="Toggle quick transcription recording on/off.">
+            <cocoa class="SpeechDock.ToggleQuickTranscriptionCommand"/>
         </command>
 
     </suite>

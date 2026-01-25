@@ -134,6 +134,7 @@ struct MenuBarView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    shortcutBadge(appState.hotKeyService?.quickTranscriptionKeyCombo.displayString ?? "⌃⌥M")
                 }
                 .contentShape(Rectangle())
             }

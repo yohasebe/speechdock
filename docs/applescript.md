@@ -135,6 +135,43 @@ end tell
 
 The panel shows all available keyboard shortcuts and can be dismissed by clicking outside or pressing Escape.
 
+### start quick transcription
+
+Start quick transcription using the floating mic button. Shows the button if hidden.
+
+```applescript
+tell application "SpeechDock"
+    start quick transcription
+end tell
+```
+
+Returns error 1024 if already recording.
+
+### stop quick transcription
+
+Stop quick transcription and return the transcribed text.
+
+```applescript
+tell application "SpeechDock"
+    set result to stop quick transcription
+    -- result contains the transcribed text
+end tell
+```
+
+Returns the transcribed text, or empty if nothing was transcribed. Returns error if not currently recording.
+
+### toggle quick transcription
+
+Toggle quick transcription recording on/off.
+
+```applescript
+tell application "SpeechDock"
+    toggle quick transcription
+end tell
+```
+
+If not recording, starts recording. If recording, stops and pastes the transcribed text.
+
 ## Properties
 
 Read and write application settings via properties on the `application` object.
@@ -216,6 +253,18 @@ Whether STT is currently recording.
 tell application "SpeechDock"
     get is recording
     -- false
+end tell
+```
+
+### quick transcription visible (read/write)
+
+Whether the floating mic button for quick transcription is visible.
+
+```applescript
+tell application "SpeechDock"
+    set quick transcription visible to true  -- show button
+    get quick transcription visible
+    -- true
 end tell
 ```
 
@@ -315,6 +364,30 @@ tell application "SpeechDock"
 end tell
 ```
 
+### Quick transcription workflow
+
+```applescript
+tell application "SpeechDock"
+    -- Show the floating mic button
+    set quick transcription visible to true
+
+    -- Start recording
+    start quick transcription
+
+    -- Wait for user to finish speaking (or use a timer)
+    delay 5
+
+    -- Stop and get the transcribed text
+    set transcribedText to stop quick transcription
+
+    -- Translate and speak the result
+    if transcribedText is not "" then
+        set translated to translate transcribedText to "Japanese"
+        speak text translated
+    end if
+end tell
+```
+
 ## Error Codes
 
 All errors include a human-readable message explaining the issue and how to fix it.
@@ -350,6 +423,7 @@ All errors include a human-readable message explaining the issue and how to fix 
 | 1023 | File too large for provider |
 | 1024 | Already recording (cannot transcribe file) |
 | 1025 | Transcription failed |
+| 1026 | Not currently recording (cannot stop) |
 
 ### Translation (1030–1039)
 

@@ -41,6 +41,8 @@ macOS メニューバー常駐型の音声認識（STT）・音声合成（TTS�
 ### ウィンドウ管理
 - `FloatingWindowManager.swift` - STT/TTSパネル管理（排他制御）
 - `SubtitleOverlayManager.swift` - 字幕オーバーレイ（クリックスルー）
+- `FloatingMicButtonManager.swift` - クイック入力ボタン（常時表示、ドラッグ可能）
+- `FloatingMicTextHUD.swift` - クイック入力HUD（リアルタイム文字起こし表示）
 - `WindowLevelCoordinator.swift` - ウィンドウレベル調整
 
 ### 状態管理
@@ -191,6 +193,7 @@ STTパネルとTTSパネルは同時に開けない。一方を開くと他方�
   - "Toggle TTS Panel" - TTSパネルの開閉（Auto-speakがオンなら選択テキストを読み上げ）
   - "OCR Region to TTS" - OCR領域選択
   - "Toggle Subtitle Mode" - 字幕モード切替
+  - "Quick Transcription" (⌃⌥M) - クイック入力の開始/停止
 - パネル内ショートカット: ShortcutSettingsManager
 
 ### APIキー管理
@@ -536,6 +539,56 @@ STTパネルへの音声ファイルのドラッグ＆ドロップ、または�
 - `App/AppState.swift` - `transcribeAudioFile()`, `cancelFileTranscription()`, `openAudioFileForTranscription()`
 - `Views/FloatingWindow/TranscriptionFloatingView.swift` - ドラッグ＆ドロップUI
 - `Views/MenuBarView.swift` - メニュー項目
+
+### クイック入力機能（Floating Mic Button） (2026-01-25)
+STTパネルを開かずに音声入力を行う機能。フローティングマイクボタンとテキストHUDで構成。
+
+**コンポーネント**:
+- `FloatingMicButtonManager.swift` - ボタンウィンドウ管理
+- `FloatingMicButtonView.swift` - ボタンUI（SwiftUI）
+- `FloatingMicTextHUD.swift` - テキスト表示HUD
+
+**動作フロー**:
+1. メニューバーから「Floating Mic Button」をオンにしてボタンを表示
+2. ボタンをクリック、または⌃⌥Mで録音開始
+3. HUDにリアルタイムで文字起こしテキスト表示
+4. 再度クリック、または⌃⌥Mで録音停止
+5. 文字起こしテキストをクリップボード経由で最前面アプリにペースト
+
+**UI仕様**:
+- **ボタン**: 48pxの丸型、ドラッグで移動可能、位置は永続化
+- **HUD**: 320x120px、半透明黒背景（opacity 0.75）、ドラッグで移動可能、位置は永続化
+- **録音中表示**: ボタンが赤く変化、パルスアニメーション、HUDに「Recording (⌃⌥M to stop)」表示
+- **ツールチップ**: 「Click or ⌃⌥M to start dictation」
+
+**技術詳細**:
+- `NonActivatingWindow` (canBecomeKey/canBecomeMain = false) でフォーカス奪取を防止
+- `NSWorkspace.didActivateApplicationNotification` で最前面アプリを追跡
+- ドラッグは `NSEvent.mouseLocation` で直接追跡（SwiftUIのDragGestureの座標系問題を回避）
+- HUDは `ScrollViewReader` + 自動スクロールでテキスト更新時に最下部へ
+
+**AppleScript対応**:
+```applescript
+-- プロパティ
+tell application "SpeechDock"
+    quick transcription visible -- ボタン表示状態 (r/w)
+end tell
+
+-- コマンド
+tell application "SpeechDock"
+    start quick transcription  -- 録音開始
+    stop quick transcription   -- 録音停止（テキストを返す）
+    toggle quick transcription -- 開始/停止トグル
+end tell
+```
+
+**実装ファイル**:
+- `Views/FloatingMicButton/FloatingMicButtonManager.swift`
+- `Views/FloatingMicButton/FloatingMicButtonView.swift`
+- `Views/FloatingMicButton/FloatingMicTextHUD.swift`
+- `Services/AppleScript/SpeechDockCommands.swift` - AppleScriptコマンド
+- `Services/AppleScript/AppleScriptBridge.swift` - AppleScriptプロパティ
+- `Resources/SpeechDock.sdef` - AppleScript辞書定義
 
 ### 改善候補
 - パネル位置の記憶と復元

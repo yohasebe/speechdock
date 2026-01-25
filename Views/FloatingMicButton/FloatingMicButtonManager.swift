@@ -1,5 +1,35 @@
 import AppKit
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.speechdock", category: "FloatingMic")
+
+// MARK: - Constants
+
+/// Shared constants for the floating mic button and HUD
+enum FloatingMicConstants {
+    /// Size of the floating mic button
+    static let buttonSize: CGFloat = 48
+
+    /// Size of the HUD window
+    static let hudWidth: CGFloat = 320
+    static let hudHeight: CGFloat = 120
+
+    /// HUD text display settings
+    static let hudLineHeight: CGFloat = 20
+    static let hudFontSize: CGFloat = 14
+    static let hudMaxLines: Int = 4
+
+    /// Margins and padding
+    static let positionMargin: CGFloat = 16
+
+    /// UserDefaults keys
+    static let buttonPositionKey = "floatingMicButtonPosition"
+    static let hudPositionKey = "floatingMicHUDPosition"
+
+    /// Notification names
+    static let transcriptionUpdatedNotification = Notification.Name("floatingMicTranscriptionUpdated")
+}
 
 /// A window that doesn't take focus when clicked
 private class NonActivatingWindow: NSWindow {
@@ -25,19 +55,51 @@ final class FloatingMicButtonManager {
     /// The app that was frontmost when recording started
     private var targetApp: NSRunningApplication?
 
-    /// Last known frontmost app (excluding SpeechDock)
+    /// Last known frontmost app (excluding SpeechDock) - persists across show/hide cycles
     private var lastFrontmostApp: NSRunningApplication?
 
     /// Observer for app activation changes
     private var appActivationObserver: Any?
 
+    /// Whether we've started global app tracking
+    private var isTrackingApps = false
+
     /// Starting window position for drag
     private var dragStartOrigin: CGPoint?
 
-    private let positionKey = "floatingMicButtonPosition"
-    private let buttonSize: CGFloat = 48
+    /// Starting mouse position for drag (in screen coordinates)
+    private var dragStartMouseLocation: CGPoint?
 
-    private init() {}
+    private let positionKey = FloatingMicConstants.buttonPositionKey
+    private let buttonSize: CGFloat = FloatingMicConstants.buttonSize
+
+    private init() {
+        // Start tracking frontmost app immediately so we always know the last non-SpeechDock app
+        startGlobalAppTracking()
+    }
+
+    /// Start tracking frontmost app globally (called once at init)
+    private func startGlobalAppTracking() {
+        guard !isTrackingApps else { return }
+        isTrackingApps = true
+
+        // Initialize with current frontmost app if it's not SpeechDock
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
+            lastFrontmostApp = frontApp
+        }
+
+        // Observe app activations to always track the last frontmost app
+        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleAppActivation(notification)
+            }
+        }
+    }
 
     // MARK: - Show/Hide
 
@@ -74,16 +136,9 @@ final class FloatingMicButtonManager {
         window.orderFrontRegardless()
 
         self.buttonWindow = window
-
-        // Start observing app activations to track the last frontmost app
-        startObservingAppActivations()
-
-        // Initialize with current frontmost app
-        updateLastFrontmostApp()
     }
 
     func hide() {
-        stopObservingAppActivations()
         saveWindowPosition()
         positionSaveTimer?.invalidate()
         positionSaveTimer = nil
@@ -94,7 +149,7 @@ final class FloatingMicButtonManager {
         buttonWindow?.orderOut(nil)
         buttonWindow = nil
         appState = nil
-        lastFrontmostApp = nil
+        // Keep lastFrontmostApp for next show()
 
         WindowLevelCoordinator.shared.reset()
     }
@@ -109,24 +164,32 @@ final class FloatingMicButtonManager {
 
     // MARK: - Window Movement
 
-    func moveWindow(by translation: CGSize) {
+    func startDragging() {
         guard let window = buttonWindow else { return }
+        dragStartOrigin = window.frame.origin
+        dragStartMouseLocation = NSEvent.mouseLocation
+    }
 
-        if dragStartOrigin == nil {
-            dragStartOrigin = window.frame.origin
-        }
+    func continueDragging() {
+        guard let window = buttonWindow,
+              let startOrigin = dragStartOrigin,
+              let startMouse = dragStartMouseLocation else { return }
 
-        guard let startOrigin = dragStartOrigin else { return }
+        let currentMouse = NSEvent.mouseLocation
+        let deltaX = currentMouse.x - startMouse.x
+        let deltaY = currentMouse.y - startMouse.y
 
         let newOrigin = CGPoint(
-            x: startOrigin.x + translation.width,
-            y: startOrigin.y - translation.height  // SwiftUI Y is inverted
+            x: startOrigin.x + deltaX,
+            y: startOrigin.y + deltaY
         )
+
         window.setFrameOrigin(newOrigin)
     }
 
     func finishMoving() {
         dragStartOrigin = nil
+        dragStartMouseLocation = nil
         debouncePositionSave()
     }
 
@@ -152,9 +215,7 @@ final class FloatingMicButtonManager {
         isUsingDirectInsertion = false
         lastInsertedPartialText = ""
 
-        #if DEBUG
-        print("FloatingMic: Starting recording, targetApp=\(targetApp?.localizedName ?? "none")")
-        #endif
+        logger.debug("Starting recording, targetApp=\(self.targetApp?.localizedName ?? "none", privacy: .public)")
 
         // Show the HUD for real-time transcription display
         if let buttonFrame = buttonWindow?.frame {
@@ -169,9 +230,7 @@ final class FloatingMicButtonManager {
         guard let appState = appState else { return }
         guard appState.isRecording else { return }
 
-        #if DEBUG
-        print("FloatingMic: Stopping recording, transcription=\(appState.currentTranscription)")
-        #endif
+        logger.debug("Stopping recording, transcription length=\(appState.currentTranscription.count)")
 
         // Stop the STT service
         appState.realtimeSTTService?.stopListening()
@@ -182,21 +241,26 @@ final class FloatingMicButtonManager {
         appState.durationTimer = nil
         appState.recordingStartTime = nil
 
-        // Hide HUD
-        FloatingMicTextHUD.shared.hide()
-
-        // Insert final text
+        // Insert final text (HUD will be hidden after insertion completes)
         let finalText = appState.currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
         if !finalText.isEmpty {
+            // Update HUD to show "Pasting..." status
+            NotificationCenter.default.post(
+                name: FloatingMicConstants.transcriptionUpdatedNotification,
+                object: finalText + "\n(Pasting...)"
+            )
             insertFinalText(finalText)
+        } else {
+            // No text to insert, hide HUD immediately
+            FloatingMicTextHUD.shared.hide()
         }
 
         // Reset state
         appState.transcriptionState = .idle
         appState.currentTranscription = ""
-        targetApp = nil
         lastInsertedPartialText = ""
         isUsingDirectInsertion = false
+        // Note: targetApp is cleared after insertion completes
     }
 
     func toggleRecording() {
@@ -215,7 +279,7 @@ final class FloatingMicButtonManager {
         // Always use HUD mode - direct insertion is unreliable across apps
         // Update the HUD display
         NotificationCenter.default.post(
-            name: .floatingMicTranscriptionUpdated,
+            name: FloatingMicConstants.transcriptionUpdatedNotification,
             object: text
         )
     }
@@ -226,7 +290,7 @@ final class FloatingMicButtonManager {
         // Update HUD with final text
         if !text.isEmpty {
             NotificationCenter.default.post(
-                name: .floatingMicTranscriptionUpdated,
+                name: FloatingMicConstants.transcriptionUpdatedNotification,
                 object: text
             )
         }
@@ -235,25 +299,52 @@ final class FloatingMicButtonManager {
     private func insertFinalText(_ text: String) {
         guard !text.isEmpty else { return }
 
-        #if DEBUG
-        print("FloatingMic: Inserting text via clipboard: \(text)")
-        #endif
+        logger.debug("Inserting text via clipboard, length=\(text.count)")
+
+        // Save clipboard state for restoration after paste
+        let savedClipboardState = ClipboardService.shared.saveClipboardState()
+        let targetAppToActivate = targetApp
+
+        // Clear targetApp early to prevent stale reference
+        targetApp = nil
 
         // Use clipboard paste
-        if let targetApp = targetApp {
+        if let targetApp = targetAppToActivate {
             // Activate target app first
-            targetApp.activate()
+            let activated = targetApp.activate()
+
+            logger.debug("Activating target app: \(targetApp.localizedName ?? "unknown", privacy: .public), success: \(activated)")
 
             // Delay to allow app activation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
                 Task {
                     await ClipboardService.shared.copyAndPaste(text)
+
+                    // Restore clipboard after a short delay (allow paste to complete)
+                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                    await MainActor.run {
+                        ClipboardService.shared.restoreClipboardState(savedClipboardState)
+                        // Hide HUD after paste completes
+                        FloatingMicTextHUD.shared.hide()
+                        logger.debug("Text insertion completed, clipboard restored")
+                    }
                 }
             }
         } else {
-            // No target app, just paste
+            logger.debug("No target app, pasting to current frontmost app")
+
+            // No target app, just paste to current frontmost
             Task {
                 await ClipboardService.shared.copyAndPaste(text)
+
+                // Restore clipboard after a short delay (allow paste to complete)
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                await MainActor.run {
+                    ClipboardService.shared.restoreClipboardState(savedClipboardState)
+                    // Hide HUD after paste completes
+                    FloatingMicTextHUD.shared.hide()
+                    logger.debug("Text insertion completed, clipboard restored")
+                }
             }
         }
     }
@@ -313,17 +404,41 @@ final class FloatingMicButtonManager {
     }
 
     private func savedFrameOrDefault() -> NSRect {
+        logger.debug("Trying to find focused element...")
+        logger.debug("lastFrontmostApp = \(self.lastFrontmostApp?.localizedName ?? "nil", privacy: .public)")
+
+        // Always try to position near the focused element of the frontmost app first
+        if let focusedRect = getFocusedElementPosition() {
+            logger.debug("Found focused element at \(focusedRect.debugDescription, privacy: .public)")
+            let result = positionNearElement(focusedRect)
+            logger.debug("Positioning button at \(result.debugDescription, privacy: .public)")
+            return result
+        }
+
+        // Fallback to saved position if focused element not found
         if let frameString = UserDefaults.standard.string(forKey: positionKey) {
             let savedFrame = NSRectFromString(frameString)
             if savedFrame.width > 0 && savedFrame.height > 0 {
-                return NSRect(
+                // Validate saved position is on a connected screen
+                let savedRect = NSRect(
                     x: savedFrame.origin.x,
                     y: savedFrame.origin.y,
                     width: buttonSize,
                     height: buttonSize
                 )
+
+                if let validatedRect = validatePositionOnConnectedScreens(savedRect) {
+                    logger.debug("Using saved position as fallback: \(validatedRect.debugDescription, privacy: .public)")
+                    return validatedRect
+                } else {
+                    logger.debug("Saved position is not on any connected screen, discarding")
+                    // Clear invalid saved position
+                    UserDefaults.standard.removeObject(forKey: positionKey)
+                }
             }
         }
+
+        logger.debug("Could not get focused element, using default position")
 
         // Default: bottom-right area of main screen
         if let screen = NSScreen.main {
@@ -339,25 +454,221 @@ final class FloatingMicButtonManager {
         return NSRect(origin: CGPoint(x: 100, y: 100), size: NSSize(width: buttonSize, height: buttonSize))
     }
 
-    // MARK: - App Activation Tracking
+    /// Get the position of the focused UI element in the frontmost app using Accessibility API
+    private func getFocusedElementPosition() -> NSRect? {
+        // Use the last known frontmost app, or find one from window list
+        let frontApp = lastFrontmostApp ?? findTopmostNonSpeechDockApp()
+        guard let frontApp = frontApp else {
+            logger.debug("No frontmost app found for positioning")
+            return nil
+        }
 
-    private func startObservingAppActivations() {
-        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor in
-                self?.handleAppActivation(notification)
+        logger.debug("Getting focused element from \(frontApp.localizedName ?? "unknown", privacy: .public)")
+
+        let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
+
+        var focusedElement: AnyObject?
+        let result = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedElement)
+
+        guard result == .success,
+              let element = focusedElement,
+              CFGetTypeID(element) == AXUIElementGetTypeID() else {
+            return nil
+        }
+
+        // Safe cast to AXUIElement
+        let axElement = element as! AXUIElement  // Safe after CFGetTypeID check
+
+        var position: AnyObject?
+        var size: AnyObject?
+
+        let posResult = AXUIElementCopyAttributeValue(axElement, kAXPositionAttribute as CFString, &position)
+        let sizeResult = AXUIElementCopyAttributeValue(axElement, kAXSizeAttribute as CFString, &size)
+
+        guard posResult == .success, sizeResult == .success else {
+            logger.debug("Could not get position/size from focused element (pos=\(posResult.rawValue), size=\(sizeResult.rawValue))")
+            return nil
+        }
+
+        // Verify AXValue types before casting
+        guard let positionValue = position,
+              let sizeValueObj = size,
+              CFGetTypeID(positionValue) == AXValueGetTypeID(),
+              CFGetTypeID(sizeValueObj) == AXValueGetTypeID() else {
+            logger.debug("Position or size is not an AXValue")
+            return nil
+        }
+
+        var point = CGPoint.zero
+        var sizeValue = CGSize.zero
+
+        guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &point),
+              AXValueGetValue(sizeValueObj as! AXValue, .cgSize, &sizeValue) else {
+            logger.debug("Could not extract CGPoint/CGSize from AXValue")
+            return nil
+        }
+
+        logger.debug("Raw focused element position (AX coords): \(point.debugDescription, privacy: .public), size: \(sizeValue.debugDescription, privacy: .public)")
+
+        // AXPosition is in screen coordinates with origin at top-left of primary screen
+        // We need to find which screen contains this element and convert to NSWindow coordinates
+
+        // Find the screen that contains this point (using AX coordinates)
+        let axPoint = point
+        var containingScreen: NSScreen?
+
+        for screen in NSScreen.screens {
+            // Convert screen frame to AX coordinates (top-left origin)
+            let primaryHeight = NSScreen.screens.first(where: { $0.frame.origin == .zero })?.frame.height ?? NSScreen.main?.frame.height ?? 0
+            let axScreenOriginY = primaryHeight - screen.frame.maxY
+            let axScreenFrame = NSRect(
+                x: screen.frame.origin.x,
+                y: axScreenOriginY,
+                width: screen.frame.width,
+                height: screen.frame.height
+            )
+
+            if axScreenFrame.contains(axPoint) {
+                containingScreen = screen
+                break
             }
         }
+
+        // Use the containing screen, or fall back to main screen
+        guard let screen = containingScreen ?? NSScreen.main ?? NSScreen.screens.first else {
+            logger.debug("No screen available for positioning")
+            return nil
+        }
+
+        logger.debug("Element is on screen: \(screen.localizedName, privacy: .public)")
+
+        // Convert from AX coordinates (top-left origin) to NS coordinates (bottom-left origin)
+        let primaryHeight = NSScreen.screens.first(where: { $0.frame.origin == .zero })?.frame.height ?? screen.frame.height
+        let nsY = primaryHeight - point.y - sizeValue.height
+
+        return NSRect(x: point.x, y: nsY, width: sizeValue.width, height: sizeValue.height)
     }
 
-    private func stopObservingAppActivations() {
-        if let observer = appActivationObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(observer)
-            appActivationObserver = nil
+    /// Calculate button position near the focused element
+    private func positionNearElement(_ elementRect: NSRect) -> NSRect {
+        // Find which screen contains the element
+        var containingScreen: NSScreen?
+        for screen in NSScreen.screens {
+            if screen.frame.intersects(elementRect) {
+                containingScreen = screen
+                break
+            }
         }
+
+        // Fall back to main screen if element not found on any screen
+        guard let screen = containingScreen ?? NSScreen.main else {
+            return NSRect(origin: CGPoint(x: 100, y: 100), size: NSSize(width: buttonSize, height: buttonSize))
+        }
+
+        let screenFrame = screen.visibleFrame
+        let margin: CGFloat = 16
+
+        logger.debug("Positioning on screen: \(screen.localizedName, privacy: .public), frame: \(screenFrame.debugDescription, privacy: .public)")
+
+        // Position to the right of the element, vertically centered
+        var x = elementRect.maxX + margin
+        var y = elementRect.midY - buttonSize / 2
+
+        // If button would go off the right edge, position to the left of the element
+        if x + buttonSize > screenFrame.maxX {
+            x = elementRect.minX - buttonSize - margin
+        }
+
+        // If still off screen (element spans full width), position at right edge
+        if x < screenFrame.minX {
+            x = screenFrame.maxX - buttonSize - margin
+        }
+
+        // Clamp Y to screen bounds
+        y = max(screenFrame.minY + margin, min(y, screenFrame.maxY - buttonSize - margin))
+
+        return NSRect(x: x, y: y, width: buttonSize, height: buttonSize)
+    }
+
+    /// Validates that a position is on a connected screen
+    /// If the position is partially off-screen, it's adjusted to fit
+    /// Returns nil if the position is completely off all screens
+    private func validatePositionOnConnectedScreens(_ rect: NSRect) -> NSRect? {
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { return nil }
+
+        // Check if the rect intersects with any connected screen
+        for screen in screens {
+            let screenFrame = screen.visibleFrame
+            if screenFrame.intersects(rect) {
+                // Adjust to keep within this screen's bounds
+                var adjusted = rect
+                let margin = FloatingMicConstants.positionMargin
+
+                if adjusted.maxX > screenFrame.maxX {
+                    adjusted.origin.x = screenFrame.maxX - adjusted.width - margin
+                }
+                if adjusted.minX < screenFrame.minX {
+                    adjusted.origin.x = screenFrame.minX + margin
+                }
+                if adjusted.maxY > screenFrame.maxY {
+                    adjusted.origin.y = screenFrame.maxY - adjusted.height - margin
+                }
+                if adjusted.minY < screenFrame.minY {
+                    adjusted.origin.y = screenFrame.minY + margin
+                }
+
+                return adjusted
+            }
+        }
+
+        // Position is not on any connected screen
+        return nil
+    }
+
+    // MARK: - App Activation Tracking
+
+    /// Find the topmost app that is not SpeechDock using the window list
+    private func findTopmostNonSpeechDockApp() -> NSRunningApplication? {
+        let myBundleId = Bundle.main.bundleIdentifier
+
+        // Get the window list ordered front to back
+        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+
+        for windowInfo in windowList {
+            // Skip windows without an owner
+            guard let ownerPID = windowInfo[kCGWindowOwnerPID as String] as? Int32 else {
+                continue
+            }
+
+            // Skip menu bar and other system windows (layer != 0)
+            if let layer = windowInfo[kCGWindowLayer as String] as? Int, layer != 0 {
+                continue
+            }
+
+            // Get the owning application
+            guard let app = NSRunningApplication(processIdentifier: ownerPID) else {
+                continue
+            }
+
+            // Skip SpeechDock
+            if app.bundleIdentifier == myBundleId {
+                continue
+            }
+
+            // Skip apps without a bundle identifier (system processes)
+            guard app.bundleIdentifier != nil else {
+                continue
+            }
+
+            logger.debug("Found topmost app from window list: \(app.localizedName ?? "unknown", privacy: .public)")
+
+            return app
+        }
+
+        return nil
     }
 
     private func handleAppActivation(_ notification: Notification) {
@@ -368,16 +679,7 @@ final class FloatingMicButtonManager {
         // Ignore our own app
         if app.bundleIdentifier != Bundle.main.bundleIdentifier {
             lastFrontmostApp = app
-            #if DEBUG
-            print("FloatingMic: Tracked frontmost app: \(app.localizedName ?? "unknown")")
-            #endif
-        }
-    }
-
-    private func updateLastFrontmostApp() {
-        let frontApp = NSWorkspace.shared.frontmostApplication
-        if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
-            lastFrontmostApp = frontApp
+            logger.debug("Tracked frontmost app: \(app.localizedName ?? "unknown", privacy: .public)")
         }
     }
 }
@@ -390,9 +692,7 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
             guard let appState = appState else { return }
             appState.currentTranscription = text
             handlePartialTranscription(text)
-            #if DEBUG
-            print("FloatingMic: Partial result: \(text)")
-            #endif
+            logger.debug("Partial result received, length=\(text.count)")
         }
     }
 
@@ -401,9 +701,7 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
             guard let appState = appState else { return }
             appState.currentTranscription = text
             handleFinalTranscription(text)
-            #if DEBUG
-            print("FloatingMic: Final result: \(text)")
-            #endif
+            logger.debug("Final result received, length=\(text.count)")
         }
     }
 
@@ -412,9 +710,7 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
             guard let appState = appState else { return }
             appState.errorMessage = error.localizedDescription
             appState.transcriptionState = .error(error.localizedDescription)
-            #if DEBUG
-            print("FloatingMic: Error: \(error.localizedDescription)")
-            #endif
+            logger.error("Error: \(error.localizedDescription, privacy: .public)")
             stopRecording()
         }
     }
@@ -422,9 +718,7 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
     nonisolated func realtimeSTT(_ service: RealtimeSTTService, didChangeListeningState isListening: Bool) {
         Task { @MainActor in
             guard let appState = appState else { return }
-            #if DEBUG
-            print("FloatingMic: Listening state changed: \(isListening)")
-            #endif
+            logger.debug("Listening state changed: \(isListening)")
             if !isListening && appState.isRecording {
                 // VAD or service stopped - finalize
                 stopRecording()

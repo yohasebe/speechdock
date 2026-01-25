@@ -172,3 +172,79 @@ class ShowShortcutsCommand: NSScriptCommand {
         return nil
     }
 }
+
+// MARK: - Start Quick Transcription Command
+
+class StartQuickTranscriptionCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        return MainActor.assumeIsolated {
+            let appState = AppState.shared
+            let manager = FloatingMicButtonManager.shared
+
+            // Check if already recording
+            if appState.isRecording {
+                setAppleScriptError(.sttAlreadyRecording,
+                    message: "Quick transcription is already recording. Use 'stop quick transcription' to stop.")
+                return nil
+            }
+
+            // Check API key if needed
+            let provider = appState.selectedRealtimeProvider
+            if provider.requiresAPIKey {
+                guard let envKeyName = provider.envKeyName,
+                      APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
+                    let envName = provider.envKeyName ?? "API_KEY"
+                    setAppleScriptError(.apiKeyNotConfigured,
+                        message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
+                    return nil
+                }
+            }
+
+            // Show floating mic button if not visible
+            if !appState.showFloatingMicButton {
+                appState.showFloatingMicButton = true
+                manager.show(appState: appState)
+            }
+
+            // Start recording
+            manager.startRecording()
+            return nil
+        }
+    }
+}
+
+// MARK: - Stop Quick Transcription Command
+
+class StopQuickTranscriptionCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        return MainActor.assumeIsolated {
+            let appState = AppState.shared
+            let manager = FloatingMicButtonManager.shared
+
+            // Check if recording
+            if !appState.isRecording {
+                setAppleScriptError(.sttNotRecording,
+                    message: "Quick transcription is not currently recording.")
+                return nil
+            }
+
+            // Stop recording
+            manager.stopRecording()
+
+            // Return the transcribed text
+            let transcribedText = appState.currentTranscription
+            return transcribedText.isEmpty ? nil : transcribedText
+        }
+    }
+}
+
+// MARK: - Toggle Quick Transcription Command
+
+class ToggleQuickTranscriptionCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            AppState.shared.toggleQuickTranscription()
+        }
+        return nil
+    }
+}

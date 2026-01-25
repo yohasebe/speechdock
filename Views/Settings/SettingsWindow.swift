@@ -203,6 +203,7 @@ struct ShortcutSettingsView: View {
     @State private var ocrKeyCombo: KeyCombo = .ocrDefault
     @State private var subtitleKeyCombo: KeyCombo = .subtitleDefault
     @State private var shortcutHUDKeyCombo: KeyCombo = .shortcutHUDDefault
+    @State private var quickTranscriptionKeyCombo: KeyCombo = .quickTranscriptionDefault
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     var body: some View {
@@ -232,6 +233,11 @@ struct ShortcutSettingsView: View {
                     ShortcutRecorderView(title: "Show Shortcuts", keyCombo: $shortcutHUDKeyCombo)
                         .onChange(of: shortcutHUDKeyCombo) { _, newValue in
                             appState.hotKeyService?.shortcutHUDKeyCombo = newValue
+                        }
+
+                    ShortcutRecorderView(title: "Quick Transcription", keyCombo: $quickTranscriptionKeyCombo)
+                        .onChange(of: quickTranscriptionKeyCombo) { _, newValue in
+                            appState.hotKeyService?.quickTranscriptionKeyCombo = newValue
                         }
                 } header: {
                     Text("Global Hotkeys")
@@ -310,6 +316,7 @@ struct ShortcutSettingsView: View {
                 ocrKeyCombo = service.ocrKeyCombo
                 subtitleKeyCombo = service.subtitleKeyCombo
                 shortcutHUDKeyCombo = service.shortcutHUDKeyCombo
+                quickTranscriptionKeyCombo = service.quickTranscriptionKeyCombo
             }
         }
     }

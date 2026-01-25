@@ -1,6 +1,8 @@
 # SpeechDock — Basic Features
 
-SpeechDock is a macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS). It works immediately after installation with no API keys or additional downloads required.
+SpeechDock makes macOS TTS/STT more flexible and accessible. While macOS includes powerful speech recognition and synthesis engines, there's no convenient way to use them. SpeechDock fills this gap — a menu bar application that makes TTS and STT accessible from anywhere on your Mac.
+
+It works immediately after installation with no API keys or additional downloads required.
 
 ## Installation
 
@@ -112,6 +114,36 @@ Toggle with hotkey (default: `Ctrl + Option + S`), from the STT panel, or from t
 
 Subtitles show only the current recording session's transcription. Previous sessions are not displayed.
 
+## Quick Transcription
+
+A floating microphone button for instant voice input without opening the STT panel. Perfect for quick dictation into any application.
+
+### How to Use
+
+1. Enable **Floating Mic Button** from the menu bar
+2. Click the button or press `Ctrl + Option + M` to start recording
+3. Speak — real-time transcription appears in a floating HUD next to the button
+4. Click again or press `Ctrl + Option + M` to stop
+5. Transcribed text is automatically pasted into the frontmost app
+
+### Features
+
+- **Floating button** — 48px round button, always visible on screen
+- **Draggable** — Drag to any position; position is saved between sessions
+- **Real-time HUD** — Shows transcription text as you speak
+- **Auto-paste** — Transcribed text is pasted when recording stops
+- **Context menu** — Right-click to switch STT provider or hide the button
+
+### Button States
+
+| State | Appearance |
+|-------|------------|
+| Idle | Gray button with mic icon |
+| Hover | Accent color |
+| Recording | Red with pulse animation, stop icon |
+
+The button tooltip shows the current shortcut and recording duration.
+
 ## Translation
 
 Translate transcribed or TTS text using macOS on-device translation (macOS 26+ required). No API keys needed; supports approximately 18 languages.
@@ -159,6 +191,7 @@ In the TTS panel, matched text is highlighted with an orange underline and toolt
 | Toggle TTS Panel | `Ctrl + Option + T` |
 | OCR Region to Speech | `Ctrl + Option + Shift + O` |
 | Toggle Subtitle Mode | `Ctrl + Option + S` |
+| Quick Transcription | `Ctrl + Option + M` |
 
 Customize in **Settings** > **Shortcuts**.
 

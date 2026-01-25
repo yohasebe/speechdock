@@ -24,6 +24,7 @@ enum AppleScriptErrorCode: Int {
     case sttFileTooLarge = 1023
     case sttAlreadyRecording = 1024
     case sttTranscriptionFailed = 1025
+    case sttNotRecording = 1026
 
     // Translation (1030-1039)
     case translationEmptyText = 1030

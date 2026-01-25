@@ -6,6 +6,8 @@
 
 A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) with support for multiple providers.
 
+**Making macOS TTS/STT more flexible and accessible** - macOS has powerful speech recognition and synthesis capabilities, but no convenient way to use them. SpeechDock fills this gap — making TTS and STT accessible from anywhere on your Mac.
+
 **Always accessible from your menu bar** - Use STT and TTS anywhere on your Mac with global hotkeys. Transcribe not only your voice but also system audio or audio from specific apps. Read aloud typed text, pasted content, or text captured via OCR from any screen region.
 
 **Ready to use immediately after installation** - No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers are optional enhancements.
@@ -76,6 +78,18 @@ Toggle with hotkey (`Ctrl + Option + S` by default) or from the STT panel/menu b
 - **System Audio** - Capture all audio output from your Mac
 - **App Audio** - Capture audio from a specific application
 
+### Quick Transcription
+
+A floating microphone button for instant voice input without opening the STT panel:
+
+1. Enable **Floating Mic Button** from the menu bar
+2. Click the button or press `Ctrl + Option + M` to start recording
+3. Speak — real-time transcription appears in a floating HUD
+4. Click again or press `Ctrl + Option + M` to stop
+5. Transcribed text is automatically pasted into the frontmost app
+
+The button can be dragged anywhere on screen, and its position is saved.
+
 ### Additional Features
 
 - Global keyboard shortcuts for STT and TTS
@@ -144,6 +158,7 @@ Grant permissions in **System Settings** > **Privacy & Security**. SpeechDock wi
 | Toggle TTS Panel | `Ctrl + Option + T` |
 | OCR Region to Speech | `Ctrl + Option + Shift + O` |
 | Toggle Subtitle Mode | `Ctrl + Option + S` |
+| Quick Transcription | `Ctrl + Option + M` |
 
 Shortcuts can be customized in **Settings** > **Shortcuts**.
 

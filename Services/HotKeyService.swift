@@ -10,6 +10,7 @@ protocol HotKeyServiceDelegate: AnyObject {
     func ocrHotKeyPressed()
     func subtitleHotKeyPressed()
     func shortcutHUDHotKeyPressed()
+    func quickTranscriptionHotKeyPressed()
 }
 
 final class HotKeyService {
@@ -18,6 +19,7 @@ final class HotKeyService {
     private var ocrHotKey: HotKey?
     private var subtitleHotKey: HotKey?
     private var shortcutHUDHotKey: HotKey?
+    private var quickTranscriptionHotKey: HotKey?
     private var isLoadingShortcuts = false
 
     weak var delegate: HotKeyServiceDelegate?
@@ -62,6 +64,14 @@ final class HotKeyService {
         }
     }
 
+    var quickTranscriptionKeyCombo: KeyCombo {
+        didSet {
+            guard !isLoadingShortcuts else { return }
+            saveShortcuts()
+            registerQuickTranscriptionHotKey()
+        }
+    }
+
     init() {
         // Load saved shortcuts or use defaults
         self.sttKeyCombo = KeyCombo.sttDefault
@@ -69,6 +79,7 @@ final class HotKeyService {
         self.ocrKeyCombo = KeyCombo.ocrDefault
         self.subtitleKeyCombo = KeyCombo.subtitleDefault
         self.shortcutHUDKeyCombo = KeyCombo.shortcutHUDDefault
+        self.quickTranscriptionKeyCombo = KeyCombo.quickTranscriptionDefault
         loadShortcuts()
     }
 
@@ -140,12 +151,25 @@ final class HotKeyService {
         }
     }
 
+    func registerQuickTranscriptionHotKey() {
+        quickTranscriptionHotKey = nil
+
+        quickTranscriptionHotKey = HotKey(key: quickTranscriptionKeyCombo.key, modifiers: quickTranscriptionKeyCombo.modifiers)
+        logger.info("QuickTranscription HotKey registered: \(self.quickTranscriptionKeyCombo.displayString)")
+
+        quickTranscriptionHotKey?.keyDownHandler = { [weak self] in
+            logger.info("QuickTranscription HotKey pressed!")
+            self?.delegate?.quickTranscriptionHotKeyPressed()
+        }
+    }
+
     func registerAllHotKeys() {
         registerHotKey()
         registerTTSHotKey()
         registerOCRHotKey()
         registerSubtitleHotKey()
         registerShortcutHUDHotKey()
+        registerQuickTranscriptionHotKey()
     }
 
     func unregisterAllHotKeys() {
@@ -154,6 +178,7 @@ final class HotKeyService {
         ocrHotKey = nil
         subtitleHotKey = nil
         shortcutHUDHotKey = nil
+        quickTranscriptionHotKey = nil
     }
 
     // MARK: - Persistence
@@ -198,6 +223,13 @@ final class HotKeyService {
            let key = Key(carbonKeyCode: hudKeyCode) {
             shortcutHUDKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: hudModifiers))
         }
+
+        // Load QuickTranscription shortcut
+        if let quickKeyCode = defaults.object(forKey: "quickTranscriptionKeyCode") as? UInt32,
+           let quickModifiers = defaults.object(forKey: "quickTranscriptionModifiers") as? UInt,
+           let key = Key(carbonKeyCode: quickKeyCode) {
+            quickTranscriptionKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: quickModifiers))
+        }
     }
 
     private func saveShortcuts() {
@@ -222,6 +254,10 @@ final class HotKeyService {
         // Save ShortcutHUD shortcut
         defaults.set(shortcutHUDKeyCombo.key.carbonKeyCode, forKey: "shortcutHUDKeyCode")
         defaults.set(shortcutHUDKeyCombo.modifiers.rawValue, forKey: "shortcutHUDModifiers")
+
+        // Save QuickTranscription shortcut
+        defaults.set(quickTranscriptionKeyCombo.key.carbonKeyCode, forKey: "quickTranscriptionKeyCode")
+        defaults.set(quickTranscriptionKeyCombo.modifiers.rawValue, forKey: "quickTranscriptionModifiers")
     }
 }
 
@@ -260,6 +296,7 @@ struct KeyCombo: Equatable {
     static let ocrDefault = KeyCombo(key: .o, modifiers: [.control, .option, .shift])
     static let subtitleDefault = KeyCombo(key: .s, modifiers: [.control, .option])
     static let shortcutHUDDefault = KeyCombo(key: .slash, modifiers: [.control, .option])
+    static let quickTranscriptionDefault = KeyCombo(key: .m, modifiers: [.control, .option])
 }
 
 // MARK: - Shortcut Recorder View

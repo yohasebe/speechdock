@@ -96,4 +96,27 @@ extension NSApplication {
             AppState.shared.isRecording
         }
     }
+
+    // MARK: Quick Transcription State
+
+    @objc var scriptIsQuickTranscriptionVisible: Bool {
+        MainActor.assumeIsolated {
+            AppState.shared.showFloatingMicButton
+        }
+    }
+
+    @objc var scriptShowQuickTranscription: Bool {
+        get {
+            MainActor.assumeIsolated {
+                AppState.shared.showFloatingMicButton
+            }
+        }
+        set {
+            MainActor.assumeIsolated {
+                if newValue != AppState.shared.showFloatingMicButton {
+                    AppState.shared.toggleFloatingMicButton()
+                }
+            }
+        }
+    }
 }

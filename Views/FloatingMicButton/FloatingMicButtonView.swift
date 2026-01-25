@@ -9,7 +9,7 @@ struct FloatingMicButtonView: View {
     @State private var pulseAnimation = false
     @State private var isDragging = false
 
-    private let buttonSize: CGFloat = 48
+    private let buttonSize: CGFloat = FloatingMicConstants.buttonSize
 
     var body: some View {
         ZStack {
@@ -42,29 +42,23 @@ struct FloatingMicButtonView: View {
                 Image(systemName: micIconName)
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(iconColor)
-
-                // Recording indicator dot
-                if appState.isRecording {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                        .offset(x: 14, y: -14)
-                }
             }
         }
         .frame(width: buttonSize, height: buttonSize)
         .contentShape(Circle())
-        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
         .onTapGesture {
             if !isDragging {
                 manager.toggleRecording()
             }
         }
         .gesture(
-            DragGesture()
-                .onChanged { value in
-                    isDragging = true
-                    manager.moveWindow(by: value.translation)
+            DragGesture(minimumDistance: 3)
+                .onChanged { _ in
+                    if !isDragging {
+                        isDragging = true
+                        manager.startDragging()
+                    }
+                    manager.continueDragging()
                 }
                 .onEnded { _ in
                     manager.finishMoving()
@@ -120,12 +114,16 @@ struct FloatingMicButtonView: View {
         }
     }
 
+    private var shortcutString: String {
+        appState.hotKeyService?.quickTranscriptionKeyCombo.displayString ?? "⌃⌥M"
+    }
+
     private var tooltipText: String {
         if appState.isRecording {
             let duration = formatDuration(appState.recordingDuration)
-            return "Recording \(duration) - Click to stop"
+            return "Recording \(duration) - Click or \(shortcutString) to stop"
         } else {
-            return "Click to start dictation"
+            return "Click or \(shortcutString) to start dictation"
         }
     }
 
