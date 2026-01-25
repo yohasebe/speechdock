@@ -88,7 +88,7 @@
         </command>
 
         <!-- UI Commands -->
-        <command name="display shortcuts" code="SDckShSc" description="Display the keyboard shortcuts cheat sheet panel.">
+        <command name="shortcuts" code="SDckShSc" description="Display the keyboard shortcuts cheat sheet panel.">
             <cocoa class="SpeechDock.ShowShortcutsCommand"/>
         </command>
 
