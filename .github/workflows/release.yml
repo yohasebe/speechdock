@@ -99,8 +99,10 @@ jobs:
           # Create temporary file with private key
           echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.txt
 
-          # Sign the DMG
-          SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f /tmp/sparkle_key.txt | head -1)
+          # Sign the DMG - extract just the signature value (without attribute name)
+          RAW_SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f /tmp/sparkle_key.txt | head -1)
+          # Extract the base64 signature from: sparkle:edSignature="..." length="..."
+          SIGNATURE=$(echo "$RAW_SIGNATURE" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
 
           # Clean up key file
           rm /tmp/sparkle_key.txt
