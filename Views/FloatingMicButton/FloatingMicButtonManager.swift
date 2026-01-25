@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+/// A window that doesn't take focus when clicked
+private class NonActivatingWindow: NSWindow {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
+
 /// Manages the floating microphone button window for quick STT access
 @MainActor
 final class FloatingMicButtonManager {
@@ -39,7 +45,7 @@ final class FloatingMicButtonManager {
         self.appState = appState
 
         let frame = savedFrameOrDefault()
-        let window = NSWindow(
+        let window = NonActivatingWindow(
             contentRect: frame,
             styleMask: .borderless,
             backing: .buffered,
@@ -113,16 +119,14 @@ final class FloatingMicButtonManager {
         guard let appState = appState else { return }
         guard !appState.isRecording else { return }
 
-        // Capture the frontmost app BEFORE our window might take focus
-        // Filter out our own app
-        let frontApp = NSWorkspace.shared.frontmostApplication
-        if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
-            targetApp = frontApp
-        } else {
-            // If we are frontmost, get the previously active app
-            targetApp = NSWorkspace.shared.runningApplications.first {
-                $0.isActive && $0.bundleIdentifier != Bundle.main.bundleIdentifier
-            }
+        // Since our window doesn't take focus, the frontmost app should be the target
+        targetApp = NSWorkspace.shared.frontmostApplication
+
+        // If somehow we are frontmost, find the most recently active app
+        if targetApp?.bundleIdentifier == Bundle.main.bundleIdentifier {
+            targetApp = NSWorkspace.shared.runningApplications
+                .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
+                .first { $0.isActive }
         }
 
         // Check insertion capability before starting
