@@ -9,7 +9,9 @@ class SpeakTextCommand: NSScriptCommand {
             return nil
         }
 
-        return MainActor.assumeIsolated {
+        suspendExecution()
+
+        Task { @MainActor in
             let appState = AppState.shared
             let provider = appState.selectedTTSProvider
 
@@ -17,16 +19,19 @@ class SpeakTextCommand: NSScriptCommand {
                 guard let envKeyName = provider.envKeyName,
                       APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
                     let envName = provider.envKeyName ?? "API_KEY"
-                    setAppleScriptError(.apiKeyNotConfigured,
+                    self.setAppleScriptError(.apiKeyNotConfigured,
                         message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
-                    return nil
+                    self.resumeExecution(withResult: nil)
+                    return
                 }
             }
 
             appState.ttsText = text
             appState.speakCurrentText()
-            return nil
+            self.resumeExecution(withResult: nil)
         }
+
+        return nil
     }
 }
 
@@ -34,7 +39,7 @@ class SpeakTextCommand: NSScriptCommand {
 
 class StopSpeakingCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        MainActor.assumeIsolated {
+        DispatchQueue.main.async {
             AppState.shared.stopTTS()
         }
         return nil
@@ -45,17 +50,22 @@ class StopSpeakingCommand: NSScriptCommand {
 
 class PauseSpeakingCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        return MainActor.assumeIsolated {
+        suspendExecution()
+
+        Task { @MainActor in
             let appState = AppState.shared
 
             guard appState.ttsState == .speaking else {
-                setAppleScriptError(.ttsNotSpeaking, message: "Cannot pause: TTS is not currently speaking.")
-                return nil
+                self.setAppleScriptError(.ttsNotSpeaking, message: "Cannot pause: TTS is not currently speaking.")
+                self.resumeExecution(withResult: nil)
+                return
             }
 
             appState.pauseResumeTTS()
-            return nil
+            self.resumeExecution(withResult: nil)
         }
+
+        return nil
     }
 }
 
@@ -63,17 +73,22 @@ class PauseSpeakingCommand: NSScriptCommand {
 
 class ResumeSpeakingCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        return MainActor.assumeIsolated {
+        suspendExecution()
+
+        Task { @MainActor in
             let appState = AppState.shared
 
             guard appState.ttsState == .paused else {
-                setAppleScriptError(.ttsNotPaused, message: "Cannot resume: TTS is not currently paused.")
-                return nil
+                self.setAppleScriptError(.ttsNotPaused, message: "Cannot resume: TTS is not currently paused.")
+                self.resumeExecution(withResult: nil)
+                return
             }
 
             appState.pauseResumeTTS()
-            return nil
+            self.resumeExecution(withResult: nil)
         }
+
+        return nil
     }
 }
 
@@ -105,24 +120,22 @@ class SaveAudioCommand: NSScriptCommand {
             return nil
         }
 
-        let provider: TTSProvider = MainActor.assumeIsolated {
-            AppState.shared.selectedTTSProvider
-        }
-
-        if provider.requiresAPIKey {
-            guard let envKeyName = provider.envKeyName,
-                  APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
-                let envName = provider.envKeyName ?? "API_KEY"
-                setAppleScriptError(.apiKeyNotConfigured,
-                    message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
-                return nil
-            }
-        }
-
         suspendExecution()
 
         Task { @MainActor in
             let appState = AppState.shared
+            let provider = appState.selectedTTSProvider
+
+            if provider.requiresAPIKey {
+                guard let envKeyName = provider.envKeyName,
+                      APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
+                    let envName = provider.envKeyName ?? "API_KEY"
+                    self.setAppleScriptError(.apiKeyNotConfigured,
+                        message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
+                    self.resumeExecution(withResult: nil)
+                    return
+                }
+            }
             let saveService = TTSFactory.makeService(for: appState.selectedTTSProvider)
             saveService.selectedVoice = appState.selectedTTSVoice
             if !appState.selectedTTSModel.isEmpty {
@@ -166,7 +179,7 @@ class SaveAudioCommand: NSScriptCommand {
 
 class ShowShortcutsCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        MainActor.assumeIsolated {
+        DispatchQueue.main.async {
             AppState.shared.toggleShortcutHUD()
         }
         return nil
@@ -177,15 +190,18 @@ class ShowShortcutsCommand: NSScriptCommand {
 
 class StartQuickTranscriptionCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        return MainActor.assumeIsolated {
+        suspendExecution()
+
+        Task { @MainActor in
             let appState = AppState.shared
             let manager = FloatingMicButtonManager.shared
 
             // Check if already recording
             if appState.isRecording {
-                setAppleScriptError(.sttAlreadyRecording,
+                self.setAppleScriptError(.sttAlreadyRecording,
                     message: "Quick transcription is already recording. Use 'stop quick transcription' to stop.")
-                return nil
+                self.resumeExecution(withResult: nil)
+                return
             }
 
             // Check API key if needed
@@ -194,9 +210,10 @@ class StartQuickTranscriptionCommand: NSScriptCommand {
                 guard let envKeyName = provider.envKeyName,
                       APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
                     let envName = provider.envKeyName ?? "API_KEY"
-                    setAppleScriptError(.apiKeyNotConfigured,
+                    self.setAppleScriptError(.apiKeyNotConfigured,
                         message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
-                    return nil
+                    self.resumeExecution(withResult: nil)
+                    return
                 }
             }
 
@@ -208,8 +225,10 @@ class StartQuickTranscriptionCommand: NSScriptCommand {
 
             // Start recording
             manager.startRecording()
-            return nil
+            self.resumeExecution(withResult: nil)
         }
+
+        return nil
     }
 }
 
@@ -217,15 +236,18 @@ class StartQuickTranscriptionCommand: NSScriptCommand {
 
 class StopQuickTranscriptionCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        return MainActor.assumeIsolated {
+        suspendExecution()
+
+        Task { @MainActor in
             let appState = AppState.shared
             let manager = FloatingMicButtonManager.shared
 
             // Check if recording
             if !appState.isRecording {
-                setAppleScriptError(.sttNotRecording,
+                self.setAppleScriptError(.sttNotRecording,
                     message: "Quick transcription is not currently recording.")
-                return nil
+                self.resumeExecution(withResult: nil)
+                return
             }
 
             // Stop recording
@@ -233,8 +255,10 @@ class StopQuickTranscriptionCommand: NSScriptCommand {
 
             // Return the transcribed text
             let transcribedText = appState.currentTranscription
-            return transcribedText.isEmpty ? nil : transcribedText
+            self.resumeExecution(withResult: transcribedText.isEmpty ? nil : transcribedText)
         }
+
+        return nil
     }
 }
 
@@ -242,7 +266,7 @@ class StopQuickTranscriptionCommand: NSScriptCommand {
 
 class ToggleQuickTranscriptionCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        MainActor.assumeIsolated {
+        DispatchQueue.main.async {
             AppState.shared.toggleQuickTranscription()
         }
         return nil

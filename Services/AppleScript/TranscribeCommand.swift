@@ -16,65 +16,62 @@ class TranscribeFileCommand: NSScriptCommand {
             return nil
         }
 
-        let (provider, language, isRecording): (RealtimeSTTProvider, String?, Bool) = MainActor.assumeIsolated {
-            let appState = AppState.shared
-            let lang = appState.selectedSTTLanguage.isEmpty ? nil : appState.selectedSTTLanguage
-            return (appState.selectedRealtimeProvider, lang, appState.isRecording)
-        }
-
-        guard provider.supportsFileTranscription else {
-            setAppleScriptError(.sttProviderNotSupported,
-                message: "\(provider.rawValue) does not support file transcription. Switch to OpenAI, Gemini, or ElevenLabs.")
-            return nil
-        }
-
-        if provider.requiresAPIKey {
-            guard let envKeyName = provider.envKeyName,
-                  APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
-                let envName = provider.envKeyName ?? "API_KEY"
-                setAppleScriptError(.apiKeyNotConfigured,
-                    message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
-                return nil
-            }
-        }
-
-        guard !isRecording else {
-            setAppleScriptError(.sttAlreadyRecording,
-                message: "Cannot transcribe file while recording is in progress. Stop recording first.")
-            return nil
-        }
-
         let fileURL = URL(fileURLWithPath: expandedPath)
-
-        // Validate file format and size (FileTranscriptionService.validateFile is @MainActor)
-        let validationError: ValidationError? = MainActor.assumeIsolated {
-            do {
-                try FileTranscriptionService.shared.validateFile(fileURL, for: provider)
-                return nil
-            } catch let error as FileTranscriptionError {
-                switch error {
-                case .unsupportedFormat(let format, let supportedFormats):
-                    return .init(code: .sttUnsupportedFormat,
-                        message: "Unsupported audio format: .\(format). Supported formats for \(provider.rawValue): \(supportedFormats)")
-                case .fileTooLarge(let maxMB, let actualMB):
-                    return .init(code: .sttFileTooLarge,
-                        message: "File too large (\(actualMB)MB). Maximum for \(provider.rawValue) is \(maxMB)MB.")
-                default:
-                    return .init(code: .sttTranscriptionFailed, message: error.localizedDescription)
-                }
-            } catch {
-                return .init(code: .sttTranscriptionFailed, message: error.localizedDescription)
-            }
-        }
-
-        if let validationError {
-            setAppleScriptError(validationError.code, message: validationError.message)
-            return nil
-        }
 
         suspendExecution()
 
         Task { @MainActor in
+            let appState = AppState.shared
+            let provider = appState.selectedRealtimeProvider
+            let language = appState.selectedSTTLanguage.isEmpty ? nil : appState.selectedSTTLanguage
+
+            guard provider.supportsFileTranscription else {
+                self.setAppleScriptError(.sttProviderNotSupported,
+                    message: "\(provider.rawValue) does not support file transcription. Switch to OpenAI, Gemini, or ElevenLabs.")
+                self.resumeExecution(withResult: nil)
+                return
+            }
+
+            if provider.requiresAPIKey {
+                guard let envKeyName = provider.envKeyName,
+                      APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
+                    let envName = provider.envKeyName ?? "API_KEY"
+                    self.setAppleScriptError(.apiKeyNotConfigured,
+                        message: "No API key configured for \(provider.rawValue). Set the \(envName) environment variable or configure it in Settings.")
+                    self.resumeExecution(withResult: nil)
+                    return
+                }
+            }
+
+            guard !appState.isRecording else {
+                self.setAppleScriptError(.sttAlreadyRecording,
+                    message: "Cannot transcribe file while recording is in progress. Stop recording first.")
+                self.resumeExecution(withResult: nil)
+                return
+            }
+
+            // Validate file format and size
+            do {
+                try FileTranscriptionService.shared.validateFile(fileURL, for: provider)
+            } catch let error as FileTranscriptionError {
+                switch error {
+                case .unsupportedFormat(let format, let supportedFormats):
+                    self.setAppleScriptError(.sttUnsupportedFormat,
+                        message: "Unsupported audio format: .\(format). Supported formats for \(provider.rawValue): \(supportedFormats)")
+                case .fileTooLarge(let maxMB, let actualMB):
+                    self.setAppleScriptError(.sttFileTooLarge,
+                        message: "File too large (\(actualMB)MB). Maximum for \(provider.rawValue) is \(maxMB)MB.")
+                default:
+                    self.setAppleScriptError(.sttTranscriptionFailed, message: error.localizedDescription)
+                }
+                self.resumeExecution(withResult: nil)
+                return
+            } catch {
+                self.setAppleScriptError(.sttTranscriptionFailed, message: error.localizedDescription)
+                self.resumeExecution(withResult: nil)
+                return
+            }
+
             do {
                 let result = try await FileTranscriptionService.shared.transcribe(
                     fileURL: fileURL,
@@ -90,11 +87,5 @@ class TranscribeFileCommand: NSScriptCommand {
         }
 
         return nil
-    }
-
-    /// Helper struct for passing validation errors out of MainActor.assumeIsolated
-    struct ValidationError {
-        let code: AppleScriptErrorCode
-        let message: String
     }
 }

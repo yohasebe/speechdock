@@ -9,7 +9,7 @@ class CopyToClipboardCommand: NSScriptCommand {
             return nil
         }
 
-        MainActor.assumeIsolated {
+        DispatchQueue.main.async {
             ClipboardService.shared.copyToClipboard(text)
         }
 

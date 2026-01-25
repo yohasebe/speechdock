@@ -123,13 +123,13 @@ end tell
 - このコマンドはペースト操作が完了するまでブロックします
 - アクセシビリティ権限が必要です
 
-### shortcuts
+### show shortcuts
 
 キーボードショートカットのチートシートパネルを表示します。
 
 ```applescript
 tell application "SpeechDock"
-    shortcuts
+    show shortcuts
 end tell
 ```
 

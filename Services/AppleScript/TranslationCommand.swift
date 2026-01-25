@@ -25,25 +25,24 @@ class TranslateCommand: NSScriptCommand {
             return nil
         }
 
-        let (provider, model): (TranslationProvider, String?) = MainActor.assumeIsolated {
-            let appState = AppState.shared
-            let m = appState.selectedTranslationModel.isEmpty ? nil : appState.selectedTranslationModel
-            return (appState.translationProvider, m)
-        }
-
-        if provider.requiresAPIKey {
-            guard let envKeyName = provider.envKeyName,
-                  APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
-                let envName = provider.envKeyName ?? "API_KEY"
-                setAppleScriptError(.apiKeyNotConfigured,
-                    message: "No API key configured for \(provider.rawValue) translation. Set the \(envName) environment variable or configure it in Settings.")
-                return nil
-            }
-        }
-
         suspendExecution()
 
         Task { @MainActor in
+            let appState = AppState.shared
+            let provider = appState.translationProvider
+            let model = appState.selectedTranslationModel.isEmpty ? nil : appState.selectedTranslationModel
+
+            if provider.requiresAPIKey {
+                guard let envKeyName = provider.envKeyName,
+                      APIKeyManager.shared.getAPIKey(for: envKeyName) != nil else {
+                    let envName = provider.envKeyName ?? "API_KEY"
+                    self.setAppleScriptError(.apiKeyNotConfigured,
+                        message: "No API key configured for \(provider.rawValue) translation. Set the \(envName) environment variable or configure it in Settings.")
+                    self.resumeExecution(withResult: nil)
+                    return
+                }
+            }
+
             let translationService = TranslationFactory.makeService(for: provider, model: model)
 
             do {

@@ -3,6 +3,28 @@ import os.log
 
 private let logger = Logger(subsystem: "com.speechdock.app", category: "AppleScript")
 
+// MARK: - Safe Main Thread Helpers
+
+/// Executes a closure on the main thread and returns the result.
+/// If already on the main thread, executes directly. Otherwise, dispatches synchronously.
+private func onMainSync<T>(_ work: @escaping () -> T) -> T {
+    if Thread.isMainThread {
+        return work()
+    } else {
+        return DispatchQueue.main.sync { work() }
+    }
+}
+
+/// Executes a closure on the main thread asynchronously for setters.
+/// If already on the main thread, executes directly. Otherwise, dispatches asynchronously.
+private func onMainAsync(_ work: @escaping () -> Void) {
+    if Thread.isMainThread {
+        work()
+    } else {
+        DispatchQueue.main.async { work() }
+    }
+}
+
 // MARK: - NSApplication KVC Properties for AppleScript
 
 extension NSApplication {
@@ -11,12 +33,12 @@ extension NSApplication {
 
     @objc var scriptTTSProvider: String {
         get {
-            MainActor.assumeIsolated {
+            onMainSync {
                 AppState.shared.selectedTTSProvider.rawValue
             }
         }
         set {
-            MainActor.assumeIsolated {
+            onMainAsync {
                 guard let provider = TTSProvider(rawValue: newValue) else {
                     logger.warning("Invalid TTS provider name: \(newValue, privacy: .public). Valid values: \(TTSProvider.allCases.map { $0.rawValue }.joined(separator: ", "), privacy: .public)")
                     return
@@ -30,12 +52,12 @@ extension NSApplication {
 
     @objc var scriptTTSVoice: String {
         get {
-            MainActor.assumeIsolated {
+            onMainSync {
                 AppState.shared.selectedTTSVoice
             }
         }
         set {
-            MainActor.assumeIsolated {
+            onMainAsync {
                 AppState.shared.selectedTTSVoice = newValue
             }
         }
@@ -45,12 +67,12 @@ extension NSApplication {
 
     @objc var scriptTTSSpeed: Double {
         get {
-            MainActor.assumeIsolated {
+            onMainSync {
                 AppState.shared.selectedTTSSpeed
             }
         }
         set {
-            MainActor.assumeIsolated {
+            onMainAsync {
                 let clampedSpeed = min(max(newValue, 0.25), 4.0)
                 AppState.shared.selectedTTSSpeed = clampedSpeed
             }
@@ -61,12 +83,12 @@ extension NSApplication {
 
     @objc var scriptSTTProvider: String {
         get {
-            MainActor.assumeIsolated {
+            onMainSync {
                 AppState.shared.selectedRealtimeProvider.rawValue
             }
         }
         set {
-            MainActor.assumeIsolated {
+            onMainAsync {
                 guard let provider = RealtimeSTTProvider(rawValue: newValue) else {
                     logger.warning("Invalid STT provider name: \(newValue, privacy: .public). Valid values: \(RealtimeSTTProvider.allCases.map { $0.rawValue }.joined(separator: ", "), privacy: .public)")
                     return
@@ -80,12 +102,12 @@ extension NSApplication {
 
     @objc var scriptTranslationProvider: String {
         get {
-            MainActor.assumeIsolated {
+            onMainSync {
                 AppState.shared.translationProvider.rawValue
             }
         }
         set {
-            MainActor.assumeIsolated {
+            onMainAsync {
                 guard let provider = TranslationProvider(rawValue: newValue) else {
                     logger.warning("Invalid translation provider name: \(newValue, privacy: .public). Valid values: \(TranslationProvider.allCases.map { $0.rawValue }.joined(separator: ", "), privacy: .public)")
                     return
@@ -98,13 +120,13 @@ extension NSApplication {
     // MARK: Read-only State
 
     @objc var scriptIsSpeaking: Bool {
-        MainActor.assumeIsolated {
+        onMainSync {
             AppState.shared.ttsState == .speaking || AppState.shared.ttsState == .paused
         }
     }
 
     @objc var scriptIsRecording: Bool {
-        MainActor.assumeIsolated {
+        onMainSync {
             AppState.shared.isRecording
         }
     }
@@ -113,12 +135,12 @@ extension NSApplication {
 
     @objc var scriptShowQuickTranscription: Bool {
         get {
-            MainActor.assumeIsolated {
+            onMainSync {
                 AppState.shared.showFloatingMicButton
             }
         }
         set {
-            MainActor.assumeIsolated {
+            onMainAsync {
                 if newValue != AppState.shared.showFloatingMicButton {
                     AppState.shared.toggleFloatingMicButton()
                 }
