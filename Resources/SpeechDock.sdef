@@ -21,7 +21,7 @@
             <property name="translation provider" code="TrPv" type="text" access="rw" description="The current translation provider (macOS, OpenAI, Gemini, Grok).">
                 <cocoa key="scriptTranslationProvider"/>
             </property>
-            <property name="is speaking" code="IsSp" type="boolean" access="r" description="Whether TTS is currently speaking.">
+            <property name="is speaking" code="IsSp" type="boolean" access="r" description="Whether TTS is currently speaking or paused.">
                 <cocoa key="scriptIsSpeaking"/>
             </property>
             <property name="is recording" code="IsRc" type="boolean" access="r" description="Whether STT is currently recording.">

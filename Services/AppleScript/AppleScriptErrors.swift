@@ -1,8 +1,16 @@
 import Foundation
 
 /// Error codes for AppleScript commands (1000-1099)
+///
+/// Ranges:
+/// - 1000-1009: General errors
+/// - 1010-1019: TTS errors
+/// - 1020-1029: STT errors
+/// - 1030-1039: Translation errors
+/// - 1040-1049: Provider/Settings errors
+/// - 1050-1059: Clipboard errors
 enum AppleScriptErrorCode: Int {
-    // General
+    // General (1000-1009)
     case internalError = 1000
     case invalidParameter = 1001
 
@@ -10,7 +18,7 @@ enum AppleScriptErrorCode: Int {
     case ttsEmptyText = 1010
     case ttsNotSpeaking = 1011
     case ttsNotPaused = 1012
-    case ttsAlreadySpeaking = 1013
+    case ttsAlreadySpeaking = 1013  // Reserved: speak text allows interrupting current speech
     case ttsProviderError = 1014
     case ttsSavePathInvalid = 1015
     case ttsSaveDirectoryNotFound = 1016
@@ -30,16 +38,17 @@ enum AppleScriptErrorCode: Int {
     case translationEmptyText = 1030
     case translationInvalidLanguage = 1031
     case translationFailed = 1032
-    case translationProviderUnavailable = 1033
+    case translationProviderUnavailable = 1033  // Reserved: for macOS 26+ availability check
 
     // Provider/Settings (1040-1049)
     case invalidProviderName = 1040
+    // 1041: Reserved for future use
     case invalidSpeed = 1042
     case apiKeyNotConfigured = 1043
 
     // Clipboard (1050-1059)
     case clipboardEmptyText = 1050
-    case clipboardPasteFailed = 1051
+    case clipboardPasteFailed = 1051  // Reserved: for future paste error detection
 }
 
 extension NSScriptCommand {

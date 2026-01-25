@@ -1,4 +1,7 @@
 import AppKit
+import os.log
+
+private let logger = Logger(subsystem: "com.speechdock.app", category: "AppleScript")
 
 // MARK: - NSApplication KVC Properties for AppleScript
 
@@ -14,7 +17,10 @@ extension NSApplication {
         }
         set {
             MainActor.assumeIsolated {
-                guard let provider = TTSProvider(rawValue: newValue) else { return }
+                guard let provider = TTSProvider(rawValue: newValue) else {
+                    logger.warning("Invalid TTS provider name: \(newValue, privacy: .public). Valid values: \(TTSProvider.allCases.map { $0.rawValue }.joined(separator: ", "), privacy: .public)")
+                    return
+                }
                 AppState.shared.selectedTTSProvider = provider
             }
         }
@@ -61,7 +67,10 @@ extension NSApplication {
         }
         set {
             MainActor.assumeIsolated {
-                guard let provider = RealtimeSTTProvider(rawValue: newValue) else { return }
+                guard let provider = RealtimeSTTProvider(rawValue: newValue) else {
+                    logger.warning("Invalid STT provider name: \(newValue, privacy: .public). Valid values: \(RealtimeSTTProvider.allCases.map { $0.rawValue }.joined(separator: ", "), privacy: .public)")
+                    return
+                }
                 AppState.shared.selectedRealtimeProvider = provider
             }
         }
@@ -77,7 +86,10 @@ extension NSApplication {
         }
         set {
             MainActor.assumeIsolated {
-                guard let provider = TranslationProvider(rawValue: newValue) else { return }
+                guard let provider = TranslationProvider(rawValue: newValue) else {
+                    logger.warning("Invalid translation provider name: \(newValue, privacy: .public). Valid values: \(TranslationProvider.allCases.map { $0.rawValue }.joined(separator: ", "), privacy: .public)")
+                    return
+                }
                 AppState.shared.translationProvider = provider
             }
         }
@@ -98,12 +110,6 @@ extension NSApplication {
     }
 
     // MARK: Quick Transcription State
-
-    @objc var scriptIsQuickTranscriptionVisible: Bool {
-        MainActor.assumeIsolated {
-            AppState.shared.showFloatingMicButton
-        }
-    }
 
     @objc var scriptShowQuickTranscription: Bool {
         get {
