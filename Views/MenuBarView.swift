@@ -115,6 +115,30 @@ struct MenuBarView: View {
             }
             .buttonStyle(MenuBarActionButtonStyle())
 
+            // Floating mic button toggle
+            Button(action: {
+                appState.toggleFloatingMicButton()
+            }) {
+                HStack {
+                    Image(systemName: appState.showFloatingMicButton ? "mic.circle.fill" : "mic.circle")
+                        .foregroundColor(appState.showFloatingMicButton ? .accentColor : .primary)
+                        .frame(width: 20)
+                    Text("Floating Mic Button")
+                    Spacer()
+                    if appState.showFloatingMicButton {
+                        Text("On")
+                            .font(.caption)
+                            .foregroundColor(.accentColor)
+                    } else {
+                        Text("Off")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(MenuBarActionButtonStyle())
+
             // Transcribe Audio File button with provider info
             Button(action: {
                 StatusBarManager.shared.closePanel()

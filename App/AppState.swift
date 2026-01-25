@@ -58,8 +58,8 @@ final class AppState {
         return currentSessionTranscription
     }
     var recordingDuration: TimeInterval = 0  // Cumulative recording duration
-    private var recordingStartTime: Date?
-    private var durationTimer: Timer?
+    var recordingStartTime: Date?  // Internal for FloatingMicButtonManager access
+    var durationTimer: Timer?  // Internal for FloatingMicButtonManager access
 
     // Realtime STT provider and model selection
     var selectedRealtimeProvider: RealtimeSTTProvider = .macOS {
@@ -470,6 +470,7 @@ final class AppState {
     var isProcessing = false
     var errorMessage: String?
     var showFloatingWindow = false
+    var showFloatingMicButton = false
 
     let apiKeyManager = APIKeyManager.shared
     let floatingWindowManager = FloatingWindowManager()
@@ -479,7 +480,7 @@ final class AppState {
 
     // Expose hotKeyService for settings UI
     private(set) var hotKeyService: HotKeyService?
-    private var realtimeSTTService: RealtimeSTTService?
+    var realtimeSTTService: RealtimeSTTService?  // Internal for FloatingMicButtonManager access
     private var isLoadingPreferences = false  // Flag to prevent saving during load
     private var ttsService: TTSService?
     private var fileTranscriptionTask: Task<Void, Never>?
@@ -560,6 +561,16 @@ final class AppState {
     /// Toggle subtitle mode on/off
     func toggleSubtitleMode() {
         subtitleModeEnabled.toggle()
+    }
+
+    /// Toggle floating mic button visibility
+    func toggleFloatingMicButton() {
+        showFloatingMicButton.toggle()
+        if showFloatingMicButton {
+            FloatingMicButtonManager.shared.show(appState: self)
+        } else {
+            FloatingMicButtonManager.shared.hide()
+        }
     }
 
     /// Toggle shortcut HUD panel
@@ -733,6 +744,38 @@ final class AppState {
             } else if selectedAudioInputSourceType == .applicationAudio, !selectedAudioAppBundleID.isEmpty {
                 try await systemAudioCaptureService.startCapturingAppAudio(bundleID: selectedAudioAppBundleID)
             }
+        } catch {
+            errorMessage = error.localizedDescription
+            transcriptionState = .error(error.localizedDescription)
+        }
+    }
+
+    /// Start realtime STT for quick mode (floating mic button) with external delegate
+    func startRealtimeSTTForQuickMode(delegate: RealtimeSTTDelegate) async {
+        // Create realtime STT service
+        realtimeSTTService = RealtimeSTTFactory.makeService(for: selectedRealtimeProvider)
+        realtimeSTTService?.delegate = delegate
+
+        // Apply selected model if set
+        if !selectedRealtimeSTTModel.isEmpty {
+            realtimeSTTService?.selectedModel = selectedRealtimeSTTModel
+        }
+
+        // Apply selected language if set
+        if !selectedSTTLanguage.isEmpty {
+            realtimeSTTService?.selectedLanguage = selectedSTTLanguage
+        }
+
+        // Quick mode always uses microphone
+        realtimeSTTService?.audioSource = .microphone
+        realtimeSTTService?.audioInputDeviceUID = selectedAudioInputDeviceUID
+
+        // Apply VAD auto-stop settings
+        realtimeSTTService?.vadMinimumRecordingTime = vadMinimumRecordingTime
+        realtimeSTTService?.vadSilenceDuration = vadSilenceDuration
+
+        do {
+            try await realtimeSTTService?.startListening()
         } catch {
             errorMessage = error.localizedDescription
             transcriptionState = .error(error.localizedDescription)
