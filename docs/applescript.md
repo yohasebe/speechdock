@@ -123,13 +123,13 @@ end tell
 - This command blocks until the paste operation completes
 - Requires Accessibility permission
 
-### show shortcuts
+### display shortcuts
 
 Display the keyboard shortcuts cheat sheet panel.
 
 ```applescript
 tell application "SpeechDock"
-    show shortcuts
+    display shortcuts
 end tell
 ```
 
