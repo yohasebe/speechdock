@@ -152,17 +152,9 @@ struct FloatingMicButtonView: View {
 
         Divider()
 
-        // Current capability
-        let capability = AccessibilityTextInsertionService.shared.getInsertionCapability()
-        switch capability {
-        case .directInsertion:
-            Label("Direct input available", systemImage: "checkmark.circle.fill")
-                .foregroundColor(.green)
-        case .clipboardFallback:
-            Label("Will paste when done", systemImage: "doc.on.clipboard")
-        case .notAvailable:
-            Label("No text field focused", systemImage: "exclamationmark.triangle")
-        }
+        // Info about how it works
+        Label("Shows HUD while recording", systemImage: "text.bubble")
+        Label("Pastes text when done", systemImage: "doc.on.clipboard")
 
         Divider()
 

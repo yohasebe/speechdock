@@ -147,16 +147,17 @@ final class FloatingMicButtonManager {
             }
         }
 
-        // Check if direct insertion is available
-        isUsingDirectInsertion = AccessibilityTextInsertionService.shared.canUseDirectInsertion()
+        // Always use HUD mode - direct insertion via Accessibility API is unreliable
+        // across different apps (Word, Stickies, etc. don't expose text elements properly)
+        isUsingDirectInsertion = false
         lastInsertedPartialText = ""
 
         #if DEBUG
-        print("FloatingMic: Starting recording, targetApp=\(targetApp?.localizedName ?? "none"), directInsertion=\(isUsingDirectInsertion)")
+        print("FloatingMic: Starting recording, targetApp=\(targetApp?.localizedName ?? "none")")
         #endif
 
-        // If not using direct insertion, show the HUD
-        if !isUsingDirectInsertion, let buttonFrame = buttonWindow?.frame {
+        // Show the HUD for real-time transcription display
+        if let buttonFrame = buttonWindow?.frame {
             FloatingMicTextHUD.shared.show(near: buttonFrame)
         }
 
@@ -211,25 +212,19 @@ final class FloatingMicButtonManager {
 
     /// Called when partial transcription is received (for streaming display/insertion)
     func handlePartialTranscription(_ text: String) {
-        if isUsingDirectInsertion {
-            // Direct insertion mode: insert text in real-time
-            if !lastInsertedPartialText.isEmpty {
-                let success = AccessibilityTextInsertionService.shared.replacePartialText(
-                    oldText: lastInsertedPartialText,
-                    with: text
-                )
-                if success {
-                    lastInsertedPartialText = text
-                }
-            } else if !text.isEmpty {
-                // First partial - insert directly
-                let success = AccessibilityTextInsertionService.shared.insertTextDirectly(text)
-                if success {
-                    lastInsertedPartialText = text
-                }
-            }
-        } else {
-            // HUD mode: update the HUD display
+        // Always use HUD mode - direct insertion is unreliable across apps
+        // Update the HUD display
+        NotificationCenter.default.post(
+            name: .floatingMicTranscriptionUpdated,
+            object: text
+        )
+    }
+
+    /// Called when final transcription is ready
+    func handleFinalTranscription(_ text: String) {
+        // Final text will be inserted via clipboard on stopRecording()
+        // Update HUD with final text
+        if !text.isEmpty {
             NotificationCenter.default.post(
                 name: .floatingMicTranscriptionUpdated,
                 object: text
@@ -237,30 +232,8 @@ final class FloatingMicButtonManager {
         }
     }
 
-    /// Called when final transcription is ready
-    func handleFinalTranscription(_ text: String) {
-        guard !text.isEmpty else { return }
-
-        if isUsingDirectInsertion && !lastInsertedPartialText.isEmpty {
-            // Replace the last partial with final
-            _ = AccessibilityTextInsertionService.shared.replacePartialText(
-                oldText: lastInsertedPartialText,
-                with: text
-            )
-        }
-        // Note: If not using direct insertion, text will be inserted on stopRecording()
-    }
-
     private func insertFinalText(_ text: String) {
         guard !text.isEmpty else { return }
-
-        // If we were doing direct insertion, text should already be there
-        if isUsingDirectInsertion {
-            #if DEBUG
-            print("FloatingMic: Text already inserted via direct insertion")
-            #endif
-            return
-        }
 
         #if DEBUG
         print("FloatingMic: Inserting text via clipboard: \(text)")

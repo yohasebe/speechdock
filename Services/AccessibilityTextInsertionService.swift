@@ -176,8 +176,18 @@ final class AccessibilityTextInsertionService {
 
         guard appResult == .success,
               let appElement = focusedApp else {
+            #if DEBUG
+            print("AccessibilityService: Failed to get focused app, result=\(appResult.rawValue)")
+            #endif
             return nil
         }
+
+        // Get app name for debugging
+        var appTitle: AnyObject?
+        AXUIElementCopyAttributeValue(appElement as! AXUIElement, kAXTitleAttribute as CFString, &appTitle)
+        #if DEBUG
+        print("AccessibilityService: Focused app = \(appTitle as? String ?? "unknown")")
+        #endif
 
         var focusedElement: AnyObject?
         let elementResult = AXUIElementCopyAttributeValue(
@@ -188,6 +198,9 @@ final class AccessibilityTextInsertionService {
 
         guard elementResult == .success,
               let element = focusedElement else {
+            #if DEBUG
+            print("AccessibilityService: Failed to get focused element, result=\(elementResult.rawValue)")
+            #endif
             return nil
         }
 
@@ -199,20 +212,49 @@ final class AccessibilityTextInsertionService {
             &role
         )
 
+        #if DEBUG
+        print("AccessibilityService: Focused element role = \(role as? String ?? "nil")")
+        #endif
+
         let textRoles: Set<String> = [
-            kAXTextFieldRole as String,
-            kAXTextAreaRole as String,
-            kAXComboBoxRole as String,
-            "AXSearchField"  // kAXSearchFieldRole
+            kAXTextFieldRole as String,  // AXTextField
+            kAXTextAreaRole as String,   // AXTextArea
+            kAXComboBoxRole as String,   // AXComboBox
+            "AXSearchField",             // kAXSearchFieldRole
+            "AXStaticText",              // Some apps use this
+            "AXScrollArea",              // Word uses this for document
+            "AXWebArea",                 // Web content
         ]
 
-        guard let roleString = role as? String,
-              textRoles.contains(roleString) else {
+        guard let roleString = role as? String else {
+            #if DEBUG
+            print("AccessibilityService: No role string")
+            #endif
             return nil
         }
 
-        // element is already AXUIElement from earlier casts
-        return (element as! AXUIElement)
+        // More permissive: check if it has a value attribute that's settable
+        // instead of strictly checking role
+        var settable: DarwinBoolean = false
+        let settableResult = AXUIElementIsAttributeSettable(
+            element as! AXUIElement,
+            kAXValueAttribute as CFString,
+            &settable
+        )
+
+        #if DEBUG
+        print("AccessibilityService: Value settable = \(settable.boolValue), result = \(settableResult.rawValue)")
+        #endif
+
+        // Accept if role is in textRoles OR if value is settable
+        if textRoles.contains(roleString) || (settableResult == .success && settable.boolValue) {
+            return (element as! AXUIElement)
+        }
+
+        #if DEBUG
+        print("AccessibilityService: Role '\(roleString)' not accepted and value not settable")
+        #endif
+        return nil
     }
 
     private func setCursorPosition(_ element: AXUIElement, position: Int) {
