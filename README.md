@@ -1,16 +1,12 @@
 <p align="center">
-  <img src="assets/logo.png" alt="SpeechDock Logo" width="128" height="128">
+  <img src="assets/social-preview.png" alt="SpeechDock - Listen and speak, from anywhere on your Mac" width="640">
 </p>
 
-# SpeechDock
+**Making macOS TTS/STT more flexible and accessible** — macOS has powerful speech recognition and synthesis capabilities, but no convenient way to use them. SpeechDock fills this gap.
 
-A macOS menu bar application for Speech-to-Text (STT) and Text-to-Speech (TTS) with support for multiple providers.
+**Always accessible from your menu bar** — Use STT and TTS anywhere on your Mac with global hotkeys. Transcribe not only your voice but also system audio or audio from specific apps. Read aloud typed text, pasted content, or text captured via OCR from any screen region.
 
-**Making macOS TTS/STT more flexible and accessible** - macOS has powerful speech recognition and synthesis capabilities, but no convenient way to use them. SpeechDock fills this gap — making TTS and STT accessible from anywhere on your Mac.
-
-**Always accessible from your menu bar** - Use STT and TTS anywhere on your Mac with global hotkeys. Transcribe not only your voice but also system audio or audio from specific apps. Read aloud typed text, pasted content, or text captured via OCR from any screen region.
-
-**Ready to use immediately after installation** - No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers are optional enhancements.
+**Ready to use immediately after installation** — No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers are optional enhancements.
 
 English | [日本語](README_ja.md)
 
