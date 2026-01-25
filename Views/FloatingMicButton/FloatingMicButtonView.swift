@@ -7,58 +7,73 @@ struct FloatingMicButtonView: View {
 
     @State private var isHovering = false
     @State private var pulseAnimation = false
+    @State private var isDragging = false
 
     private let buttonSize: CGFloat = 48
-    private let containerSize: CGFloat = 56
 
     var body: some View {
         ZStack {
-            // Background blur
-            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                .clipShape(Circle())
+            // Main button circle with blur background
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: buttonSize, height: buttonSize)
 
-            // Main button
-            Button(action: {
-                manager.toggleRecording()
-            }) {
-                ZStack {
-                    // Background circle
+            // Button content
+            ZStack {
+                // Background circle
+                Circle()
+                    .fill(buttonBackground)
+                    .frame(width: buttonSize - 4, height: buttonSize - 4)
+
+                // Recording pulse animation
+                if appState.isRecording {
                     Circle()
-                        .fill(buttonBackground)
-                        .frame(width: buttonSize, height: buttonSize)
+                        .stroke(Color.red.opacity(0.5), lineWidth: 2)
+                        .frame(width: buttonSize - 4, height: buttonSize - 4)
+                        .scaleEffect(pulseAnimation ? 1.4 : 1.0)
+                        .opacity(pulseAnimation ? 0 : 0.8)
+                        .animation(
+                            .easeInOut(duration: 1.0).repeatForever(autoreverses: false),
+                            value: pulseAnimation
+                        )
+                }
 
-                    // Recording pulse animation
-                    if appState.isRecording {
-                        Circle()
-                            .stroke(Color.red.opacity(0.5), lineWidth: 2)
-                            .frame(width: buttonSize, height: buttonSize)
-                            .scaleEffect(pulseAnimation ? 1.3 : 1.0)
-                            .opacity(pulseAnimation ? 0 : 0.8)
-                            .animation(
-                                .easeInOut(duration: 1.0).repeatForever(autoreverses: false),
-                                value: pulseAnimation
-                            )
-                    }
+                // Microphone icon
+                Image(systemName: micIconName)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(iconColor)
 
-                    // Microphone icon
-                    Image(systemName: micIconName)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(iconColor)
-
-                    // Recording indicator dot
-                    if appState.isRecording {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                            .offset(x: 14, y: -14)
-                    }
+                // Recording indicator dot
+                if appState.isRecording {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 14, y: -14)
                 }
             }
-            .buttonStyle(.plain)
-            .help(tooltipText)
         }
-        .frame(width: containerSize, height: containerSize)
-        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+        .frame(width: buttonSize, height: buttonSize)
+        .contentShape(Circle())
+        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+        .onTapGesture {
+            if !isDragging {
+                manager.toggleRecording()
+            }
+        }
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    isDragging = true
+                    manager.moveWindow(by: value.translation)
+                }
+                .onEnded { _ in
+                    manager.finishMoving()
+                    // Reset drag state after a short delay to prevent tap from firing
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isDragging = false
+                    }
+                }
+        )
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovering = hovering
@@ -74,6 +89,7 @@ struct FloatingMicButtonView: View {
         .contextMenu {
             contextMenuContent
         }
+        .help(tooltipText)
     }
 
     // MARK: - Computed Properties
@@ -167,26 +183,6 @@ struct FloatingMicButtonView: View {
     private func hasAPIKey(for provider: RealtimeSTTProvider) -> Bool {
         guard let envKeyName = provider.envKeyName else { return true }
         return APIKeyManager.shared.getAPIKey(for: envKeyName) != nil
-    }
-}
-
-// MARK: - Visual Effect View
-
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
     }
 }
 

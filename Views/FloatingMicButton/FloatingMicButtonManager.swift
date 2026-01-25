@@ -9,7 +9,6 @@ final class FloatingMicButtonManager {
     private var buttonWindow: NSWindow?
     private weak var appState: AppState?
     private var positionSaveTimer: Timer?
-    private var windowMoveObserver: Any?
 
     /// Partial text inserted via direct Accessibility API (for replacement on update)
     private(set) var lastInsertedPartialText: String = ""
@@ -20,8 +19,11 @@ final class FloatingMicButtonManager {
     /// The app that was frontmost when recording started
     private var targetApp: NSRunningApplication?
 
+    /// Starting window position for drag
+    private var dragStartOrigin: CGPoint?
+
     private let positionKey = "floatingMicButtonPosition"
-    private let defaultSize = NSSize(width: 56, height: 56)
+    private let buttonSize: CGFloat = 48
 
     private init() {}
 
@@ -48,22 +50,24 @@ final class FloatingMicButtonManager {
         window.backgroundColor = .clear
         window.level = WindowLevelCoordinator.shared.nextPanelLevel()
         window.ignoresMouseEvents = false
-        window.isMovableByWindowBackground = true
-        window.hasShadow = true
+        window.isMovableByWindowBackground = false  // We handle drag manually
+        window.hasShadow = false  // Shadow is on the view itself
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         window.isReleasedWhenClosed = false
 
         let contentView = FloatingMicButtonView(appState: appState, manager: self)
-        window.contentView = NSHostingView(rootView: contentView)
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.layer?.backgroundColor = .clear
+        window.contentView = hostingView
         window.orderFrontRegardless()
 
         self.buttonWindow = window
-        setupWindowMoveObserver(for: window)
     }
 
     func hide() {
-        removeWindowMoveObserver()
         saveWindowPosition()
+        positionSaveTimer?.invalidate()
+        positionSaveTimer = nil
 
         buttonWindow?.orderOut(nil)
         buttonWindow = nil
@@ -80,21 +84,54 @@ final class FloatingMicButtonManager {
         }
     }
 
+    // MARK: - Window Movement
+
+    func moveWindow(by translation: CGSize) {
+        guard let window = buttonWindow else { return }
+
+        if dragStartOrigin == nil {
+            dragStartOrigin = window.frame.origin
+        }
+
+        guard let startOrigin = dragStartOrigin else { return }
+
+        let newOrigin = CGPoint(
+            x: startOrigin.x + translation.width,
+            y: startOrigin.y - translation.height  // SwiftUI Y is inverted
+        )
+        window.setFrameOrigin(newOrigin)
+    }
+
+    func finishMoving() {
+        dragStartOrigin = nil
+        debouncePositionSave()
+    }
+
     // MARK: - Recording Control
 
     func startRecording() {
         guard let appState = appState else { return }
         guard !appState.isRecording else { return }
 
-        // Capture the frontmost app before we potentially change focus
-        targetApp = NSWorkspace.shared.frontmostApplication
+        // Capture the frontmost app BEFORE our window might take focus
+        // Filter out our own app
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
+            targetApp = frontApp
+        } else {
+            // If we are frontmost, get the previously active app
+            targetApp = NSWorkspace.shared.runningApplications.first {
+                $0.isActive && $0.bundleIdentifier != Bundle.main.bundleIdentifier
+            }
+        }
 
-        // Check insertion capability
-        isUsingDirectInsertion = AccessibilityTextInsertionService.shared.canUseDirectInsertion()
+        // Check insertion capability before starting
+        // Note: This checks the current focused element which may be in targetApp
+        isUsingDirectInsertion = false  // Default to clipboard for reliability
         lastInsertedPartialText = ""
 
         #if DEBUG
-        print("FloatingMic: Starting recording, directInsertion=\(isUsingDirectInsertion), targetApp=\(targetApp?.localizedName ?? "none")")
+        print("FloatingMic: Starting recording, targetApp=\(targetApp?.localizedName ?? "none")")
         #endif
 
         // Start STT without showing the panel
@@ -106,7 +143,7 @@ final class FloatingMicButtonManager {
         guard appState.isRecording else { return }
 
         #if DEBUG
-        print("FloatingMic: Stopping recording")
+        print("FloatingMic: Stopping recording, transcription=\(appState.currentTranscription)")
         #endif
 
         // Stop the STT service
@@ -118,7 +155,7 @@ final class FloatingMicButtonManager {
         appState.durationTimer = nil
         appState.recordingStartTime = nil
 
-        // Insert final text if not already done via streaming
+        // Insert final text
         let finalText = appState.currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
         if !finalText.isEmpty {
             insertFinalText(finalText)
@@ -143,61 +180,28 @@ final class FloatingMicButtonManager {
 
     // MARK: - Text Insertion
 
-    /// Called when partial transcription is received (for streaming display/insertion)
-    func handlePartialTranscription(_ text: String) {
-        guard isUsingDirectInsertion else { return }
-
-        // Replace previously inserted partial text with new partial
-        if !lastInsertedPartialText.isEmpty {
-            let success = AccessibilityTextInsertionService.shared.replacePartialText(
-                oldText: lastInsertedPartialText,
-                with: text
-            )
-            if success {
-                lastInsertedPartialText = text
-            }
-        } else if !text.isEmpty {
-            // First partial - insert directly
-            let success = AccessibilityTextInsertionService.shared.insertTextDirectly(text)
-            if success {
-                lastInsertedPartialText = text
-            }
-        }
-    }
-
-    /// Called when final transcription is ready
-    func handleFinalTranscription(_ text: String) {
-        guard !text.isEmpty else { return }
-
-        if isUsingDirectInsertion && !lastInsertedPartialText.isEmpty {
-            // Replace the last partial with final
-            _ = AccessibilityTextInsertionService.shared.replacePartialText(
-                oldText: lastInsertedPartialText,
-                with: text
-            )
-        }
-        // Note: If not using direct insertion, text will be inserted on stopRecording()
-    }
-
     private func insertFinalText(_ text: String) {
         guard !text.isEmpty else { return }
 
-        // If we were doing direct insertion, text should already be there
-        // If not, use clipboard paste
-        if !isUsingDirectInsertion {
+        #if DEBUG
+        print("FloatingMic: Inserting text: \(text)")
+        #endif
+
+        // Always use clipboard paste for reliability
+        if let targetApp = targetApp {
             // Activate target app first
-            if let targetApp = targetApp {
-                targetApp.activate()
-                // Small delay for activation
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    Task {
-                        await ClipboardService.shared.copyAndPaste(text)
-                    }
-                }
-            } else {
+            targetApp.activate()
+
+            // Delay to allow app activation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 Task {
                     await ClipboardService.shared.copyAndPaste(text)
                 }
+            }
+        } else {
+            // No target app, just paste
+            Task {
+                await ClipboardService.shared.copyAndPaste(text)
             }
         }
     }
@@ -242,30 +246,9 @@ final class FloatingMicButtonManager {
 
     // MARK: - Window Position
 
-    private func setupWindowMoveObserver(for window: NSWindow) {
-        windowMoveObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.debouncePositionSave()
-            }
-        }
-    }
-
-    private func removeWindowMoveObserver() {
-        if let observer = windowMoveObserver {
-            NotificationCenter.default.removeObserver(observer)
-            windowMoveObserver = nil
-        }
-        positionSaveTimer?.invalidate()
-        positionSaveTimer = nil
-    }
-
     private func debouncePositionSave() {
         positionSaveTimer?.invalidate()
-        positionSaveTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+        positionSaveTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 self?.saveWindowPosition()
             }
@@ -281,7 +264,12 @@ final class FloatingMicButtonManager {
         if let frameString = UserDefaults.standard.string(forKey: positionKey) {
             let savedFrame = NSRectFromString(frameString)
             if savedFrame.width > 0 && savedFrame.height > 0 {
-                return savedFrame
+                return NSRect(
+                    x: savedFrame.origin.x,
+                    y: savedFrame.origin.y,
+                    width: buttonSize,
+                    height: buttonSize
+                )
             }
         }
 
@@ -289,14 +277,14 @@ final class FloatingMicButtonManager {
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
             return NSRect(
-                x: screenFrame.maxX - defaultSize.width - 80,
+                x: screenFrame.maxX - buttonSize - 80,
                 y: screenFrame.minY + 80,
-                width: defaultSize.width,
-                height: defaultSize.height
+                width: buttonSize,
+                height: buttonSize
             )
         }
 
-        return NSRect(origin: CGPoint(x: 100, y: 100), size: defaultSize)
+        return NSRect(origin: CGPoint(x: 100, y: 100), size: NSSize(width: buttonSize, height: buttonSize))
     }
 }
 
@@ -307,7 +295,9 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
         Task { @MainActor in
             guard let appState = appState else { return }
             appState.currentTranscription = text
-            handlePartialTranscription(text)
+            #if DEBUG
+            print("FloatingMic: Partial result: \(text)")
+            #endif
         }
     }
 
@@ -315,7 +305,9 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
         Task { @MainActor in
             guard let appState = appState else { return }
             appState.currentTranscription = text
-            handleFinalTranscription(text)
+            #if DEBUG
+            print("FloatingMic: Final result: \(text)")
+            #endif
         }
     }
 
@@ -324,6 +316,9 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
             guard let appState = appState else { return }
             appState.errorMessage = error.localizedDescription
             appState.transcriptionState = .error(error.localizedDescription)
+            #if DEBUG
+            print("FloatingMic: Error: \(error.localizedDescription)")
+            #endif
             stopRecording()
         }
     }
@@ -331,6 +326,9 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
     nonisolated func realtimeSTT(_ service: RealtimeSTTService, didChangeListeningState isListening: Bool) {
         Task { @MainActor in
             guard let appState = appState else { return }
+            #if DEBUG
+            print("FloatingMic: Listening state changed: \(isListening)")
+            #endif
             if !isListening && appState.isRecording {
                 // VAD or service stopped - finalize
                 stopRecording()
