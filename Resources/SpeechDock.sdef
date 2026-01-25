@@ -84,5 +84,10 @@
             <direct-parameter type="text" description="The text to paste."/>
         </command>
 
+        <!-- UI Commands -->
+        <command name="show shortcuts" code="SDckShSc" description="Show the keyboard shortcuts cheat sheet panel.">
+            <cocoa class="SpeechDock.ShowShortcutsCommand"/>
+        </command>
+
     </suite>
 </dictionary>

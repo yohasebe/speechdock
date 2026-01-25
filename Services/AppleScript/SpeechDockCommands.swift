@@ -161,3 +161,14 @@ class SaveAudioCommand: NSScriptCommand {
         return nil
     }
 }
+
+// MARK: - Show Shortcuts Command
+
+class ShowShortcutsCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            AppState.shared.toggleShortcutHUD()
+        }
+        return nil
+    }
+}
