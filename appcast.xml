@@ -13,7 +13,7 @@
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/yohasebe/speechdock/releases/download/v0.1.24/SpeechDock-0.1.24.dmg"
-                sparkle:edSignature="sparkle:edSignature="Abh112Fkz7ookeY3Xg7Rcna7zqNGSE9ZTflre6RA7fMg9ibH7q5Bxge4CPbF7//G84kXNizEw3cGM5RoYsWUDw==" length="4230639""
+                sparkle:edSignature="Abh112Fkz7ookeY3Xg7Rcna7zqNGSE9ZTflre6RA7fMg9ibH7q5Bxge4CPbF7//G84kXNizEw3cGM5RoYsWUDw=="
                 length="4230639"
                 type="application/octet-stream"/>
         </item>
