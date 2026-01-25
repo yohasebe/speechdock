@@ -25,6 +25,12 @@ final class FloatingMicButtonManager {
     /// The app that was frontmost when recording started
     private var targetApp: NSRunningApplication?
 
+    /// Last known frontmost app (excluding SpeechDock)
+    private var lastFrontmostApp: NSRunningApplication?
+
+    /// Observer for app activation changes
+    private var appActivationObserver: Any?
+
     /// Starting window position for drag
     private var dragStartOrigin: CGPoint?
 
@@ -68,9 +74,16 @@ final class FloatingMicButtonManager {
         window.orderFrontRegardless()
 
         self.buttonWindow = window
+
+        // Start observing app activations to track the last frontmost app
+        startObservingAppActivations()
+
+        // Initialize with current frontmost app
+        updateLastFrontmostApp()
     }
 
     func hide() {
+        stopObservingAppActivations()
         saveWindowPosition()
         positionSaveTimer?.invalidate()
         positionSaveTimer = nil
@@ -78,6 +91,7 @@ final class FloatingMicButtonManager {
         buttonWindow?.orderOut(nil)
         buttonWindow = nil
         appState = nil
+        lastFrontmostApp = nil
 
         WindowLevelCoordinator.shared.reset()
     }
@@ -119,14 +133,15 @@ final class FloatingMicButtonManager {
         guard let appState = appState else { return }
         guard !appState.isRecording else { return }
 
-        // Since our window doesn't take focus, the frontmost app should be the target
-        targetApp = NSWorkspace.shared.frontmostApplication
+        // Use the last known frontmost app (tracked by observer)
+        targetApp = lastFrontmostApp
 
-        // If somehow we are frontmost, find the most recently active app
-        if targetApp?.bundleIdentifier == Bundle.main.bundleIdentifier {
-            targetApp = NSWorkspace.shared.runningApplications
-                .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
-                .first { $0.isActive }
+        // Fallback: try current frontmost
+        if targetApp == nil {
+            let frontApp = NSWorkspace.shared.frontmostApplication
+            if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
+                targetApp = frontApp
+            }
         }
 
         // Check insertion capability before starting
@@ -289,6 +304,48 @@ final class FloatingMicButtonManager {
         }
 
         return NSRect(origin: CGPoint(x: 100, y: 100), size: NSSize(width: buttonSize, height: buttonSize))
+    }
+
+    // MARK: - App Activation Tracking
+
+    private func startObservingAppActivations() {
+        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleAppActivation(notification)
+            }
+        }
+    }
+
+    private func stopObservingAppActivations() {
+        if let observer = appActivationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            appActivationObserver = nil
+        }
+    }
+
+    private func handleAppActivation(_ notification: Notification) {
+        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+            return
+        }
+
+        // Ignore our own app
+        if app.bundleIdentifier != Bundle.main.bundleIdentifier {
+            lastFrontmostApp = app
+            #if DEBUG
+            print("FloatingMic: Tracked frontmost app: \(app.localizedName ?? "unknown")")
+            #endif
+        }
+    }
+
+    private func updateLastFrontmostApp() {
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
+            lastFrontmostApp = frontApp
+        }
     }
 }
 
