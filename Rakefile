@@ -93,6 +93,30 @@ end
 desc "Restart app (quit and run debug)"
 task :restart => [:quit, "run:debug"]
 
+# Install app to /Applications
+def install_app(app_path)
+  dest = "/Applications/#{APP_NAME}.app"
+
+  # Quit running app first
+  puts "Quitting #{APP_NAME} if running..."
+  system "pkill -x #{APP_NAME}"
+  sleep 1
+
+  # Remove existing installation
+  if File.exist?(dest)
+    puts "Removing existing installation..."
+    FileUtils.rm_rf(dest)
+  end
+
+  # Copy new build
+  puts "Installing to #{dest}..."
+  FileUtils.cp_r(app_path, dest)
+
+  puts "Installation complete!"
+  puts ""
+  puts "To launch: open -a #{APP_NAME}"
+end
+
 namespace :install do
   desc "Build and install to /Applications (Release)"
   task :release => "build:release" do
@@ -115,29 +139,6 @@ namespace :install do
       exit 1
     end
   end
-
-  def install_app(app_path)
-    dest = "/Applications/#{APP_NAME}.app"
-
-    # Quit running app first
-    puts "Quitting #{APP_NAME} if running..."
-    system "pkill -x #{APP_NAME}"
-    sleep 1
-
-    # Remove existing installation
-    if File.exist?(dest)
-      puts "Removing existing installation..."
-      FileUtils.rm_rf(dest)
-    end
-
-    # Copy new build
-    puts "Installing to #{dest}..."
-    FileUtils.cp_r(app_path, dest)
-
-    puts "Installation complete!"
-    puts ""
-    puts "To launch: open -a #{APP_NAME}"
-  end
 end
 
 desc "Alias for install:release"
@@ -150,18 +151,98 @@ namespace :release do
     sh "chmod +x scripts/create-dmg.sh && ./scripts/create-dmg.sh"
   end
 
-  desc "Notarize DMG (requires environment variables)"
+  desc "Notarize DMG (requires APPLE_ID, APP_PASSWORD, TEAM_ID environment variables)"
   task :notarize => :dmg do
+    # Check for required environment variables
+    missing_vars = []
+    missing_vars << "APPLE_ID" unless ENV["APPLE_ID"]
+    missing_vars << "APP_PASSWORD" unless ENV["APP_PASSWORD"]
+    missing_vars << "TEAM_ID" unless ENV["TEAM_ID"]
+
+    unless missing_vars.empty?
+      puts ""
+      puts "=" * 60
+      puts "ERROR: Missing required environment variables for notarization"
+      puts "=" * 60
+      puts ""
+      puts "The following environment variables are not set:"
+      missing_vars.each { |v| puts "  - #{v}" }
+      puts ""
+      puts "Options:"
+      puts "  1. Set environment variables and run again:"
+      puts "     export APPLE_ID='your-apple-id@example.com'"
+      puts "     export APP_PASSWORD='xxxx-xxxx-xxxx-xxxx'  # App-specific password"
+      puts "     export TEAM_ID='XXXXXXXXXX'"
+      puts "     rake release:full"
+      puts ""
+      puts "  2. Use GitHub Actions (recommended):"
+      puts "     git tag v#{app_version}"
+      puts "     git push origin v#{app_version}"
+      puts "     # CI will build, notarize, and create the release automatically"
+      puts ""
+      puts "=" * 60
+      exit 1
+    end
+
     puts "Notarizing DMG..."
     sh "chmod +x scripts/notarize.sh && ./scripts/notarize.sh"
   end
 
-  desc "Full release process (build, DMG, notarize)"
+  desc "Full release process (build, DMG, notarize, install)"
   task :full => :notarize do
+    # Install to /Applications after successful notarization
+    app_path = find_built_app("Release")
+    if app_path
+      puts ""
+      puts "Installing to /Applications..."
+      install_app(app_path)
+    end
+
     puts ""
-    puts "=" * 50
+    puts "=" * 60
     puts "Release complete: #{APP_NAME}-#{app_version}.dmg"
-    puts "=" * 50
+    puts "Installed to: /Applications/#{APP_NAME}.app"
+    puts "=" * 60
+  end
+
+  desc "Create release via GitHub Actions (recommended)"
+  task :github do
+    version = app_version
+    puts ""
+    puts "Creating release v#{version} via GitHub Actions..."
+    puts ""
+
+    # Check if tag already exists
+    tag_exists = system("git rev-parse v#{version} >/dev/null 2>&1")
+    if tag_exists
+      puts "Tag v#{version} already exists."
+      print "Delete existing tag and recreate? [y/N]: "
+      answer = STDIN.gets.chomp.downcase
+      if answer == 'y'
+        sh "git tag -d v#{version}"
+        sh "git push origin :refs/tags/v#{version} 2>/dev/null || true"
+        # Delete existing release if any
+        system "gh release delete v#{version} --yes 2>/dev/null"
+      else
+        puts "Aborted."
+        exit 0
+      end
+    end
+
+    # Create and push tag
+    sh "git tag v#{version}"
+    sh "git push origin v#{version}"
+
+    puts ""
+    puts "Tag v#{version} pushed. GitHub Actions will:"
+    puts "  1. Build the Release version"
+    puts "  2. Create notarized DMG"
+    puts "  3. Update appcast.xml"
+    puts "  4. Create GitHub Release"
+    puts ""
+    puts "Monitor progress at:"
+    puts "  https://github.com/yohasebe/speechdock/actions"
+    puts ""
   end
 end
 
@@ -286,9 +367,10 @@ task :help do
   puts "  rake install:debug    # Build Debug and install to /Applications"
   puts ""
   puts "Release tasks:"
-  puts "  rake release:dmg      # Create DMG"
-  puts "  rake release:notarize # Notarize DMG"
-  puts "  rake release:full     # Full release"
+  puts "  rake release:github   # Create release via GitHub Actions (recommended)"
+  puts "  rake release:full     # Full local release (build, DMG, notarize, install)"
+  puts "  rake release:dmg      # Create DMG only"
+  puts "  rake release:notarize # Notarize DMG (requires env vars)"
   puts ""
   puts "Version tasks:"
   puts "  rake version:show  # Show version"
