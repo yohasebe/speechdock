@@ -112,6 +112,9 @@ final class FloatingMicButtonManager {
 
         self.appState = appState
 
+        // Clear saved HUD position so it will appear near the button on first recording
+        UserDefaults.standard.removeObject(forKey: FloatingMicConstants.hudPositionKey)
+
         let frame = savedFrameOrDefault()
         let window = NonActivatingWindow(
             contentRect: frame,
@@ -185,12 +188,21 @@ final class FloatingMicButtonManager {
         )
 
         window.setFrameOrigin(newOrigin)
+
+        // Update HUD position to follow the button in real-time
+        if FloatingMicTextHUD.shared.isVisible {
+            FloatingMicTextHUD.shared.updatePosition(near: window.frame)
+        }
     }
 
     func finishMoving() {
         dragStartOrigin = nil
         dragStartMouseLocation = nil
         debouncePositionSave()
+
+        // Clear saved HUD position so next show() will position near the button
+        // This ensures HUD appears near the button after it's been moved
+        UserDefaults.standard.removeObject(forKey: FloatingMicConstants.hudPositionKey)
     }
 
     // MARK: - Recording Control

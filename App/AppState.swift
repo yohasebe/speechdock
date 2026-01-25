@@ -594,6 +594,7 @@ final class AppState {
             "toggleTTS": { [weak self] in self?.toggleTTS() },
             "ocr": { [weak self] in self?.startOCR() },
             "subtitle": { [weak self] in self?.toggleSubtitleMode() },
+            "quickTranscription": { [weak self] in self?.toggleQuickTranscription() },
         ]
         ShortcutHUDManager.shared.toggle(
             hotKeyService: hotKeyService,

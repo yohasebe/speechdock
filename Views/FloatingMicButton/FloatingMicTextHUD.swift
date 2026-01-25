@@ -1,5 +1,8 @@
 import AppKit
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.speechdock", category: "FloatingMicHUD")
 
 /// A small HUD panel that shows transcription text in real-time
 /// Draggable and semi-transparent like ShortcutHUD
@@ -59,6 +62,48 @@ final class FloatingMicTextHUD {
         saveWindowPosition()
         hudWindow?.orderOut(nil)
         hudWindow = nil
+    }
+
+    /// Update HUD position to stay near the button
+    func updatePosition(near buttonFrame: NSRect) {
+        guard let window = hudWindow else {
+            print("[FloatingMicHUD] updatePosition: hudWindow is nil")
+            return
+        }
+
+        // Calculate new position above the button
+        let newFrame = calculateFrameNearButton(buttonFrame)
+        print("[FloatingMicHUD] updatePosition: moving HUD from \(window.frame) to \(newFrame)")
+        window.setFrame(newFrame, display: true, animate: false)
+
+        // Clear saved position so next show() uses button-relative position
+        UserDefaults.standard.removeObject(forKey: positionKey)
+    }
+
+    private func calculateFrameNearButton(_ buttonFrame: NSRect) -> NSRect {
+        guard let screen = NSScreen.main else {
+            return NSRect(x: buttonFrame.midX - hudWidth / 2, y: buttonFrame.maxY + 10, width: hudWidth, height: hudHeight)
+        }
+
+        let screenFrame = screen.visibleFrame
+        let margin: CGFloat = 10
+
+        // Try to position above the button
+        var x = buttonFrame.midX - hudWidth / 2
+        var y = buttonFrame.maxY + margin
+
+        // If HUD would go above screen, position below the button
+        if y + hudHeight > screenFrame.maxY {
+            y = buttonFrame.minY - hudHeight - margin
+        }
+
+        // Clamp X to screen bounds
+        x = max(screenFrame.minX + margin, min(x, screenFrame.maxX - hudWidth - margin))
+
+        // Clamp Y to screen bounds
+        y = max(screenFrame.minY + margin, min(y, screenFrame.maxY - hudHeight - margin))
+
+        return NSRect(x: x, y: y, width: hudWidth, height: hudHeight)
     }
 
     // MARK: - Dragging
@@ -247,18 +292,6 @@ struct FloatingMicTextHUDView: View {
                             .id("hudText")
                     }
                     .frame(maxHeight: maxTextHeight)
-                    .mask(
-                        // Fade out at the top when scrolled
-                        LinearGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: .clear, location: 0),
-                                .init(color: .black, location: 0.15),
-                                .init(color: .black, location: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
                     .onChange(of: text) { _, _ in
                         // Smooth scroll to bottom when text changes
                         withAnimation(.easeOut(duration: 0.1)) {

@@ -92,6 +92,7 @@ struct MenuBarView: View {
 
             // Subtitle mode toggle (right below Transcription)
             Button(action: {
+                StatusBarManager.shared.closePanel()
                 appState.toggleSubtitleMode()
             }) {
                 HStack {
@@ -117,6 +118,7 @@ struct MenuBarView: View {
 
             // Floating mic button toggle
             Button(action: {
+                StatusBarManager.shared.closePanel()
                 appState.toggleFloatingMicButton()
             }) {
                 HStack {

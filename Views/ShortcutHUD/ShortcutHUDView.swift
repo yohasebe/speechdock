@@ -66,6 +66,7 @@ struct ShortcutHUDView: View {
             ShortcutItem(name: "Toggle TTS Panel", shortcut: service.ttsKeyCombo.displayString, action: globalActions["toggleTTS"]),
             ShortcutItem(name: "OCR Region to TTS", shortcut: service.ocrKeyCombo.displayString, action: globalActions["ocr"]),
             ShortcutItem(name: "Toggle Subtitle Mode", shortcut: service.subtitleKeyCombo.displayString, action: globalActions["subtitle"]),
+            ShortcutItem(name: "Quick Transcription", shortcut: service.quickTranscriptionKeyCombo.displayString, action: globalActions["quickTranscription"]),
             ShortcutItem(name: "Show Shortcuts", shortcut: service.shortcutHUDKeyCombo.displayString),
         ]
     }
