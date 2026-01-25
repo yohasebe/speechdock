@@ -88,6 +88,9 @@ final class FloatingMicButtonManager {
         positionSaveTimer?.invalidate()
         positionSaveTimer = nil
 
+        // Hide HUD if visible
+        FloatingMicTextHUD.shared.hide()
+
         buttonWindow?.orderOut(nil)
         buttonWindow = nil
         appState = nil
@@ -144,14 +147,18 @@ final class FloatingMicButtonManager {
             }
         }
 
-        // Check insertion capability before starting
-        // Note: This checks the current focused element which may be in targetApp
-        isUsingDirectInsertion = false  // Default to clipboard for reliability
+        // Check if direct insertion is available
+        isUsingDirectInsertion = AccessibilityTextInsertionService.shared.canUseDirectInsertion()
         lastInsertedPartialText = ""
 
         #if DEBUG
-        print("FloatingMic: Starting recording, targetApp=\(targetApp?.localizedName ?? "none")")
+        print("FloatingMic: Starting recording, targetApp=\(targetApp?.localizedName ?? "none"), directInsertion=\(isUsingDirectInsertion)")
         #endif
+
+        // If not using direct insertion, show the HUD
+        if !isUsingDirectInsertion, let buttonFrame = buttonWindow?.frame {
+            FloatingMicTextHUD.shared.show(near: buttonFrame)
+        }
 
         // Start STT without showing the panel
         startQuickSTT()
@@ -173,6 +180,9 @@ final class FloatingMicButtonManager {
         appState.durationTimer?.invalidate()
         appState.durationTimer = nil
         appState.recordingStartTime = nil
+
+        // Hide HUD
+        FloatingMicTextHUD.shared.hide()
 
         // Insert final text
         let finalText = appState.currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -199,14 +209,64 @@ final class FloatingMicButtonManager {
 
     // MARK: - Text Insertion
 
+    /// Called when partial transcription is received (for streaming display/insertion)
+    func handlePartialTranscription(_ text: String) {
+        if isUsingDirectInsertion {
+            // Direct insertion mode: insert text in real-time
+            if !lastInsertedPartialText.isEmpty {
+                let success = AccessibilityTextInsertionService.shared.replacePartialText(
+                    oldText: lastInsertedPartialText,
+                    with: text
+                )
+                if success {
+                    lastInsertedPartialText = text
+                }
+            } else if !text.isEmpty {
+                // First partial - insert directly
+                let success = AccessibilityTextInsertionService.shared.insertTextDirectly(text)
+                if success {
+                    lastInsertedPartialText = text
+                }
+            }
+        } else {
+            // HUD mode: update the HUD display
+            NotificationCenter.default.post(
+                name: .floatingMicTranscriptionUpdated,
+                object: text
+            )
+        }
+    }
+
+    /// Called when final transcription is ready
+    func handleFinalTranscription(_ text: String) {
+        guard !text.isEmpty else { return }
+
+        if isUsingDirectInsertion && !lastInsertedPartialText.isEmpty {
+            // Replace the last partial with final
+            _ = AccessibilityTextInsertionService.shared.replacePartialText(
+                oldText: lastInsertedPartialText,
+                with: text
+            )
+        }
+        // Note: If not using direct insertion, text will be inserted on stopRecording()
+    }
+
     private func insertFinalText(_ text: String) {
         guard !text.isEmpty else { return }
 
+        // If we were doing direct insertion, text should already be there
+        if isUsingDirectInsertion {
+            #if DEBUG
+            print("FloatingMic: Text already inserted via direct insertion")
+            #endif
+            return
+        }
+
         #if DEBUG
-        print("FloatingMic: Inserting text: \(text)")
+        print("FloatingMic: Inserting text via clipboard: \(text)")
         #endif
 
-        // Always use clipboard paste for reliability
+        // Use clipboard paste
         if let targetApp = targetApp {
             // Activate target app first
             targetApp.activate()
@@ -356,6 +416,7 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
         Task { @MainActor in
             guard let appState = appState else { return }
             appState.currentTranscription = text
+            handlePartialTranscription(text)
             #if DEBUG
             print("FloatingMic: Partial result: \(text)")
             #endif
@@ -366,6 +427,7 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
         Task { @MainActor in
             guard let appState = appState else { return }
             appState.currentTranscription = text
+            handleFinalTranscription(text)
             #if DEBUG
             print("FloatingMic: Final result: \(text)")
             #endif
