@@ -1,0 +1,44 @@
+// Custom styles for SpeechDock documentation
+
+figure {
+  margin: 1.5rem 0;
+  padding: 0;
+
+  img {
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #666;
+    font-style: italic;
+  }
+}
+
+// Center the homepage logo and title
+.text-center {
+  text-align: center;
+}
+
+// Button styling
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background-color: #7253ed;
+  color: white;
+
+  &:hover {
+    background-color: #5e42c4;
+    color: white;
+  }
+}

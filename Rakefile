@@ -8,16 +8,151 @@ PROJECT_FILE = "#{APP_NAME}.xcodeproj"
 SCHEME = APP_NAME
 BUILD_DIR = "build"
 DERIVED_DATA = "#{ENV['HOME']}/Library/Developer/Xcode/DerivedData"
+DOCS_DIR = "docs"
+
+# Files that contain version numbers
+VERSION_FILES = {
+  version: "VERSION",
+  project_yml: "project.yml",
+  info_plist: "Resources/Info.plist"
+}
 
 # Get version from VERSION file
 def app_version
-  File.read("VERSION").strip
+  File.read(VERSION_FILES[:version]).strip
 end
 
 # Find the built app in DerivedData
 def find_built_app(config)
   Dir.glob("#{DERIVED_DATA}/#{APP_NAME}-*/Build/Products/#{config}/#{APP_NAME}.app").first
 end
+
+# ============================================================
+# Version Management
+# ============================================================
+
+namespace :version do
+  desc "Show current version"
+  task :show do
+    puts "Current version: #{app_version}"
+    puts ""
+    puts "Version locations:"
+    VERSION_FILES.each do |key, file|
+      if File.exist?(file)
+        content = File.read(file)
+        case key
+        when :version
+          puts "  #{file}: #{content.strip}"
+        when :project_yml
+          if content =~ /MARKETING_VERSION: "(.+?)"/
+            puts "  #{file}: #{$1}"
+          end
+        when :info_plist
+          if content =~ /<key>CFBundleShortVersionString<\/key>\s*<string>(.+?)<\/string>/m
+            puts "  #{file}: #{$1}"
+          end
+        end
+      end
+    end
+  end
+
+  desc "Verify all version numbers are in sync"
+  task :verify do
+    versions = {}
+
+    # Check VERSION file
+    versions[:version] = File.read(VERSION_FILES[:version]).strip
+
+    # Check project.yml
+    content = File.read(VERSION_FILES[:project_yml])
+    if content =~ /MARKETING_VERSION: "(.+?)"/
+      versions[:project_yml] = $1
+    end
+
+    # Check Info.plist
+    content = File.read(VERSION_FILES[:info_plist])
+    if content =~ /<key>CFBundleShortVersionString<\/key>\s*<string>(.+?)<\/string>/m
+      versions[:info_plist] = $1
+    end
+
+    unique_versions = versions.values.uniq
+    if unique_versions.length == 1
+      puts "✓ All version numbers are in sync: #{unique_versions.first}"
+    else
+      puts "✗ Version mismatch detected!"
+      versions.each do |file, ver|
+        puts "  #{VERSION_FILES[file]}: #{ver}"
+      end
+      exit 1
+    end
+  end
+
+  desc "Bump patch version (0.1.0 -> 0.1.1)"
+  task :patch do
+    bump_version(:patch)
+  end
+
+  desc "Bump minor version (0.1.0 -> 0.2.0)"
+  task :minor do
+    bump_version(:minor)
+  end
+
+  desc "Bump major version (0.1.0 -> 1.0.0)"
+  task :major do
+    bump_version(:major)
+  end
+
+  def bump_version(type)
+    current = app_version
+    parts = current.split('.').map(&:to_i)
+
+    case type
+    when :major
+      parts[0] += 1
+      parts[1] = 0
+      parts[2] = 0
+    when :minor
+      parts[1] += 1
+      parts[2] = 0
+    when :patch
+      parts[2] += 1
+    end
+
+    new_version = parts.join('.')
+
+    puts "Bumping version: #{current} -> #{new_version}"
+    puts ""
+
+    # Update VERSION file
+    puts "  Updating #{VERSION_FILES[:version]}..."
+    File.write(VERSION_FILES[:version], new_version)
+
+    # Update project.yml
+    puts "  Updating #{VERSION_FILES[:project_yml]}..."
+    project_yml = File.read(VERSION_FILES[:project_yml])
+    project_yml.gsub!(/MARKETING_VERSION: "[\d.]+"/, "MARKETING_VERSION: \"#{new_version}\"")
+    File.write(VERSION_FILES[:project_yml], project_yml)
+
+    # Update Info.plist
+    puts "  Updating #{VERSION_FILES[:info_plist]}..."
+    info_plist = File.read(VERSION_FILES[:info_plist])
+    info_plist.gsub!(
+      /(<key>CFBundleShortVersionString<\/key>\s*<string>)[\d.]+(<\/string>)/m,
+      "\\1#{new_version}\\2"
+    )
+    File.write(VERSION_FILES[:info_plist], info_plist)
+
+    puts ""
+    puts "✓ Version bumped to #{new_version}"
+
+    # Verify
+    Rake::Task["version:verify"].invoke
+  end
+end
+
+# ============================================================
+# Project Management
+# ============================================================
 
 namespace :project do
   desc "Generate Xcode project with XcodeGen"
@@ -32,6 +167,10 @@ namespace :project do
     sh "open #{PROJECT_FILE}"
   end
 end
+
+# ============================================================
+# Build Tasks
+# ============================================================
 
 namespace :build do
   desc "Build for Debug"
@@ -56,6 +195,38 @@ namespace :build do
     puts "Clean complete!"
   end
 end
+
+# ============================================================
+# Test Tasks
+# ============================================================
+
+namespace :test do
+  desc "Run all tests"
+  task :all => "project:generate" do
+    puts "Running all tests..."
+    sh "xcodebuild test -project #{PROJECT_FILE} -scheme #{SCHEME} -destination 'platform=macOS'"
+  end
+
+  desc "Run tests with summary only"
+  task :quick => "project:generate" do
+    puts "Running tests (summary only)..."
+    sh "xcodebuild test -project #{PROJECT_FILE} -scheme #{SCHEME} -destination 'platform=macOS' 2>&1 | grep -E '(Test Suite|Executed|SUCCEEDED|FAILED)'"
+  end
+
+  desc "Run specific test class (e.g., rake test:class[AppleScriptTests])"
+  task :class, [:name] => "project:generate" do |t, args|
+    if args[:name].nil?
+      puts "Usage: rake test:class[TestClassName]"
+      exit 1
+    end
+    puts "Running tests for #{args[:name]}..."
+    sh "xcodebuild test -project #{PROJECT_FILE} -scheme #{SCHEME} -destination 'platform=macOS' -only-testing:SpeechDockTests/#{args[:name]}"
+  end
+end
+
+# ============================================================
+# Run Tasks
+# ============================================================
 
 namespace :run do
   desc "Build and run Debug version"
@@ -93,7 +264,10 @@ end
 desc "Restart app (quit and run debug)"
 task :restart => [:quit, "run:debug"]
 
-# Install app to /Applications
+# ============================================================
+# Install Tasks
+# ============================================================
+
 def install_app(app_path)
   dest = "/Applications/#{APP_NAME}.app"
 
@@ -144,6 +318,57 @@ end
 desc "Alias for install:release"
 task :install => "install:release"
 
+# ============================================================
+# Documentation Tasks
+# ============================================================
+
+namespace :docs do
+  desc "Start Jekyll server for local preview (http://localhost:4000)"
+  task :serve do
+    puts "Starting Jekyll server..."
+    puts "Preview at: http://localhost:4000/SpeechDock/"
+    puts "Press Ctrl+C to stop"
+    puts ""
+    Dir.chdir(DOCS_DIR) do
+      sh "bundle exec jekyll serve --livereload"
+    end
+  end
+
+  desc "Build documentation site"
+  task :build do
+    puts "Building documentation..."
+    Dir.chdir(DOCS_DIR) do
+      sh "bundle exec jekyll build"
+    end
+    puts "Documentation built to #{DOCS_DIR}/_site/"
+  end
+
+  desc "Install Jekyll dependencies"
+  task :setup do
+    puts "Installing Jekyll dependencies..."
+    Dir.chdir(DOCS_DIR) do
+      sh "bundle install"
+    end
+    puts "Done!"
+  end
+
+  desc "Clean built documentation"
+  task :clean do
+    site_dir = "#{DOCS_DIR}/_site"
+    if File.exist?(site_dir)
+      puts "Cleaning #{site_dir}..."
+      FileUtils.rm_rf(site_dir)
+      puts "Done!"
+    else
+      puts "Nothing to clean"
+    end
+  end
+end
+
+# ============================================================
+# Release Tasks
+# ============================================================
+
 namespace :release do
   desc "Create DMG for distribution"
   task :dmg => "build:release" do
@@ -176,9 +401,8 @@ namespace :release do
       puts "     rake release:full"
       puts ""
       puts "  2. Use GitHub Actions (recommended):"
-      puts "     git tag v#{app_version}"
-      puts "     git push origin v#{app_version}"
-      puts "     # CI will build, notarize, and create the release automatically"
+      puts "     rake prepare:release"
+      puts "     # Then follow the instructions"
       puts ""
       puts "=" * 60
       exit 1
@@ -246,54 +470,87 @@ namespace :release do
   end
 end
 
-namespace :version do
-  desc "Show current version"
-  task :show do
-    puts "Current version: #{app_version}"
-  end
+# ============================================================
+# Prepare Tasks (Pre-release workflow)
+# ============================================================
 
-  desc "Bump patch version (0.1.0 -> 0.1.1)"
-  task :patch do
-    bump_version(:patch)
-  end
-
-  desc "Bump minor version (0.1.0 -> 0.2.0)"
-  task :minor do
-    bump_version(:minor)
-  end
-
-  desc "Bump major version (0.1.0 -> 1.0.0)"
-  task :major do
-    bump_version(:major)
-  end
-
-  def bump_version(type)
-    current = app_version
-    parts = current.split('.').map(&:to_i)
-
-    case type
-    when :major
-      parts[0] += 1
-      parts[1] = 0
-      parts[2] = 0
-    when :minor
-      parts[1] += 1
-      parts[2] = 0
-    when :patch
-      parts[2] += 1
+namespace :prepare do
+  desc "Prepare release: bump version, regenerate project, run tests, commit"
+  task :release, [:bump_type] do |t, args|
+    bump_type = (args[:bump_type] || "patch").to_sym
+    unless [:patch, :minor, :major].include?(bump_type)
+      puts "Invalid bump type: #{args[:bump_type]}"
+      puts "Usage: rake prepare:release[patch|minor|major]"
+      exit 1
     end
 
-    new_version = parts.join('.')
-    File.write("VERSION", new_version)
+    puts ""
+    puts "=" * 60
+    puts "Preparing release (#{bump_type} bump)"
+    puts "=" * 60
+    puts ""
 
-    # Update project.yml
-    project_yml = File.read("project.yml")
-    project_yml.gsub!(/MARKETING_VERSION: "[\d.]+"/, "MARKETING_VERSION: \"#{new_version}\"")
-    File.write("project.yml", project_yml)
+    # Step 1: Bump version
+    puts "Step 1: Bumping version..."
+    Rake::Task["version:#{bump_type}"].invoke
+    new_version = app_version
+    puts ""
 
-    puts "Version bumped: #{current} -> #{new_version}"
+    # Step 2: Regenerate project
+    puts "Step 2: Regenerating Xcode project..."
+    Rake::Task["project:generate"].invoke
+    puts ""
+
+    # Step 3: Run tests
+    puts "Step 3: Running tests..."
+    Rake::Task["test:quick"].invoke
+    puts ""
+
+    # Step 4: Show git status
+    puts "Step 4: Changes to commit:"
+    sh "git status --short"
+    puts ""
+
+    # Step 5: Confirm and commit
+    print "Commit these changes and push? [y/N]: "
+    answer = STDIN.gets.chomp.downcase
+    if answer == 'y'
+      sh "git add -A"
+      sh "git commit -m 'Bump version to #{new_version}'"
+      sh "git push"
+
+      puts ""
+      puts "=" * 60
+      puts "✓ Version #{new_version} committed and pushed"
+      puts ""
+      puts "Next steps:"
+      puts "  1. Create release: rake release:github"
+      puts "  2. Or locally:     rake release:full"
+      puts "=" * 60
+    else
+      puts ""
+      puts "Changes not committed. To commit manually:"
+      puts "  git add -A"
+      puts "  git commit -m 'Bump version to #{new_version}'"
+      puts "  git push"
+    end
+  end
+
+  desc "Quick prepare: bump patch, commit, and trigger GitHub release"
+  task :quick do
+    Rake::Task["prepare:release"].invoke("patch")
+
+    print "Trigger GitHub Actions release now? [y/N]: "
+    answer = STDIN.gets.chomp.downcase
+    if answer == 'y'
+      Rake::Task["release:github"].invoke
+    end
   end
 end
+
+# ============================================================
+# Development Tasks
+# ============================================================
 
 namespace :dev do
   desc "Watch for changes and rebuild (requires fswatch)"
@@ -314,13 +571,20 @@ namespace :dev do
       puts "No build logs found"
     end
   end
+
+  desc "Open documentation in browser"
+  task :docs do
+    sh "open https://yohasebe.github.io/SpeechDock/"
+  end
 end
 
-# Default task
+# ============================================================
+# Shortcut Aliases
+# ============================================================
+
 desc "Build and run Debug version"
 task :default => "run:debug"
 
-# Shortcut aliases
 desc "Alias for run:debug"
 task :run => "run:debug"
 
@@ -336,50 +600,68 @@ task :gen => "project:generate"
 desc "Alias for project:open"
 task :xcode => "project:open"
 
-# Help task
+desc "Alias for test:quick"
+task :test => "test:quick"
+
+desc "Alias for docs:serve"
+task :docs => "docs:serve"
+
+# ============================================================
+# Help
+# ============================================================
+
 desc "Show available tasks"
 task :help do
   puts ""
   puts "SpeechDock Development Tasks"
-  puts "=" * 40
+  puts "=" * 60
   puts ""
-  puts "Common tasks:"
+  puts "Quick Start:"
   puts "  rake              # Build and run (Debug)"
-  puts "  rake run          # Build and run (Debug)"
-  puts "  rake build        # Build (Debug)"
-  puts "  rake clean        # Clean build"
-  puts "  rake quit         # Quit running app"
-  puts "  rake restart      # Quit and run again"
-  puts "  rake xcode        # Open in Xcode"
+  puts "  rake test         # Run tests (summary)"
+  puts "  rake docs         # Start Jekyll preview server"
   puts ""
-  puts "Build tasks:"
+  puts "Version Management:"
+  puts "  rake version:show    # Show current version"
+  puts "  rake version:verify  # Verify version sync across files"
+  puts "  rake version:patch   # Bump patch (0.1.0 -> 0.1.1)"
+  puts "  rake version:minor   # Bump minor (0.1.0 -> 0.2.0)"
+  puts "  rake version:major   # Bump major (0.1.0 -> 1.0.0)"
+  puts ""
+  puts "Build & Run:"
   puts "  rake build:debug   # Build Debug"
   puts "  rake build:release # Build Release"
-  puts "  rake build:clean   # Clean build"
+  puts "  rake run:debug     # Build and run Debug"
+  puts "  rake run:release   # Build and run Release"
+  puts "  rake quit          # Quit running app"
+  puts "  rake restart       # Quit and run again"
   puts ""
-  puts "Run tasks:"
-  puts "  rake run:debug     # Run Debug"
-  puts "  rake run:release   # Run Release"
+  puts "Testing:"
+  puts "  rake test:all              # Run all tests"
+  puts "  rake test:quick            # Run tests (summary only)"
+  puts "  rake test:class[ClassName] # Run specific test class"
   puts ""
-  puts "Install tasks:"
+  puts "Documentation:"
+  puts "  rake docs:serve  # Start Jekyll server (localhost:4000)"
+  puts "  rake docs:build  # Build documentation"
+  puts "  rake docs:setup  # Install Jekyll dependencies"
+  puts ""
+  puts "Installation:"
   puts "  rake install          # Build Release and install to /Applications"
-  puts "  rake install:release  # Build Release and install to /Applications"
-  puts "  rake install:debug    # Build Debug and install to /Applications"
+  puts "  rake install:debug    # Build Debug and install"
   puts ""
-  puts "Release tasks:"
-  puts "  rake release:github   # Create release via GitHub Actions (recommended)"
-  puts "  rake release:full     # Full local release (build, DMG, notarize, install)"
+  puts "Release Preparation:"
+  puts "  rake prepare:release[patch]  # Bump, test, commit (patch/minor/major)"
+  puts "  rake prepare:quick           # Quick patch release prep"
+  puts ""
+  puts "Release:"
+  puts "  rake release:github   # Create release via GitHub Actions"
+  puts "  rake release:full     # Full local release (notarize required)"
   puts "  rake release:dmg      # Create DMG only"
-  puts "  rake release:notarize # Notarize DMG (requires env vars)"
-  puts ""
-  puts "Version tasks:"
-  puts "  rake version:show  # Show version"
-  puts "  rake version:patch # Bump patch"
-  puts "  rake version:minor # Bump minor"
-  puts "  rake version:major # Bump major"
   puts ""
   puts "Development:"
-  puts "  rake dev:watch     # Watch and rebuild"
-  puts "  rake gen           # Generate project"
+  puts "  rake xcode       # Open in Xcode"
+  puts "  rake gen         # Regenerate project"
+  puts "  rake dev:watch   # Watch and rebuild"
   puts ""
 end

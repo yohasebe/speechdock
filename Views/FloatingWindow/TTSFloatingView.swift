@@ -89,8 +89,53 @@ class SpellCheckToast {
 }
 
 /// Custom NSTextView subclass for TTS input
+/// Notification posted when an audio file is dropped onto the text view
+extension Notification.Name {
+    static let audioFileDropped = Notification.Name("audioFileDropped")
+}
+
 class FocusableTextView: NSTextView {
     // Focus is handled by FloatingWindowManager via didBecomeKeyNotification
+
+    /// Whether this text view should handle audio file drops (for STT panel)
+    var handlesAudioFileDrop: Bool = false
+
+    /// Supported audio extensions for file drop
+    private let audioExtensions = ["mp3", "wav", "m4a", "aac", "webm", "ogg", "flac", "mp4"]
+
+    // MARK: - Drag and Drop
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        // Check if we should handle audio file drops
+        guard handlesAudioFileDrop else {
+            return super.performDragOperation(sender)
+        }
+
+        let pasteboard = sender.draggingPasteboard
+
+        // Try to get file URLs from the pasteboard
+        if let fileURLs = pasteboard.readObjects(forClasses: [NSURL.self], options: [
+            .urlReadingFileURLsOnly: true
+        ]) as? [URL] {
+            for url in fileURLs {
+                let ext = url.pathExtension.lowercased()
+                if audioExtensions.contains(ext) {
+                    // It's an audio file - post notification and handle the drop
+                    #if DEBUG
+                    print("FocusableTextView: Audio file dropped: \(url.path)")
+                    #endif
+                    NotificationCenter.default.post(
+                        name: .audioFileDropped,
+                        object: url
+                    )
+                    return true  // We handled the drop
+                }
+            }
+        }
+
+        // Not an audio file or no file URL - let default behavior handle it
+        return super.performDragOperation(sender)
+    }
 
     override func didChangeText() {
         super.didChangeText()
@@ -180,6 +225,7 @@ struct ScrollableTextView: NSViewRepresentable {
     var autoScrollToBottom: Bool = false  // Auto-scroll when text changes
     var isShowingTranslation: Bool = false  // Show different background for translated text
     var forceTextUpdate: Bool = false  // Force text update even if text view has focus
+    var handlesAudioFileDrop: Bool = false  // Whether to intercept audio file drops (for STT panel)
 
     /// Background color for translated text state (light blue)
     private var translationBackgroundColor: NSColor {
@@ -212,6 +258,7 @@ struct ScrollableTextView: NSViewRepresentable {
         textView.isRichText = false
         textView.delegate = context.coordinator
         textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.handlesAudioFileDrop = handlesAudioFileDrop
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
 

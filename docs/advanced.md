@@ -1,8 +1,21 @@
+---
+layout: default
+title: Advanced Features
+nav_order: 3
+---
+
+<p align="right"><a href="advanced_ja.html">日本語</a></p>
+
 # SpeechDock — Advanced Features
 
 This page covers features that require API keys from cloud providers. These are optional enhancements — SpeechDock works fully with macOS native STT/TTS without any API keys.
 
 ## API Key Setup
+
+<figure>
+  <img src="images/settings-apikeys.png" alt="API Keys Settings" style="max-width: 500px;">
+  <figcaption>Settings — API Keys tab for configuring cloud provider credentials</figcaption>
+</figure>
 
 To use cloud providers, configure API keys in **Settings** > **API Keys**:
 
@@ -22,9 +35,9 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 | Provider | Models | Features |
 |----------|--------|----------|
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | High accuracy, 100+ languages |
-| **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | Multimodal, fast |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | Multimodal, fast |
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
-| **Grok** | Grok Realtime | xAI's realtime transcription |
+| **Grok** | Grok 2 | xAI's realtime transcription |
 
 Select the provider in **Settings** > **General** or from the menu bar.
 
@@ -34,10 +47,10 @@ Cloud TTS provides natural-sounding voices with various styles and languages.
 
 | Provider | Models | Voices |
 |----------|--------|--------|
-| **OpenAI** | GPT-4o Mini TTS, TTS-1, TTS-1 HD | Multiple natural voices |
+| **OpenAI** | GPT-4o Mini TTS, TTS-1, TTS-1 HD | alloy, echo, fable, onyx, nova, shimmer |
 | **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | Multilingual voices |
-| **ElevenLabs** | Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5, Monolingual v1 | Large voice library |
-| **Grok** | Grok Voice | 5 distinct voices |
+| **ElevenLabs** | Eleven v3, Eleven Flash v2.5, Eleven Multilingual v2, Eleven Turbo v2.5 | Large voice library |
+| **Grok** | Grok 2 | Clio, Sage, Charon, Fenrir, Leda |
 
 ### Voice and Model Selection
 
@@ -51,6 +64,11 @@ Each provider offers different voices and models. Select them in:
 Route TTS playback to any audio output device (speakers, headphones, virtual devices). Select in Settings, menu bar, or the TTS panel.
 
 ## Audio File Transcription
+
+<figure>
+  <img src="images/file-transcription.png" alt="File Transcription" style="max-width: 600px;">
+  <figcaption>File Transcription — Drag and drop audio files to transcribe</figcaption>
+</figure>
 
 Transcribe pre-recorded audio files using cloud STT providers. Not available with macOS native or Grok providers.
 
@@ -133,5 +151,4 @@ When using cloud providers:
 
 ---
 
-**Previous**: [Basic Features](index.md)
-| **Next**: [AppleScript Automation](applescript.md)
+**Previous**: [Basic Features](basics.md) | **Next**: [AppleScript Automation](applescript.md)

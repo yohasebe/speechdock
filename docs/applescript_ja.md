@@ -1,3 +1,12 @@
+---
+layout: default
+title: AppleScript
+nav_exclude: true
+lang: ja
+---
+
+<p align="right"><a href="applescript.html">English</a></p>
+
 # SpeechDock — AppleScript自動化
 
 SpeechDockはTTS、STT、翻訳機能をAppleScript経由で公開しており、Script Editor、Automator、ショートカット、その他のスクリプト対応アプリケーションからの自動化が可能です。

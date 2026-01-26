@@ -1,0 +1,8 @@
+source "https://rubygems.org"
+
+gem "github-pages", group: :jekyll_plugins
+gem "jekyll-remote-theme"
+gem "webrick" # Ruby 3.0+
+gem "csv"     # Ruby 3.4+
+gem "base64"  # Ruby 3.4+
+gem "bigdecimal" # Ruby 3.4+

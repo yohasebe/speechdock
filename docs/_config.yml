@@ -5,29 +5,39 @@ title: SpeechDock
 description: A macOS menu bar app for Speech-to-Text and Text-to-Speech
 
 # GitHub Pages URL settings
-# url: https://yohasebe.github.io
-# baseurl: /speechdock
+url: https://yohasebe.github.io
+baseurl: /SpeechDock
+repository: yohasebe/SpeechDock
 
-# Theme (GitHub Pages built-in themes):
-#   jekyll-theme-cayman     - gradient header, simple
-#   jekyll-theme-minimal    - left sidebar, minimal
-#   jekyll-theme-slate      - dark header
-#   jekyll-theme-dinky      - compact, sidebar
-#   jekyll-theme-tactile    - textured background
-#   jekyll-theme-architect  - blueprint style
-theme: jekyll-theme-cayman
+# Theme
+remote_theme: just-the-docs/just-the-docs@v0.4.2
 
-# For advanced themes (e.g. documentation-focused), use remote_theme instead:
-# plugins:
-#   - jekyll-remote-theme
-# remote_theme: pages-themes/cayman@v0.2.0
-# remote_theme: just-the-docs/just-the-docs  # sidebar nav, search, TOC
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+# Logo
+logo: /images/icon.png
+
+# Color scheme (light or dark)
+color_scheme: light
+
+# Enable search
+search_enabled: true
+
+# Aux links (top right)
+aux_links:
+  "GitHub":
+    - "https://github.com/yohasebe/SpeechDock"
+
+aux_links_new_tab: true
 
 # Markdown engine
 markdown: kramdown
 kramdown:
-  input: GFM  # GitHub Flavored Markdown (tables, fenced code blocks, etc.)
+  input: GFM
 
-# Files to exclude from the generated site
+# Files to exclude
 exclude:
   - _config.yml.bak
+  - Gemfile.lock

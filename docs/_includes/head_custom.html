@@ -1,0 +1,140 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --link-color: #2563eb;
+  --link-color-hover: #1d4ed8;
+}
+
+a {
+  color: #2563eb;
+}
+
+a:hover {
+  color: #1d4ed8;
+}
+
+.nav-list-link.active {
+  color: #2563eb !important;
+}
+
+.site-title {
+  color: #1e3a5f !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+.site-title,
+.nav-list-link,
+.btn {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+h1 { font-weight: 700; }
+h2 { font-weight: 600; }
+h3, h4, h5, h6 { font-weight: 600; }
+
+.site-title {
+  font-weight: 700;
+}
+
+.nav-list-link {
+  font-weight: 500;
+}
+
+figure {
+  margin: 1.5rem 0;
+  padding: 0;
+}
+
+figure img {
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+figure figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+  font-style: italic;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.fs-6 {
+  font-size: 1.125rem !important;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  border: 1px solid #e1e4e8;
+  color: #2563eb !important;
+}
+
+.btn:hover {
+  text-decoration: none;
+  color: #1d4ed8 !important;
+}
+
+.btn-primary,
+a.btn-primary,
+.btn.btn-primary {
+  background-color: #2563eb !important;
+  background-image: none !important;
+  color: white !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-primary:hover,
+a.btn-primary:hover,
+.btn.btn-primary:hover {
+  background-color: #1d4ed8 !important;
+  background-image: none !important;
+  border-color: #1d4ed8 !important;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var path = window.location.pathname;
+  var isJapanese = path.indexOf('_ja') !== -1;
+  if (isJapanese) {
+    var navLinks = document.querySelectorAll('a.nav-list-link');
+    for (var i = 0; i < navLinks.length; i++) {
+      var link = navLinks[i];
+      var href = link.getAttribute('href');
+      if (href === '/' || href === '/SpeechDock/' || href === '/SpeechDock') {
+        link.setAttribute('href', href.replace(/\/?$/, '') + '/index_ja.html');
+        link.textContent = 'ホーム';
+      } else if (href.indexOf('basics.html') !== -1 && href.indexOf('_ja') === -1) {
+        link.setAttribute('href', href.replace('basics.html', 'basics_ja.html'));
+        link.textContent = '基本機能';
+      } else if (href.indexOf('advanced.html') !== -1 && href.indexOf('_ja') === -1) {
+        link.setAttribute('href', href.replace('advanced.html', 'advanced_ja.html'));
+        link.textContent = '高度な機能';
+      } else if (href.indexOf('applescript.html') !== -1 && href.indexOf('_ja') === -1) {
+        link.setAttribute('href', href.replace('applescript.html', 'applescript_ja.html'));
+      }
+    }
+    var siteTitle = document.querySelector('a.site-title');
+    if (siteTitle) {
+      var titleHref = siteTitle.getAttribute('href');
+      siteTitle.setAttribute('href', titleHref.replace(/\/?$/, '') + '/index_ja.html');
+    }
+  }
+});
+</script>

@@ -994,7 +994,8 @@ struct TranscriptionFloatingView: View {
                     fontSize: CGFloat(appState.panelTextFontSize),
                     autoScrollToBottom: isRecording,  // Auto-scroll while recording
                     isShowingTranslation: appState.translationState.isTranslated,
-                    forceTextUpdate: forceTextUpdate
+                    forceTextUpdate: forceTextUpdate,
+                    handlesAudioFileDrop: true  // Handle audio file drops for transcription
                 )
                 .cornerRadius(8)
                 .overlay(textAreaBorder)
@@ -1107,9 +1108,11 @@ struct TranscriptionFloatingView: View {
         }
         .onChange(of: isRecording) { _, newValue in
             if newValue {
-                // Recording started - sync editedText to currentTranscription for subtitle panel
-                appState.currentTranscription = editedText
-                // Save current text as base
+                // Recording started
+                // Note: Don't sync editedText to currentTranscription here - it causes duplication
+                // when onChange(currentTranscription) fires with baseText still holding old value.
+                // Subtitle uses currentSessionTranscription (reset in startRecording), not currentTranscription.
+                // Save current text as base for append mode
                 baseText = editedText.trimmingCharacters(in: .whitespaces)
                 startBorderAnimation()
             } else {
@@ -1123,6 +1126,13 @@ struct TranscriptionFloatingView: View {
             // Start animation if already recording
             if isRecording {
                 startBorderAnimation()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .audioFileDropped)) { notification in
+            // Handle audio file dropped from FocusableTextView
+            guard !isBusy else { return }
+            if let url = notification.object as? URL {
+                appState.transcribeAudioFile(url)
             }
         }
         // Font size shortcuts (invisible buttons)

@@ -1,8 +1,22 @@
+---
+layout: default
+title: 高度な機能
+nav_exclude: true
+lang: ja
+---
+
+<p align="right"><a href="advanced.html">English</a></p>
+
 # SpeechDock — 高度な機能
 
 このページでは、クラウドプロバイダのAPIキーが必要な機能について説明します。これらはオプションの拡張機能です。SpeechDockはAPIキーなしでもmacOSネイティブのSTT/TTSで完全に動作します。
 
 ## APIキーの設定
+
+<figure>
+  <img src="images/settings-apikeys.png" alt="API Keys Settings" style="max-width: 500px;">
+  <figcaption>設定 — クラウドプロバイダ認証情報のAPIキータブ</figcaption>
+</figure>
 
 クラウドプロバイダを使用するには、**設定** > **APIキー**でAPIキーを設定してください。
 
@@ -22,9 +36,9 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 | プロバイダ | モデル | 特徴 |
 |----------|--------|----------|
 | **OpenAI** | GPT-4o Transcribe、GPT-4o Mini Transcribe、Whisper | 高精度、100以上の言語 |
-| **Google Gemini** | Gemini 2.5 Flash、Gemini 2.0 Flash、Gemini 1.5 Pro | マルチモーダル、高速 |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 2.0 Flash Live | マルチモーダル、高速 |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
-| **Grok** | Grok Realtime | xAIのリアルタイム文字起こし |
+| **Grok** | Grok 2 | xAIのリアルタイム文字起こし |
 
 プロバイダは**設定** > **一般**またはメニューバーから選択できます。
 
@@ -34,10 +48,10 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 
 | プロバイダ | モデル | 音声 |
 |----------|--------|--------|
-| **OpenAI** | GPT-4o Mini TTS、TTS-1、TTS-1 HD | 複数の自然な音声 |
+| **OpenAI** | GPT-4o Mini TTS、TTS-1、TTS-1 HD | alloy、echo、fable、onyx、nova、shimmer |
 | **Google Gemini** | Gemini 2.5 Flash TTS、Gemini 2.5 Pro TTS | 多言語音声 |
-| **ElevenLabs** | Eleven v3、Flash v2.5、Multilingual v2、Turbo v2.5、Monolingual v1 | 豊富な音声ライブラリ |
-| **Grok** | Grok Voice | 5種類の音声 |
+| **ElevenLabs** | Eleven v3、Eleven Flash v2.5、Eleven Multilingual v2、Eleven Turbo v2.5 | 豊富な音声ライブラリ |
+| **Grok** | Grok 2 | Clio、Sage、Charon、Fenrir、Leda |
 
 ### 音声とモデルの選択
 
@@ -51,6 +65,11 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 TTS再生を任意の音声出力デバイス（スピーカー、ヘッドフォン、仮想デバイス）にルーティングできます。設定、メニューバー、またはTTSパネルから選択してください。
 
 ## 音声ファイルの文字起こし
+
+<figure>
+  <img src="images/file-transcription.png" alt="File Transcription" style="max-width: 600px;">
+  <figcaption>ファイル文字起こし — 音声ファイルをドラッグ＆ドロップして文字起こし</figcaption>
+</figure>
 
 クラウドSTTプロバイダを使用して、録音済みの音声ファイルを文字起こしできます。macOSネイティブおよびGrokプロバイダでは利用できません。
 
@@ -133,4 +152,4 @@ STTとTTSの両方で、すべてのクラウドプロバイダで言語選択�
 
 ---
 
-**前へ**: [基本機能](index_ja.md) | **次へ**: [AppleScript自動化](applescript_ja.md)
+**前へ**: [基本機能](basics_ja.md) | **次へ**: [AppleScript自動化](applescript_ja.md)

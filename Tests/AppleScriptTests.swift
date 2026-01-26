@@ -131,6 +131,7 @@ final class AppleScriptTests: XCTestCase {
         XCTAssertEqual(AppleScriptErrorCode.sttFileTooLarge.rawValue, 1023)
         XCTAssertEqual(AppleScriptErrorCode.sttAlreadyRecording.rawValue, 1024)
         XCTAssertEqual(AppleScriptErrorCode.sttTranscriptionFailed.rawValue, 1025)
+        XCTAssertEqual(AppleScriptErrorCode.sttNotRecording.rawValue, 1026)
     }
 
     func testErrorCode_TranslationRange() {

@@ -47,6 +47,11 @@ secrets/
 # Claude Code
 .claude/
 
+# Jekyll (docs site build output)
+docs/_site/
+docs/.jekyll-cache/
+docs/.sass-cache/
+
 # Temporary files
 *.log
 *.tmp
