@@ -31,7 +31,12 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     }
 
     var defaultModel: STTModel {
-        availableModels.first!
+        // Each provider always has at least one model defined in availableModels
+        guard let model = availableModels.first else {
+            // Fallback that should never be reached
+            return .gpt4oMiniTranscribe
+        }
+        return model
     }
 }
 

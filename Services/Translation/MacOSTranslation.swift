@@ -157,7 +157,10 @@ final class MacOSTranslation: TranslationServiceProtocol {
             }
         }
 
-        return try await currentTask!.value
+        guard let task = currentTask else {
+            throw TranslationError.apiError("Translation task failed to start")
+        }
+        return try await task.value
     }
 
     func isAvailable(from sourceLanguage: LanguageCode?, to targetLanguage: LanguageCode) async -> Bool {

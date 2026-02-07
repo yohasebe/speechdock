@@ -110,8 +110,21 @@ final class ShortcutHUDManager {
             }
         }
 
-        // Click outside monitor
-        clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+        // Click outside monitor - with delay to avoid interfering with menu bar
+        clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            // Skip if clicking in the menu bar area (top 24 pixels of screen)
+            let clickLocation = event.locationInWindow
+            if let screen = NSScreen.main {
+                let screenHeight = screen.frame.height
+                let menuBarHeight: CGFloat = 24
+                // Global events have screen coordinates where y=0 is bottom
+                if clickLocation.y > screenHeight - menuBarHeight {
+                    // Click is in menu bar area - don't dismiss immediately
+                    // Let the menu bar handle the click first
+                    return
+                }
+            }
+
             Task { @MainActor in
                 self?.dismiss()
             }

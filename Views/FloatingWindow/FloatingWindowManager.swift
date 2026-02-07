@@ -66,6 +66,19 @@ final class FloatingWindowManager: ObservableObject {
     @Published var showDestinationAlert: Bool = false
     @Published var destinationAlertMessage: String = ""
 
+    deinit {
+        // Clean up all observers and monitors (defensive cleanup for future changes)
+        if let observer = windowBecameKeyObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = windowWillCloseObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let monitor = keyboardEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+    }
+
     func showFloatingWindow(
         appState: AppState,
         onConfirm: @escaping (String) -> Void,

@@ -62,6 +62,7 @@ Uses macOS Vision Framework for text recognition. Requires Screen Recording perm
 Display real-time transcription as subtitles overlay during recording:
 
 - **On-screen subtitles** - Show transcription as floating subtitles anywhere on screen
+- **Real-time translation** - Optionally translate subtitles as you speak
 - **Customizable appearance** - Adjust font size, opacity, position (top/bottom), and max lines
 - **Draggable position** - Drag subtitles to any location on screen
 - **Auto-hide panel** - Optionally hide STT panel when subtitle mode is active

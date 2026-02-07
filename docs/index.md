@@ -86,6 +86,16 @@ SpeechDock makes macOS TTS/STT more flexible and accessible. While macOS include
   <figcaption>Text-to-Speech Panel</figcaption>
 </figure>
 
+<figure>
+  <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
+  <figcaption>Quick Transcription — Floating mic button with real-time HUD</figcaption>
+</figure>
+
+<figure>
+  <img src="images/subtitle-overlay.png" alt="Subtitle Mode" style="max-width: 100%;">
+  <figcaption>Subtitle Mode — Real-time transcription as floating subtitles</figcaption>
+</figure>
+
 ---
 
 ## License

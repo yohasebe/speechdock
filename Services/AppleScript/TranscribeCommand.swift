@@ -21,6 +21,15 @@ class TranscribeFileCommand: NSScriptCommand {
         suspendExecution()
 
         Task { @MainActor in
+            // Wait for app initialization
+            let initialized = await self.waitForInitialization(timeout: 5.0)
+            guard initialized else {
+                self.setAppleScriptError(.appNotInitialized,
+                    message: "SpeechDock is still initializing. Please try again in a moment.")
+                self.resumeExecution(withResult: nil)
+                return
+            }
+
             let appState = AppState.shared
             let provider = appState.selectedRealtimeProvider
             let language = appState.selectedSTTLanguage.isEmpty ? nil : appState.selectedSTTLanguage

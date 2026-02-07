@@ -13,6 +13,7 @@ enum AppleScriptErrorCode: Int {
     // General (1000-1009)
     case internalError = 1000
     case invalidParameter = 1001
+    case appNotInitialized = 1002
 
     // TTS (1010-1019)
     case ttsEmptyText = 1010
@@ -56,5 +57,21 @@ extension NSScriptCommand {
     func setAppleScriptError(_ code: AppleScriptErrorCode, message: String) {
         scriptErrorNumber = code.rawValue
         scriptErrorString = message
+    }
+
+    /// Wait for app initialization to complete (with timeout)
+    /// - Parameters:
+    ///   - timeout: Maximum time to wait in seconds (default: 5.0)
+    /// - Returns: true if app is initialized, false if timeout
+    @MainActor
+    func waitForInitialization(timeout: TimeInterval = 5.0) async -> Bool {
+        let startTime = Date()
+        while !AppState.shared.isInitialized {
+            if Date().timeIntervalSince(startTime) > timeout {
+                return false
+            }
+            try? await Task.sleep(nanoseconds: 50_000_000)  // 50ms
+        }
+        return true
     }
 }

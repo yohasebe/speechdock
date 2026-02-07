@@ -118,6 +118,41 @@ When you switch STT or TTS providers, the translation provider automatically syn
 | Grok | Grok |
 | ElevenLabs / macOS | macOS |
 
+## Subtitle Real-time Translation
+
+When using subtitle mode, you can enable real-time translation that translates speech as you speak. This works with all audio sources (microphone, system audio, app audio).
+
+### How It Works
+
+1. Enable subtitle mode (`Ctrl + Option + S`)
+2. Click the globe icon (🌐) in the subtitle header to enable translation
+3. Select your target language and translation provider
+4. Start recording — translations appear in real-time
+
+### Translation Providers for Subtitles
+
+| Provider | Debounce | Best For |
+|----------|----------|----------|
+| **macOS** | 300ms | Fast, local, privacy-focused |
+| **OpenAI** | 800ms | High quality, many languages |
+| **Gemini** | 600ms | Good balance of speed and quality |
+| **Grok** | 800ms | Fast translation |
+
+**Note**: Subtitle translation uses the provider's default model for optimal performance. This is independent of the model selected in the panel translation settings.
+
+### Features
+
+- **Caching** — Repeated phrases are translated instantly from cache (up to 200 entries)
+- **Context-aware** — LLM providers use recent sentences as context for better translations
+- **Pause detection** — Automatically triggers translation after 1.5 seconds of silence
+- **Settings sync** — Translation settings sync from the STT panel when subtitle mode starts
+
+### Limitations
+
+- Translation adds some latency compared to transcription-only mode
+- Cloud providers require API keys and internet connection
+- macOS provider requires macOS 26+ and downloaded language packs
+
 ## Language Selection
 
 Both STT and TTS support language selection with all cloud providers:

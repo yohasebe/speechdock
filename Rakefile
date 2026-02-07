@@ -576,6 +576,35 @@ namespace :dev do
   task :docs do
     sh "open https://yohasebe.github.io/SpeechDock/"
   end
+
+  desc "Run app with no API keys (simulates typical user experience)"
+  task :no_api => "build:debug" do
+    app_path = find_built_app("Debug")
+    if app_path
+      puts ""
+      puts "=" * 60
+      puts "Running #{APP_NAME} with NO API keys"
+      puts "=" * 60
+      puts ""
+      puts "This simulates the experience of a typical user who only"
+      puts "uses macOS built-in features (Speech Recognition, TTS,"
+      puts "Translation) without external API providers."
+      puts ""
+      puts "All external API providers (OpenAI, Gemini, ElevenLabs,"
+      puts "Grok) will appear as unavailable."
+      puts ""
+
+      # Launch the app executable directly with environment variable
+      executable = "#{app_path}/Contents/MacOS/#{APP_NAME}"
+      # Fork a process so rake can exit while app continues running
+      pid = spawn({ 'SPEECHDOCK_TEST_NO_API_KEYS' => '1' }, executable)
+      Process.detach(pid)
+      puts "Launched with PID: #{pid}"
+    else
+      puts "Error: Could not find built app"
+      exit 1
+    end
+  end
 end
 
 # ============================================================
@@ -605,6 +634,9 @@ task :test => "test:quick"
 
 desc "Alias for docs:serve"
 task :docs => "docs:serve"
+
+desc "Alias for dev:no_api (run with no API keys)"
+task :noapi => "dev:no_api"
 
 # ============================================================
 # Help
@@ -660,8 +692,9 @@ task :help do
   puts "  rake release:dmg      # Create DMG only"
   puts ""
   puts "Development:"
-  puts "  rake xcode       # Open in Xcode"
-  puts "  rake gen         # Regenerate project"
-  puts "  rake dev:watch   # Watch and rebuild"
+  puts "  rake xcode        # Open in Xcode"
+  puts "  rake gen          # Regenerate project"
+  puts "  rake dev:watch    # Watch and rebuild"
+  puts "  rake dev:no_api   # Run with no API keys (test macOS-only mode)"
   puts ""
 end

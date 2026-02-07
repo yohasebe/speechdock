@@ -1419,6 +1419,11 @@ struct SubtitleModeSettings: View {
                 }
             }
 
+            // Translation settings section
+            Divider()
+
+            SubtitleTranslationSettings(appState: appState)
+
             // Reset all button
             HStack {
                 Spacer()
@@ -1430,9 +1435,150 @@ struct SubtitleModeSettings: View {
                     appState.subtitleBackgroundOpacity = 0.5
                     appState.subtitleMaxLines = 3
                     appState.subtitleHidePanelWhenActive = true
+                    // Reset translation settings
+                    appState.subtitleTranslationEnabled = false
+                    appState.subtitleTranslationLanguage = .japanese
+                    appState.subtitleTranslationProvider = .macOS
+                    appState.subtitleShowOriginal = false
                 }
                 .font(.caption)
             }
+        }
+    }
+}
+
+/// Subtitle Translation settings
+struct SubtitleTranslationSettings: View {
+    @Bindable var appState: AppState
+    @State private var availableLanguages: [LanguageCode] = []
+    @State private var isLoadingLanguages = true
+
+    /// Available translation providers (only those with API keys or not requiring them)
+    private var availableProviders: [TranslationProvider] {
+        TranslationProvider.allCases.filter { provider in
+            if !provider.requiresAPIKey { return provider.isAvailable }
+            guard let envKey = provider.envKeyName else { return false }
+            let apiKey = APIKeyManager.shared.getAPIKey(for: envKey)
+            return apiKey != nil && !apiKey!.isEmpty
+        }
+    }
+
+    /// Check if macOS translation is available
+    private var isMacOSTranslationAvailable: Bool {
+        TranslationFactory.isMacOSTranslationAvailable
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Real-Time Translation")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            // Enable translation toggle
+            Toggle(isOn: $appState.subtitleTranslationEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Enable Real-Time Translation")
+                    Text("Translate subtitles to target language in real-time.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Warning if macOS translation not available and no API keys
+            if !isMacOSTranslationAvailable && availableProviders.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                    Text("Requires macOS 26+ for on-device translation, or set up API keys.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            // Provider picker
+            Picker("Provider", selection: $appState.subtitleTranslationProvider) {
+                ForEach(availableProviders) { provider in
+                    Text(provider.displayName).tag(provider)
+                }
+            }
+
+            Text(providerDescription)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            // Target language picker (shows only available languages for macOS)
+            HStack {
+                Text("Target Language")
+                Spacer()
+                if isLoadingLanguages {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                } else {
+                    Picker("", selection: $appState.subtitleTranslationLanguage) {
+                        ForEach(availableLanguages) { language in
+                            Text(language.displayName).tag(language)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 150)
+                }
+            }
+
+            if appState.subtitleTranslationProvider == .macOS {
+                Text("Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            // Show original text toggle
+            Toggle(isOn: $appState.subtitleShowOriginal) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Show Original Text")
+                    Text("Display original text above the translation.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.top, 4)
+        .task {
+            await loadAvailableLanguages()
+        }
+        .onChange(of: appState.subtitleTranslationProvider) { _, _ in
+            Task {
+                await loadAvailableLanguages()
+            }
+        }
+    }
+
+    private func loadAvailableLanguages() async {
+        isLoadingLanguages = true
+
+        if appState.subtitleTranslationProvider == .macOS {
+            availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
+
+            // If current selection not available, switch to first available
+            if !availableLanguages.contains(appState.subtitleTranslationLanguage),
+               let first = availableLanguages.first {
+                appState.subtitleTranslationLanguage = first
+            }
+        } else {
+            availableLanguages = LanguageCode.allCases.filter { $0 != .auto }
+        }
+
+        isLoadingLanguages = false
+    }
+
+    private var providerDescription: String {
+        switch appState.subtitleTranslationProvider {
+        case .macOS:
+            return "Fast on-device translation. Requires macOS 26+."
+        case .openAI:
+            return "OpenAI translation (100+ languages). Higher latency."
+        case .gemini:
+            return "Gemini translation (100+ languages). Higher latency."
+        case .grok:
+            return "Grok translation (100+ languages). Higher latency."
         }
     }
 }

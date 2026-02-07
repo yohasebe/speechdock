@@ -78,6 +78,14 @@ final class FloatingMicButtonManager {
         startGlobalAppTracking()
     }
 
+    deinit {
+        // Clean up observer (for proper resource management, even though singleton won't deinit)
+        // Note: We can safely remove the observer from any thread
+        if let observer = appActivationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+    }
+
     /// Start tracking frontmost app globally (called once at init)
     private func startGlobalAppTracking() {
         guard !isTrackingApps else { return }
@@ -95,10 +103,20 @@ final class FloatingMicButtonManager {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            Task { @MainActor in
+            // Use assumeIsolated since we're on the main queue
+            MainActor.assumeIsolated {
                 self?.handleAppActivation(notification)
             }
         }
+    }
+
+    /// Stop tracking frontmost app (for cleanup)
+    private func stopGlobalAppTracking() {
+        if let observer = appActivationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            appActivationObserver = nil
+        }
+        isTrackingApps = false
     }
 
     // MARK: - Show/Hide
@@ -108,7 +126,10 @@ final class FloatingMicButtonManager {
     }
 
     func show(appState: AppState) {
-        guard buttonWindow == nil else { return }
+        guard buttonWindow == nil else {
+            logger.debug("show: buttonWindow already exists")
+            return
+        }
 
         self.appState = appState
 
@@ -116,6 +137,8 @@ final class FloatingMicButtonManager {
         UserDefaults.standard.removeObject(forKey: FloatingMicConstants.hudPositionKey)
 
         let frame = savedFrameOrDefault()
+        logger.debug("show: creating window at frame \(frame.debugDescription, privacy: .public)")
+
         let window = NonActivatingWindow(
             contentRect: frame,
             styleMask: .borderless,
@@ -139,6 +162,7 @@ final class FloatingMicButtonManager {
         window.orderFrontRegardless()
 
         self.buttonWindow = window
+        logger.debug("show: buttonWindow created and ordered front")
     }
 
     func hide() {
@@ -208,8 +232,14 @@ final class FloatingMicButtonManager {
     // MARK: - Recording Control
 
     func startRecording() {
-        guard let appState = appState else { return }
-        guard !appState.isRecording else { return }
+        guard let appState = appState else {
+            logger.error("startRecording: appState is nil")
+            return
+        }
+        guard !appState.isRecording else {
+            logger.debug("startRecording: already recording, skipping")
+            return
+        }
 
         // Use the last known frontmost app (tracked by observer)
         targetApp = lastFrontmostApp
@@ -231,7 +261,10 @@ final class FloatingMicButtonManager {
 
         // Show the HUD for real-time transcription display
         if let buttonFrame = buttonWindow?.frame {
+            logger.debug("Button window frame: \(buttonFrame.debugDescription, privacy: .public)")
             FloatingMicTextHUD.shared.show(near: buttonFrame)
+        } else {
+            logger.warning("Button window is nil or has no frame - HUD will not appear")
         }
 
         // Start STT without showing the panel

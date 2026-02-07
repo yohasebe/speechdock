@@ -90,9 +90,9 @@ final class AccessibilityTextInsertionService {
         let currentText = (currentValue as? String) ?? ""
         let newText: String
 
-        if let rangeValue = selectedRange {
-            // AXValue is a CFTypeRef, we can use it directly after casting
-            let axValue = rangeValue as! AXValue
+        if let rangeValue = selectedRange,
+           CFGetTypeID(rangeValue) == AXValueGetTypeID() {
+            let axValue = rangeValue as! AXValue  // Safe after CFGetTypeID check
             var cfRange = CFRange()
             if AXValueGetValue(axValue, .cfRange, &cfRange) {
                 let nsRange = NSRange(location: cfRange.location, length: cfRange.length)
@@ -175,39 +175,45 @@ final class AccessibilityTextInsertionService {
         )
 
         guard appResult == .success,
-              let appElement = focusedApp else {
+              let appRef = focusedApp,
+              CFGetTypeID(appRef) == AXUIElementGetTypeID() else {
             #if DEBUG
             print("AccessibilityService: Failed to get focused app, result=\(appResult.rawValue)")
             #endif
             return nil
         }
 
+        let appElement = appRef as! AXUIElement  // Safe after CFGetTypeID check
+
         // Get app name for debugging
         var appTitle: AnyObject?
-        AXUIElementCopyAttributeValue(appElement as! AXUIElement, kAXTitleAttribute as CFString, &appTitle)
+        AXUIElementCopyAttributeValue(appElement, kAXTitleAttribute as CFString, &appTitle)
         #if DEBUG
         print("AccessibilityService: Focused app = \(appTitle as? String ?? "unknown")")
         #endif
 
         var focusedElement: AnyObject?
         let elementResult = AXUIElementCopyAttributeValue(
-            appElement as! AXUIElement,
+            appElement,
             kAXFocusedUIElementAttribute as CFString,
             &focusedElement
         )
 
         guard elementResult == .success,
-              let element = focusedElement else {
+              let elementRef = focusedElement,
+              CFGetTypeID(elementRef) == AXUIElementGetTypeID() else {
             #if DEBUG
             print("AccessibilityService: Failed to get focused element, result=\(elementResult.rawValue)")
             #endif
             return nil
         }
 
+        let element = elementRef as! AXUIElement  // Safe after CFGetTypeID check
+
         // Check if it's a text input element
         var role: AnyObject?
         AXUIElementCopyAttributeValue(
-            element as! AXUIElement,
+            element,
             kAXRoleAttribute as CFString,
             &role
         )
@@ -237,7 +243,7 @@ final class AccessibilityTextInsertionService {
         // instead of strictly checking role
         var settable: DarwinBoolean = false
         let settableResult = AXUIElementIsAttributeSettable(
-            element as! AXUIElement,
+            element,
             kAXValueAttribute as CFString,
             &settable
         )
@@ -248,7 +254,7 @@ final class AccessibilityTextInsertionService {
 
         // Accept if role is in textRoles OR if value is settable
         if textRoles.contains(roleString) || (settableResult == .success && settable.boolValue) {
-            return (element as! AXUIElement)
+            return element
         }
 
         #if DEBUG

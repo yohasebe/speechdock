@@ -93,6 +93,10 @@
         </command>
 
         <!-- Quick Transcription Commands -->
+        <command name="show quick transcription" code="SDckShQT" description="Show the floating mic button without starting recording.">
+            <cocoa class="SpeechDock.ShowQuickTranscriptionCommand"/>
+        </command>
+
         <command name="start quick transcription" code="SDckStQT" description="Start quick transcription using the floating mic button. Transcribed text is pasted when stopped.">
             <cocoa class="SpeechDock.StartQuickTranscriptionCommand"/>
         </command>
@@ -104,6 +108,38 @@
 
         <command name="toggle quick transcription" code="SDckTgQT" description="Toggle quick transcription recording on/off.">
             <cocoa class="SpeechDock.ToggleQuickTranscriptionCommand"/>
+        </command>
+
+        <!-- STT Panel Commands -->
+        <command name="show stt panel" code="SDckShST" description="Show the STT (speech-to-text) panel. If auto-start is enabled, recording begins automatically.">
+            <cocoa class="SpeechDock.ShowSTTPanelCommand"/>
+        </command>
+
+        <command name="toggle stt panel" code="SDckTgST" description="Toggle the STT panel visibility. If panel is visible and recording, stops recording and closes panel.">
+            <cocoa class="SpeechDock.ToggleSTTPanelCommand"/>
+        </command>
+
+        <!-- TTS Panel Commands -->
+        <command name="show tts panel" code="SDckShTT" description="Show the TTS (text-to-speech) panel for manual text input.">
+            <cocoa class="SpeechDock.ShowTTSPanelCommand"/>
+        </command>
+
+        <command name="toggle tts panel" code="SDckTgTT" description="Toggle the TTS panel visibility. If speaking, stops playback and closes panel.">
+            <cocoa class="SpeechDock.ToggleTTSPanelCommand"/>
+        </command>
+
+        <!-- Subtitle Commands -->
+        <command name="show subtitle" code="SDckShSu" description="Enable subtitle mode and start recording. Transcribed text appears as an overlay.">
+            <cocoa class="SpeechDock.ShowSubtitleCommand"/>
+        </command>
+
+        <command name="toggle subtitle" code="SDckTgSu" description="Toggle subtitle mode on/off.">
+            <cocoa class="SpeechDock.ToggleSubtitleCommand"/>
+        </command>
+
+        <!-- OCR Command -->
+        <command name="start ocr" code="SDckStOC" description="Start OCR region selection. Selected text is sent to the TTS panel.">
+            <cocoa class="SpeechDock.StartOCRCommand"/>
         </command>
 
     </suite>

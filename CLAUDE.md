@@ -82,6 +82,24 @@ private func sanitizeUnicodeString(_ input: String) -> String {
 **問題**: Gemini Live APIが期待する16kHzサンプルレートとマイクの48kHzが不一致
 **解決**: AudioResamplerを追加してリアルタイムリサンプリング
 
+### STTパネル録音再開時のテキスト重複 (2026-01-26)
+**問題**: STTパネルで録音を停止して再開すると、前のテキストが重複表示される
+**原因**: `TranscriptionFloatingView`の`.onChange(of: isRecording)`で録音開始時に`currentTranscription = editedText`をセットしていた。これが`.onChange(of: currentTranscription)`をトリガーし、`baseText`（前回停止時の値）と`newValue`（古いテキスト）でアペンド処理が走り、`editedText = baseText + " " + newValue`で重複
+**解決**: 録音開始時の`currentTranscription = editedText`同期を削除。字幕は`currentSessionTranscription`を使用しているため、この同期は不要だった
+```swift
+// 修正前（バグあり）
+if newValue {
+    appState.currentTranscription = editedText  // これが重複の原因
+    baseText = editedText.trimmingCharacters(in: .whitespaces)
+}
+
+// 修正後
+if newValue {
+    // currentTranscriptionへの同期を削除 - 字幕はcurrentSessionTranscriptionを使用
+    baseText = editedText.trimmingCharacters(in: .whitespaces)
+}
+```
+
 ### テキスト選択のCGEvent実装 (2026-01-22)
 **問題**: AppleScriptでのCmd+Cシミュレーションが権限問題で失敗（特にLINE等の一部アプリ）
 **解決**: CGEventを使用した低レベル実装に変更
@@ -182,7 +200,139 @@ if supportsLanguageCode, let langCode = langCode.toElevenLabsTTSCode() {
 }
 ```
 
+### AppleScript起動時の初期化待機 (2026-01-26)
+**問題**: AppleScriptでアプリを起動した場合、コマンドがアプリ初期化完了前に実行され、機能しないことがある
+**原因**: `AppDelegate.applicationDidFinishLaunching`内のセットアップが`Task { @MainActor in }`で非同期実行されるため、AppleScriptコマンドが先に走る可能性
+**解決**:
+1. `AppState.isInitialized`フラグを追加
+2. `AppDelegate`でセットアップ完了後にフラグをtrueに設定
+3. AppleScriptコマンドで`waitForInitialization()`を呼び出して最大5秒待機
+
+```swift
+// AppleScriptErrors.swift
+@MainActor
+func waitForInitialization(timeout: TimeInterval = 5.0) async -> Bool {
+    let startTime = Date()
+    while !AppState.shared.isInitialized {
+        if Date().timeIntervalSince(startTime) > timeout {
+            return false
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)  // 50ms
+    }
+    return true
+}
+
+// 使用例（SpeechDockCommands.swift）
+Task { @MainActor in
+    let initialized = await self.waitForInitialization(timeout: 5.0)
+    guard initialized else {
+        self.setAppleScriptError(.appNotInitialized,
+            message: "SpeechDock is still initializing. Please try again in a moment.")
+        self.resumeExecution(withResult: nil)
+        return
+    }
+    // コマンド実行...
+}
+```
+
+### WebSocket接続検証パターン (2026-01-26)
+**問題**: WebSocket接続後に単純なsleepで待機していたため、接続失敗時にサイレントに失敗
+**解決**: `session.created`イベントをタイムアウト付きで待機し、接続失敗時にエラーを報告
+
+```swift
+// 接続状態フラグ
+private var sessionCreated = false
+
+// 接続時にフラグをリセットして待機
+task.resume()
+sessionCreated = false
+startReceivingMessages()
+try await waitForSessionCreated(timeout: 5.0)
+
+// session.createdイベント受信時にフラグを設定
+case "session.created":
+    sessionCreated = true
+
+// 待機関数
+private func waitForSessionCreated(timeout: TimeInterval) async throws {
+    let startTime = Date()
+    while !sessionCreated {
+        if webSocketTask?.state == .completed || webSocketTask?.state == .canceling {
+            throw RealtimeSTTError.connectionError("WebSocket connection closed unexpectedly")
+        }
+        if Date().timeIntervalSince(startTime) > timeout {
+            throw RealtimeSTTError.connectionError("Connection timeout: server did not respond")
+        }
+        try await Task.sleep(nanoseconds: 50_000_000)  // 50ms
+    }
+}
+```
+
+**適用ファイル**: `OpenAIRealtimeSTT.swift`, `GrokRealtimeSTT.swift`, `ElevenLabsRealtimeSTT.swift`
+
+### 字幕リアルタイム翻訳のモデル不一致 (2026-01-27)
+**問題**: 字幕翻訳で別プロバイダのモデルIDが使用され、APIエラーが発生
+**原因**: `appState.selectedTranslationModel`はパネル翻訳と共有されており、異なるプロバイダのモデルが設定されている可能性があった
+**解決**: 字幕翻訳では`provider.defaultModelId`を使用するよう変更
+```swift
+// SubtitleTranslationService.swift
+private func ensureTranslator(for appState: AppState) async {
+    let provider = appState.subtitleTranslationProvider
+    // Use provider's default model for subtitle translation
+    let modelToUse = provider.defaultModelId
+    translator = ContextualTranslatorFactory.makeTranslator(for: provider, model: modelToUse)
+}
+```
+
+### 字幕パネルの言語重複表示 (2026-01-27)
+**問題**: 字幕オーバーレイで翻訳言語が2箇所に表示されていた（録音インジケータと翻訳トグル）
+**解決**: 録音インジケータから言語表示を削除し、翻訳トグル側にのみ表示
+
 ## 設計パターン・規約
+
+### 字幕翻訳設定の同期 (2026-01-27)
+字幕モード開始時にSTTパネルの翻訳設定を字幕設定に同期：
+
+```swift
+// AppState.swift
+var subtitleModeEnabled: Bool = false {
+    didSet {
+        guard !isLoadingPreferences else { return }
+        if subtitleModeEnabled && !oldValue {
+            syncSubtitleTranslationSettingsFromPanel()
+        }
+        updateSubtitleOverlay()
+        savePreferences()
+    }
+}
+
+private func syncSubtitleTranslationSettingsFromPanel() {
+    if subtitleTranslationProvider != translationProvider {
+        subtitleTranslationProvider = translationProvider
+    }
+    if subtitleTranslationLanguage != translationTargetLanguage {
+        subtitleTranslationLanguage = translationTargetLanguage
+    }
+    // Note: Subtitle mode uses provider.defaultModelId (not selectedTranslationModel)
+}
+```
+
+### サービス作成前のクリーンアップ (2026-01-26)
+STT/TTS/翻訳サービスを新規作成する前に、既存のサービスを明示的に停止・nilする防御的パターン：
+
+```swift
+// 新しいサービス作成前に既存をクリーンアップ（防御的措置）
+realtimeSTTService?.stopListening()
+realtimeSTTService = nil
+
+// 新しいサービスを作成
+realtimeSTTService = RealtimeSTTFactory.makeService(for: selectedRealtimeProvider)
+```
+
+**適用箇所**:
+- `startRealtimeSTT()` - STTサービス
+- `startRealtimeSTTForQuickMode()` - クイック入力STTサービス
+- `translateText()` - 翻訳サービス
 
 ### パネルの排他制御
 STTパネルとTTSパネルは同時に開けない。一方を開くと他方は自動的に閉じる。
@@ -230,14 +380,22 @@ speechdock/
 │   ├── RealtimeSTT/          # STTプロバイダ実装
 │   ├── TTS/                  # TTSプロバイダ実装
 │   ├── Translation/          # 翻訳プロバイダ実装
+│   │   ├── ContextualTranslator.swift    # 字幕用コンテキスト対応翻訳
+│   │   ├── SubtitleTranslationService.swift  # 字幕リアルタイム翻訳
+│   │   └── ...
 │   ├── HotKeyService.swift   # グローバルホットキー
 │   └── ...
 ├── Views/
 │   ├── FloatingWindow/       # STT/TTSパネル
+│   ├── FloatingMicButton/    # クイック入力ボタン
 │   ├── Subtitle/             # 字幕オーバーレイ
 │   ├── Settings/             # 設定画面
 │   ├── Components/           # 共有UIコンポーネント（翻訳コントロールなど）
 │   └── MenuBarView.swift     # メニューバー
+├── Tests/                    # ユニットテスト
+│   ├── SubtitleTranslationServiceTests.swift
+│   ├── TranslationServiceTests.swift
+│   └── ...
 ├── Resources/
 │   ├── Info.plist
 │   └── SpeechDock.entitlements
@@ -335,13 +493,23 @@ HStack(spacing: 4) {
 .frame(height: 28)  // 固定高さ（翻訳コントロールと同じ）
 ```
 
-### 翻訳機能 (2026-01-22)
+### 翻訳機能 (2026-01-27 更新)
 テキストエリアの左下にフローティング翻訳コントロールを配置。
 デフォルトはmacOSオンデバイス翻訳（APIキー不要、~18言語対応）。
 
-**基本操作**:
-- `[🌐 日本語 ▼]` - 言語セレクター（選択すると翻訳実行）
-- `[🌐 Original ◀]` - 翻訳表示中に表示（オリジナルに戻す）
+**UI構成**（言語選択と翻訳実行を分離）:
+```
+[🌐 Translate] [→ Japanese ▼] [OpenAI ▼] [GPT-5 Nano ▼]
+```
+- `[🌐 Translate]` - 翻訳実行ボタン（テキスト3文字以上で有効）
+- `[→ Japanese ▼]` - 言語セレクタ（選択のみ、翻訳は実行しない）
+- `[OpenAI ▼]` - プロバイダセレクタ
+- `[GPT-5 Nano ▼]` - モデルセレクタ（macOS以外のプロバイダで表示）
+- 翻訳表示中: `[🌐 Original ◀]` ボタンが表示（オリジナルに戻す）
+
+**設計理由**:
+- 字幕モード用に翻訳先言語だけを変更したい場合、誤って翻訳が実行されるのを防止
+- 同じ言語への再翻訳が「Translate」ボタン押下で可能
 
 **状態フロー**:
 ```
@@ -353,7 +521,7 @@ idle → translating → translated → idle (Original押下)
 - オリジナルに戻す時: 保存しておいたTTS言語を復元
 
 **表示条件**:
-- テキストが3文字以上ある場合のみ表示
+- テキストが3文字以上ある場合のみ「Translate」ボタンが有効
 - 録音中/文字起こし中/TTS再生中は非表示
 
 #### 翻訳の発展設定
@@ -363,29 +531,19 @@ APIキーを設定すると外部LLMプロバイダが利用可能になり、10
 **プロバイダとモデル** (Settings > General > Translation で変更):
 | プロバイダ | モデル | 備考 |
 |-----------|--------|------|
-| macOS (デフォルト) | System | オンデバイス、APIキー不要 |
+| macOS (デフォルト) | System | オンデバイス、APIキー不要、macOS 26+必須 |
 | OpenAI | GPT-5 Nano (default), GPT-5 Mini, GPT-5.2 | APIキー必要 |
 | Gemini | Gemini 3 Flash (default), Gemini 3 Pro | APIキー必要 |
 | Grok | Grok 3 Fast (default), Grok 3 Mini Fast | APIキー必要 |
 
-**パネル内プロバイダ切り替え**:
-- `[⚡]` ボタンで即時切り替え可能
-
-**プロバイダ自動同期**:
-パネル切り替え時にSTT/TTSプロバイダに合わせて翻訳プロバイダを自動同期:
-| STT/TTSプロバイダ | 翻訳プロバイダ |
-|------------------|---------------|
-| OpenAI | OpenAI |
-| Gemini | Gemini |
-| Grok | Grok |
-| ElevenLabs/macOS | macOS |
+**macOSプロバイダのOS要件**:
+- macOS 26+でのみ表示（`#if compiler(>=6.1)` と `@available(macOS 26.0, *)` で制御）
+- macOS 25以下ではプロバイダリストに表示されない
 
 **GPT-5系の技術的制約**:
 - `temperature`パラメータ非対応（推論モデルのため）
 - `reasoning_effort`で推論量を制御: `gpt-5-nano/mini` → `"minimal"`, `gpt-5.2` → `"none"`
 - これにより翻訳タスクでのレスポンスを高速化
-
-実装: `syncTranslationProviderForSTT()`, `syncTranslationProviderForTTS()` (AppState.swift)
 
 ## WebSocket実装パターン
 
@@ -589,6 +747,65 @@ end tell
 - `Services/AppleScript/SpeechDockCommands.swift` - AppleScriptコマンド
 - `Services/AppleScript/AppleScriptBridge.swift` - AppleScriptプロパティ
 - `Resources/SpeechDock.sdef` - AppleScript辞書定義
+
+### 字幕リアルタイム翻訳機能 (2026-01-27)
+字幕モードでのリアルタイム翻訳機能。すべての音声ソース（マイク、システム音声、アプリ音声）で利用可能。
+
+**コンポーネント**:
+- `Services/Translation/SubtitleTranslationService.swift` - リアルタイム翻訳サービス（シングルトン）
+- `Services/Translation/ContextualTranslator.swift` - コンテキスト対応翻訳プロトコル・実装
+- `Views/Subtitle/SubtitleOverlayView.swift` - 字幕オーバーレイUI
+
+**動作フロー**:
+1. STTから累積テキストを受信
+2. デバウンス処理（プロバイダごとに異なる間隔）
+3. 翻訳実行（キャッシュヒット時は即座に返却）
+4. 字幕に翻訳結果を表示
+
+**設計ポイント**:
+- **累積テキスト対応**: STTは累積テキストを送信するため、全文翻訳アプローチを採用
+- **デバウンス**: プロバイダごとに最適化された間隔（macOS: 300ms, Gemini: 600ms, OpenAI/Grok: 800ms）
+- **ポーズ検出**: 1.5秒の無音で自動的に翻訳をトリガー
+- **キャッシュ**: LRUキャッシュ（最大200エントリ）で同じテキストの再翻訳を回避
+- **コンテキスト**: 直近2文を翻訳コンテキストとして使用（LLMプロバイダのみ）
+
+**状態管理** (`AppState`):
+```swift
+var subtitleTranslationEnabled: Bool      // 翻訳有効/無効
+var subtitleTranslationLanguage: LanguageCode  // 翻訳先言語
+var subtitleTranslationProvider: TranslationProvider  // 翻訳プロバイダ
+var subtitleTranslationState: SubtitleTranslationState  // idle/translating/error
+var subtitleTranslatedText: String        // 翻訳結果テキスト
+var subtitleShowOriginal: Bool            // 原文も表示するか
+```
+
+**設定の同期**:
+- 字幕モード開始時にSTTパネルの翻訳設定（プロバイダ、言語）を自動同期
+- 字幕オーバーレイ上でプロバイダ・言語を個別に変更可能
+- 設定はUserDefaultsに永続化
+
+**プロバイダごとのモデル**:
+字幕翻訳は各プロバイダのデフォルトモデルを使用（`provider.defaultModelId`）。
+これにより、パネル翻訳で異なるプロバイダのモデルを選択していても競合しない。
+
+**UI仕様**:
+- 翻訳トグル: 🌐アイコン（青=有効、白=無効）
+- プロバイダセレクタ: 翻訳有効時のみ表示
+- 言語セレクタ: 翻訳有効時のみ表示（macOSプロバイダはインストール済み言語のみ）
+- 翻訳中インジケータ: 「Recording」の横にProgressView表示
+
+**エラー処理**:
+- 翻訳エラー時は3秒後に自動リセット
+- プロバイダ/言語変更時にエラー状態をリセット
+- 空の翻訳結果はキャッシュしない
+
+**クリーンアップ**:
+- 字幕モード終了時に`SubtitleTranslationService.shared.reset()`を呼び出し
+- debounceTask、pauseCheckTaskを明示的にキャンセル
+
+**プロバイダ可用性**:
+- macOSプロバイダはmacOS 26+でのみ選択可能（Translation framework依存）
+- APIキーのないLLMプロバイダは選択肢から除外
 
 ### 改善候補
 - パネル位置の記憶と復元

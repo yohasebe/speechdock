@@ -10,7 +10,7 @@ final class LLMTranslation: TranslationServiceProtocol {
     private let languageRecognizer = NLLanguageRecognizer()
 
     init(provider: TranslationProvider, model: String? = nil) {
-        precondition(provider == .openAI || provider == .gemini || provider == .grok, "LLMTranslation only supports OpenAI, Gemini, and Grok")
+        assert(provider == .openAI || provider == .gemini || provider == .grok, "LLMTranslation only supports OpenAI, Gemini, and Grok")
         self.provider = provider
         self.model = model ?? provider.defaultModelId
     }
@@ -106,7 +106,10 @@ final class LLMTranslation: TranslationServiceProtocol {
             )
         }
 
-        return try await currentTask!.value
+        guard let task = currentTask else {
+            throw TranslationError.apiError("Translation task failed to start")
+        }
+        return try await task.value
     }
 
     func isAvailable(from sourceLanguage: LanguageCode?, to targetLanguage: LanguageCode) async -> Bool {
@@ -159,7 +162,10 @@ final class LLMTranslation: TranslationServiceProtocol {
             requestBody["temperature"] = 0.3
         }
 
-        var request = URLRequest(url: URL(string: endpoint)!)
+        guard let url = URL(string: endpoint) else {
+            throw TranslationError.apiError("Invalid OpenAI API endpoint URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -224,10 +230,15 @@ final class LLMTranslation: TranslationServiceProtocol {
             ]
         ]
 
-        var urlComponents = URLComponents(string: endpoint)!
+        guard var urlComponents = URLComponents(string: endpoint) else {
+            throw TranslationError.apiError("Invalid Gemini API endpoint URL")
+        }
         urlComponents.queryItems = [URLQueryItem(name: "key", value: apiKey)]
 
-        var request = URLRequest(url: urlComponents.url!)
+        guard let url = urlComponents.url else {
+            throw TranslationError.apiError("Failed to construct Gemini API URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
@@ -290,7 +301,10 @@ final class LLMTranslation: TranslationServiceProtocol {
             "temperature": 0.3
         ]
 
-        var request = URLRequest(url: URL(string: endpoint)!)
+        guard let url = URL(string: endpoint) else {
+            throw TranslationError.apiError("Invalid Grok API endpoint URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

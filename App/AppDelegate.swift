@@ -29,6 +29,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             StatusBarManager.shared.setup(appState: AppState.shared)
 
             AppState.shared.setupHotKey(self.hotKeyService!)
+
+            // Mark app as initialized - AppleScript commands can now execute
+            AppState.shared.isInitialized = true
         }
 
         // Check permissions on first launch

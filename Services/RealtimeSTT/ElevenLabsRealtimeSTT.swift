@@ -34,6 +34,9 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     // Audio level monitoring
     private let audioLevelMonitor = AudioLevelMonitor.shared
 
+    // Connection state tracking
+    private var sessionStarted = false
+
     func startListening() async throws {
         guard let apiKey = apiKeyManager.getAPIKey(for: .elevenLabs) else {
             throw RealtimeSTTError.apiError("ElevenLabs API key not found")
@@ -140,18 +143,40 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         let task = session.webSocketTask(with: request)
         webSocketTask = task
+        sessionStarted = false
         task.resume()
 
         // Start receiving messages
         startReceivingMessages()
 
-        // Wait for session_started confirmation
-        try await waitForSessionStart()
+        // Wait for session_started confirmation with timeout
+        try await waitForSessionStart(timeout: 5.0)
     }
 
-    private func waitForSessionStart() async throws {
-        // Give the WebSocket a moment to establish and receive session_started
-        try await Task.sleep(nanoseconds: 500_000_000)  // 0.5 seconds
+    /// Wait for session_started event from the server
+    /// - Parameter timeout: Maximum time to wait in seconds
+    /// - Throws: RealtimeSTTError if timeout or connection fails
+    private func waitForSessionStart(timeout: TimeInterval) async throws {
+        let startTime = Date()
+        while !sessionStarted {
+            // Check if WebSocket was closed or cancelled
+            if webSocketTask == nil || webSocketTask?.state == .completed || webSocketTask?.state == .canceling {
+                throw RealtimeSTTError.connectionError("WebSocket connection closed unexpectedly")
+            }
+
+            // Check timeout
+            if Date().timeIntervalSince(startTime) > timeout {
+                throw RealtimeSTTError.connectionError("Connection timeout: server did not respond within \(Int(timeout)) seconds")
+            }
+
+            // Poll every 50ms
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+
+        #if DEBUG
+        let elapsed = Date().timeIntervalSince(startTime)
+        print("ElevenLabsRealtimeSTT: Session started after \(String(format: "%.2f", elapsed))s")
+        #endif
     }
 
     private func startReceivingMessages() {
@@ -201,7 +226,10 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         switch messageType {
         case "session_started":
-            break  // Session established
+            sessionStarted = true
+            #if DEBUG
+            print("ElevenLabsRealtimeSTT: Session started")
+            #endif
 
         case "partial_transcript":
             if let text = json["text"] as? String, !text.isEmpty {

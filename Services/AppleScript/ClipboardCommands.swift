@@ -9,8 +9,20 @@ class CopyToClipboardCommand: NSScriptCommand {
             return nil
         }
 
-        DispatchQueue.main.async {
+        suspendExecution()
+
+        Task { @MainActor in
+            // Wait for app initialization
+            let initialized = await self.waitForInitialization(timeout: 5.0)
+            guard initialized else {
+                self.setAppleScriptError(.appNotInitialized,
+                    message: "SpeechDock is still initializing. Please try again in a moment.")
+                self.resumeExecution(withResult: nil)
+                return
+            }
+
             ClipboardService.shared.copyToClipboard(text)
+            self.resumeExecution(withResult: nil)
         }
 
         return nil
@@ -29,6 +41,15 @@ class PasteTextCommand: NSScriptCommand {
         suspendExecution()
 
         Task { @MainActor in
+            // Wait for app initialization
+            let initialized = await self.waitForInitialization(timeout: 5.0)
+            guard initialized else {
+                self.setAppleScriptError(.appNotInitialized,
+                    message: "SpeechDock is still initializing. Please try again in a moment.")
+                self.resumeExecution(withResult: nil)
+                return
+            }
+
             await ClipboardService.shared.copyAndPaste(text)
             self.resumeExecution(withResult: nil)
         }

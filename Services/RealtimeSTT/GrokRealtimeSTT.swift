@@ -53,6 +53,9 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
     private let micSettlingTime: TimeInterval = 0.3
     private var audioStartTime: Date?
 
+    // Connection state tracking
+    private var sessionCreated = false
+
     func startListening() async throws {
         guard let apiKey = apiKeyManager.getAPIKey(for: .grok) else {
             throw RealtimeSTTError.apiError("Grok API key not found")
@@ -195,13 +198,40 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
 
         let task = session.webSocketTask(with: request)
         webSocketTask = task
+        sessionCreated = false
         task.resume()
 
         // Start receiving messages
         startReceivingMessages()
 
-        // Wait for connection to establish
-        try await Task.sleep(nanoseconds: 300_000_000)  // 0.3 seconds
+        // Wait for session.created event with timeout
+        try await waitForSessionCreated(timeout: 5.0)
+    }
+
+    /// Wait for session.created event from the server
+    /// - Parameter timeout: Maximum time to wait in seconds
+    /// - Throws: RealtimeSTTError if timeout or connection fails
+    private func waitForSessionCreated(timeout: TimeInterval) async throws {
+        let startTime = Date()
+        while !sessionCreated {
+            // Check if WebSocket was closed or cancelled
+            if webSocketTask == nil || webSocketTask?.state == .completed || webSocketTask?.state == .canceling {
+                throw RealtimeSTTError.connectionError("WebSocket connection closed unexpectedly")
+            }
+
+            // Check timeout
+            if Date().timeIntervalSince(startTime) > timeout {
+                throw RealtimeSTTError.connectionError("Connection timeout: server did not respond within \(Int(timeout)) seconds")
+            }
+
+            // Poll every 50ms
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+
+        #if DEBUG
+        let elapsed = Date().timeIntervalSince(startTime)
+        print("GrokRealtimeSTT: Session created after \(String(format: "%.2f", elapsed))s")
+        #endif
     }
 
     private func configureSession() async throws {
@@ -333,6 +363,7 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
 
         switch eventType {
         case "session.created":
+            sessionCreated = true
             #if DEBUG
             print("GrokRealtimeSTT: Session created")
             #endif

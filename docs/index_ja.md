@@ -14,7 +14,7 @@ lang: ja
 # SpeechDock
 {: .text-center }
 
-**macOS用の音声認識・音声合成メニューバーアプリ**
+**macOS向け 音声認識・音声合成メニューバーアプリ**
 {: .text-center .fs-6 }
 
 [ダウンロード](https://github.com/yohasebe/SpeechDock/releases){: .btn .btn-primary .mr-2 }
@@ -25,7 +25,7 @@ lang: ja
 
 ## SpeechDockとは？
 
-SpeechDockは、macOSのTTS/STTをより柔軟で使いやすくするアプリです。macOSには強力な音声認識・音声合成エンジンが搭載されていますが、それらを便利に使う方法がありません。SpeechDockはこのギャップを埋めます — Macのどこからでもアクセスできるメニューバーアプリケーションです。
+SpeechDockは、macOSのTTS/STTをより柔軟で使いやすくするアプリです。macOSには強力な音声認識・音声合成エンジンが搭載されていますが、手軽に活用する手段がありませんでした。SpeechDockがこの問題を解決します — メニューバーに常駐し、Macのどこからでもアクセスできます。
 
 **インストール後すぐに使用可能** — APIキーや追加ダウンロードは不要です。
 
@@ -85,6 +85,16 @@ SpeechDockは、macOSのTTS/STTをより柔軟で使いやすくするアプリ�
 <figure>
   <img src="images/tts-panel.png" alt="TTS Panel" style="max-width: 600px;">
   <figcaption>音声合成パネル</figcaption>
+</figure>
+
+<figure>
+  <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
+  <figcaption>クイック入力 — フローティングマイクボタンとリアルタイムHUD</figcaption>
+</figure>
+
+<figure>
+  <img src="images/subtitle-overlay.png" alt="Subtitle Mode" style="max-width: 100%;">
+  <figcaption>字幕モード — リアルタイム文字起こしをフローティング字幕として表示</figcaption>
 </figure>
 
 ---

@@ -142,10 +142,21 @@ Display real-time transcription as a floating subtitle overlay:
 - **Click-through** — Doesn't interfere with your work
 - **Customizable** — Font size, opacity, max lines, position
 - **Draggable** — Position anywhere on screen
+- **Real-time translation** — Optionally translate subtitles as you speak
 
 Toggle with hotkey (default: `Ctrl + Option + S`), from the STT panel, or from the menu bar.
 
 Subtitles show only the current recording session's transcription. Previous sessions are not displayed.
+
+### Subtitle Translation
+
+Enable real-time translation directly in the subtitle overlay:
+
+1. Click the globe icon (🌐) in the subtitle header to enable translation
+2. Select target language and provider from the dropdown menus
+3. Translated text appears below the original transcription
+
+Translation settings are synced from the STT panel when subtitle mode starts. You can change them independently in the subtitle overlay.
 
 ## Quick Transcription
 
@@ -194,11 +205,11 @@ Translate transcribed or TTS text using macOS on-device translation (macOS 26+ r
 ### How to Use
 
 1. Enter or transcribe text in the STT or TTS panel
-2. Click the language button (e.g., `[🌐 Japanese ▼]`) below the text area
-3. Select the target language — translation runs immediately
+2. Select the target language from the language dropdown (e.g., `→ Japanese ▼`)
+3. Click `[🌐 Translate]` to translate the text
 4. Click `[🌐 Original ◀]` to revert to the original text
 
-The translation button appears when text is 3 or more characters and no recording/speaking is in progress.
+The translation controls appear when text is 3 or more characters and no recording/speaking is in progress. Language selection and translation execution are separate actions, so you can change the target language without triggering translation.
 
 **TTS Language Sync**: When you translate text, the TTS language automatically switches to match the translation target. Reverting to the original restores the previous TTS language.
 

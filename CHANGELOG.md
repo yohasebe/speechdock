@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Real-time subtitle translation with context-aware translation service
+  - Per-provider debounce intervals (macOS: 300ms, Gemini: 600ms, OpenAI/Grok: 800ms)
+  - LRU translation cache (200 entries) with pause detection (1.5s)
+  - Inline translation toggle and language/provider selectors on subtitle overlay
+  - Automatic sync of STT panel translation settings to subtitle mode
+- macOS on-device translation provider (macOS 26+, no API key required)
+- Grok (xAI) as translation provider
+- Translation model selection per provider in Settings
+
+### Changed
+- Translation controls redesigned: separate language selection from translation execution
+- Subtitle translation uses provider's default model to avoid cross-provider conflicts
+
+### Fixed
+- Force unwraps replaced with safe guard-let patterns across translation services
+- Accessibility API force casts now protected with CFGetTypeID checks
+- `precondition` in LLMTranslation replaced with debug-only `assert`
+- WindowService CFDictionary cast made safe with conditional cast
+
+## [0.1.25] - 2026-01-26
+
+### Added
+- Jekyll documentation site for project website
+- Japanese documentation (README_ja.md, docs)
+
+### Changed
+- Improved release workflow with better error handling and auto-install
+- Prepared repository for public release
+
+### Fixed
+- AppleScript thread safety issues causing app freeze
+- AppleScript initialization wait pattern for reliable command execution
+
+## [0.1.24] - 2026-01-25
+
+### Added
+- Floating Mic Button for quick transcription without opening STT panel
+  - 48px draggable button with position persistence
+  - Real-time text display HUD (320x120px)
+  - Clipboard-based text insertion to frontmost app
+  - Hotkey support (Ctrl+Option+M)
+- AppleScript support with 16 commands and read/write properties
+  - speak, stop/pause/resume speaking, save audio
+  - show/toggle STT/TTS panels, subtitle mode
+  - start/stop/toggle quick transcription
+  - copy to clipboard, paste text, transcribe file, translate
+- Keyboard Shortcuts HUD overlay (Ctrl+Option+/)
+
+### Changed
+- Improved AppleScript implementation quality and error handling
+- Floating Mic Button uses NonActivatingWindow to prevent focus stealing
+- Frontmost app tracking via NSWorkspace notification for reliable text insertion
+
+### Fixed
+- Floating mic button not stealing focus from target applications
+- AppleScript shortcuts command naming consistency
+
+## [0.1.21] - 2026-01-22
+
+### Added
+- RTL (right-to-left) language support for text display
+- Translation model selection in Settings (per-provider model choice)
+
+### Fixed
+- Grok TTS now prevents agent-like responses (strict verbatim TTS instruction)
+
+## [0.1.19] - 2026-01-22
+
+### Added
+- Grok (xAI) as translation provider
+- Additional unit tests for TTS, audio conversion, and file transcription
+
+### Changed
+- Text selection now uses CGEvent instead of AppleScript (no System Events permission needed)
+- Improved TTS text capture from other apps via hotkey
+
+### Fixed
+- TTS hotkey text capture when panel is already open
+- Translation state properly resets when switching between STT/TTS panels
+- Translated text background opacity refined for readability
+- Translation revert now restores correct original text
+- Text area becomes read-only when showing translated text
+- Translation state resets when new text arrives in TTS panel
+
+## [0.1.9] - 2026-01-22
+
+### Added
+- Translation feature for STT and TTS panels
+  - OpenAI (GPT-5 Nano/Mini/5.2) and Gemini (3 Flash/Pro) providers
+  - Inline translation controls with language selector
+  - Original/translated text toggle
+  - TTS language auto-sync on translation
+- Audio file transcription via drag-and-drop or file picker
+  - OpenAI Whisper (25MB), Gemini (20MB), ElevenLabs Scribe (25MB)
+  - Provider-specific format and size validation
+- Grok Realtime API for STT
+- ElevenLabs Scribe v2 real-time STT
+
+### Changed
+- Renamed app from TypeTalk to SpeechDock
+- Removed WhisperKit/Local Whisper provider (replaced by cloud providers)
+- Improved STT/TTS panel UI layout and compact button styling
+
+### Fixed
+- OpenAI STT Japanese text encoding (Unicode normalization and sanitization)
+- Grok STT transcription duplication (response item filtering)
+- Gemini STT microphone input (48kHz to 16kHz audio resampling)
+- Cmd+Q now closes panels instead of quitting the app
+- Translation framework compilation for older SDK builds
+
 ## [0.1.8] - 2026-01-16
 
 ### Added

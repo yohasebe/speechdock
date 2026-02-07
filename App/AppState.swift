@@ -47,6 +47,11 @@ enum PanelStyle: String, CaseIterable {
 final class AppState {
     static let shared = AppState()
 
+    // MARK: - App Initialization
+    /// Flag indicating whether the app has completed initialization
+    /// AppleScript commands should wait for this before executing
+    var isInitialized = false
+
     // MARK: - STT State
     var isRecording = false
     var currentTranscription = ""
@@ -352,6 +357,13 @@ final class AppState {
     var subtitleModeEnabled: Bool = false {
         didSet {
             guard !isLoadingPreferences else { return }
+            if subtitleModeEnabled && !oldValue {
+                // Sync translation settings from STT panel when subtitle mode is enabled
+                syncSubtitleTranslationSettingsFromPanel()
+            } else if !subtitleModeEnabled && oldValue {
+                // Clean up translation service when subtitle mode is disabled
+                SubtitleTranslationService.shared.reset()
+            }
             updateSubtitleOverlay()
             savePreferences()
         }
@@ -450,6 +462,58 @@ final class AppState {
             savePreferences()
         }
     }
+
+    // MARK: - Subtitle Translation Settings
+
+    /// Whether real-time translation is enabled for subtitles
+    var subtitleTranslationEnabled: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    /// Target language for subtitle translation
+    var subtitleTranslationLanguage: LanguageCode = .japanese {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            // Clear cache and reset error state when language changes
+            SubtitleTranslationService.shared.clearCache()
+            if case .error = subtitleTranslationState {
+                subtitleTranslationState = .idle
+            }
+            savePreferences()
+        }
+    }
+
+    /// Translation provider for subtitles
+    var subtitleTranslationProvider: TranslationProvider = .macOS {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            // Clear cache and reset error state when provider changes
+            SubtitleTranslationService.shared.clearCache()
+            if case .error = subtitleTranslationState {
+                subtitleTranslationState = .idle
+            }
+            savePreferences()
+        }
+    }
+
+    /// Whether to show original text along with translation
+    var subtitleShowOriginal: Bool = false {
+        didSet {
+            guard !isLoadingPreferences else { return }
+            savePreferences()
+        }
+    }
+
+    // MARK: - Subtitle Translation Runtime State
+
+    /// Translated subtitle text (updated by SubtitleTranslationService)
+    var subtitleTranslatedText: String = ""
+
+    /// Current state of subtitle translation
+    var subtitleTranslationState: SubtitleTranslationState = .idle
 
     // MARK: - Permission Status
     var hasMicrophonePermission: Bool = false
@@ -563,6 +627,17 @@ final class AppState {
         subtitleModeEnabled.toggle()
     }
 
+    /// Enable subtitle mode and start recording
+    /// Public for AppleScript access
+    func showSubtitleMode() {
+        guard !subtitleModeEnabled else { return }  // Already enabled
+        subtitleModeEnabled = true
+        // Start recording if not already recording (subtitle needs recording to display)
+        if !isRecording {
+            startRecording()
+        }
+    }
+
     /// Toggle floating mic button visibility
     func toggleFloatingMicButton() {
         showFloatingMicButton.toggle()
@@ -621,7 +696,8 @@ final class AppState {
     }
 
     /// Show STT panel without starting recording (user can then click record button)
-    private func showSTTPanel() {
+    /// Public for AppleScript access
+    func showSTTPanel() {
         guard !isProcessing else { return }
 
         // Mutual exclusivity: close TTS panel and stop TTS if active
@@ -639,8 +715,7 @@ final class AppState {
             savedTTSLanguageBeforeTranslation = nil
         }
 
-        // Sync translation provider based on STT provider
-        syncTranslationProviderForSTT()
+        // Note: Don't auto-sync translation provider - let user's choice persist
 
         errorMessage = nil
         currentTranscription = ""
@@ -668,8 +743,7 @@ final class AppState {
             ttsText = ""
         }
 
-        // Sync translation provider based on STT provider (when called directly without showSTTPanel)
-        syncTranslationProviderForSTT()
+        // Note: Don't auto-sync translation provider - let user's choice persist
 
         // Reset translation state if showing translated text
         if translationState.isTranslated {
@@ -680,6 +754,11 @@ final class AppState {
 
         // Reset session transcription for subtitle display
         currentSessionTranscription = ""
+
+        // Reset subtitle translation state
+        subtitleTranslatedText = ""
+        subtitleTranslationState = .idle
+        SubtitleTranslationService.shared.reset()
 
         errorMessage = nil
 
@@ -722,6 +801,10 @@ final class AppState {
     }
 
     private func startRealtimeSTT() async {
+        // Clean up any existing service before creating a new one (defensive measure)
+        realtimeSTTService?.stopListening()
+        realtimeSTTService = nil
+
         // Create realtime STT service
         realtimeSTTService = RealtimeSTTFactory.makeService(for: selectedRealtimeProvider)
         realtimeSTTService?.delegate = self
@@ -767,6 +850,10 @@ final class AppState {
 
     /// Start realtime STT for quick mode (floating mic button) with external delegate
     func startRealtimeSTTForQuickMode(delegate: RealtimeSTTDelegate) async {
+        // Clean up any existing service before creating a new one (defensive measure)
+        realtimeSTTService?.stopListening()
+        realtimeSTTService = nil
+
         // Create realtime STT service
         realtimeSTTService = RealtimeSTTFactory.makeService(for: selectedRealtimeProvider)
         realtimeSTTService?.delegate = delegate
@@ -797,13 +884,18 @@ final class AppState {
         }
     }
 
+    /// Stop and clean up the recording duration timer
+    private func stopDurationTimer() {
+        durationTimer?.invalidate()
+        durationTimer = nil
+        recordingStartTime = nil
+    }
+
     private func stopRecording() {
         isRecording = false
 
         // Stop duration timer
-        durationTimer?.invalidate()
-        durationTimer = nil
-        recordingStartTime = nil
+        stopDurationTimer()
 
         // All providers now use realtime streaming - immediate result
         realtimeSTTService?.stopListening()
@@ -880,9 +972,7 @@ final class AppState {
             isRecording = false
 
             // Stop duration timer
-            durationTimer?.invalidate()
-            durationTimer = nil
-            recordingStartTime = nil
+            stopDurationTimer()
 
             // Hide subtitle overlay asynchronously
             Task { @MainActor in
@@ -1268,6 +1358,19 @@ final class AppState {
         }
     }
 
+    /// Show TTS panel without text (for manual input)
+    /// Public for AppleScript access
+    func showTTSPanel() {
+        // Mutual exclusivity: close STT panel and cancel recording if active
+        if showFloatingWindow || isRecording {
+            cancelRecording()
+        }
+
+        ttsText = ""
+        ttsState = .idle
+        showTTSFloatingWindow()
+    }
+
     private func showTTSFloatingWindow() {
         // Reset translation state when switching panels
         if translationState.isTranslated {
@@ -1276,8 +1379,7 @@ final class AppState {
             savedTTSLanguageBeforeTranslation = nil
         }
 
-        // Sync translation provider based on TTS provider
-        syncTranslationProviderForTTS()
+        // Note: Don't auto-sync translation provider - let user's choice persist
 
         floatingWindowManager.showTTSFloatingWindow(
             appState: self,
@@ -1366,6 +1468,23 @@ final class AppState {
         }
     }
 
+    /// Sync subtitle translation settings from STT panel settings
+    /// Called when subtitle mode is enabled to use the same provider/language as panel
+    private func syncSubtitleTranslationSettingsFromPanel() {
+        // Sync provider
+        if subtitleTranslationProvider != translationProvider {
+            subtitleTranslationProvider = translationProvider
+        }
+        // Sync language
+        if subtitleTranslationLanguage != translationTargetLanguage {
+            subtitleTranslationLanguage = translationTargetLanguage
+        }
+        // Note: Subtitle mode uses provider.defaultModelId (not selectedTranslationModel) to avoid model mismatch
+        #if DEBUG
+        print("Subtitle: Synced settings from panel - provider: \(translationProvider.displayName), language: \(translationTargetLanguage.displayName)")
+        #endif
+    }
+
     // MARK: - Translation Methods
 
     /// Translate text to target language
@@ -1387,9 +1506,11 @@ final class AppState {
             return
         }
 
-        // Cancel any existing translation task (defensive)
+        // Cancel any existing translation task and service (defensive)
         translationTask?.cancel()
         translationTask = nil
+        translationService?.cancel()
+        translationService = nil
 
         #if DEBUG
         print("Translation: Starting translation to \(targetLanguage.displayName)")
@@ -1818,6 +1939,22 @@ final class AppState {
             subtitleCustomY = UserDefaults.standard.double(forKey: "subtitleCustomY")
         }
 
+        // Subtitle translation settings
+        if UserDefaults.standard.object(forKey: "subtitleTranslationEnabled") != nil {
+            subtitleTranslationEnabled = UserDefaults.standard.bool(forKey: "subtitleTranslationEnabled")
+        }
+        if let subtitleTranslationLangRaw = UserDefaults.standard.string(forKey: "subtitleTranslationLanguage"),
+           let language = LanguageCode(rawValue: subtitleTranslationLangRaw) {
+            subtitleTranslationLanguage = language
+        }
+        if let subtitleTranslationProviderRaw = UserDefaults.standard.string(forKey: "subtitleTranslationProvider"),
+           let provider = TranslationProvider(rawValue: subtitleTranslationProviderRaw) {
+            subtitleTranslationProvider = provider
+        }
+        if UserDefaults.standard.object(forKey: "subtitleShowOriginal") != nil {
+            subtitleShowOriginal = UserDefaults.standard.bool(forKey: "subtitleShowOriginal")
+        }
+
         // Translation settings
         if let translationProviderRaw = UserDefaults.standard.string(forKey: "translationProvider"),
            let provider = TranslationProvider(rawValue: translationProviderRaw) {
@@ -1934,6 +2071,12 @@ final class AppState {
         UserDefaults.standard.set(subtitleUseCustomPosition, forKey: "subtitleUseCustomPosition")
         UserDefaults.standard.set(subtitleCustomX, forKey: "subtitleCustomX")
         UserDefaults.standard.set(subtitleCustomY, forKey: "subtitleCustomY")
+
+        // Subtitle translation settings
+        UserDefaults.standard.set(subtitleTranslationEnabled, forKey: "subtitleTranslationEnabled")
+        UserDefaults.standard.set(subtitleTranslationLanguage.rawValue, forKey: "subtitleTranslationLanguage")
+        UserDefaults.standard.set(subtitleTranslationProvider.rawValue, forKey: "subtitleTranslationProvider")
+        UserDefaults.standard.set(subtitleShowOriginal, forKey: "subtitleShowOriginal")
 
         // Translation settings
         UserDefaults.standard.set(translationProvider.rawValue, forKey: "translationProvider")
@@ -2060,6 +2203,13 @@ extension AppState: RealtimeSTTDelegate {
         // Store session transcription for subtitle display (current session only)
         currentSessionTranscription = text
         // Keep in recording state while receiving partial results
+
+        // Process subtitle translation if enabled
+        if subtitleModeEnabled && subtitleTranslationEnabled {
+            Task {
+                await SubtitleTranslationService.shared.processTextUpdate(text, isFinal: false, appState: self)
+            }
+        }
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didReceiveFinalResult text: String) {
@@ -2067,6 +2217,13 @@ extension AppState: RealtimeSTTDelegate {
         currentTranscription = text
         // Store session transcription for subtitle display (current session only)
         currentSessionTranscription = text
+
+        // Process subtitle translation if enabled (mark as final for immediate translation)
+        if subtitleModeEnabled && subtitleTranslationEnabled {
+            Task {
+                await SubtitleTranslationService.shared.processTextUpdate(text, isFinal: true, appState: self)
+            }
+        }
 
         // For "record then transcribe" providers, update state when result arrives
         if transcriptionState == .processing {

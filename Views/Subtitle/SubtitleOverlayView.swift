@@ -4,6 +4,7 @@ import SwiftUI
 struct SubtitleOverlayView: View {
     @Environment(AppState.self) var appState
     @State private var showControls = false
+    @State private var showLanguageMenu = false
 
     /// Height for each line of text (font size + line spacing)
     private var lineHeight: CGFloat {
@@ -57,6 +58,19 @@ struct SubtitleOverlayView: View {
         lineHeight * CGFloat(appState.subtitleMaxLines)
     }
 
+    /// Text to display in the subtitle
+    private var displayText: String {
+        if appState.subtitleTranslationEnabled && !appState.subtitleTranslatedText.isEmpty {
+            return appState.subtitleTranslatedText
+        }
+        return appState.subtitleText
+    }
+
+    /// Original text (for dual display mode)
+    private var originalText: String {
+        appState.subtitleText
+    }
+
     var body: some View {
         ZStack {
             // Invisible hit area for dragging - fills entire window
@@ -76,7 +90,8 @@ struct SubtitleOverlayView: View {
     @ViewBuilder
     private var subtitleContent: some View {
         // Use subtitleText which only contains text from current recording session
-        let text = appState.subtitleText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = displayText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let original = originalText.trimmingCharacters(in: .whitespacesAndNewlines)
         let isRTL = isRTLText(text)
         let textAlignment: TextAlignment = isRTL ? .trailing : .leading
         let frameAlignment: Alignment = isRTL ? .trailing : .leading
@@ -86,6 +101,16 @@ struct SubtitleOverlayView: View {
             VStack(alignment: isRTL ? .trailing : .leading, spacing: 8) {
                 // Header with recording indicator and controls
                 headerView
+
+                // Original text (shown when dual display is enabled)
+                if appState.subtitleShowOriginal && appState.subtitleTranslationEnabled && !original.isEmpty && text != original {
+                    Text(original)
+                        .font(.system(size: appState.subtitleFontSize * 0.7, weight: .regular))
+                        .foregroundColor(.white.opacity(appState.subtitleOpacity * 0.6))
+                        .multilineTextAlignment(textAlignment)
+                        .frame(maxWidth: .infinity, alignment: frameAlignment)
+                        .lineLimit(2)
+                }
 
                 // Scrollable transcription text area
                 if !text.isEmpty {
@@ -146,6 +171,14 @@ struct SubtitleOverlayView: View {
                     Text("Recording")
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.6))
+
+                    // Translation in progress indicator (shown next to Recording)
+                    if appState.subtitleTranslationEnabled && appState.subtitleTranslationState.isTranslating {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                            .frame(width: 10, height: 10)
+                    }
+
                     // Show global hotkey to stop
                     if let shortcut = appState.hotKeyService?.sttKeyCombo.displayString {
                         Text("(\(shortcut) to stop)")
@@ -157,10 +190,13 @@ struct SubtitleOverlayView: View {
 
             Spacer()
 
-            // Inline controls (shown when expanded)
+            // Inline controls (shown when expanded) - excludes translation toggle
             if showControls {
                 inlineControls
             }
+
+            // Translation toggle - always visible
+            translationToggle
 
             // Toggle controls visibility button
             Button {
@@ -191,8 +227,42 @@ struct SubtitleOverlayView: View {
         .frame(height: 20)
     }
 
+    /// Translation toggle that's always visible in header
+    @ViewBuilder
+    private var translationToggle: some View {
+        @Bindable var appState = appState
+
+        HStack(spacing: 6) {
+            // Translation toggle button
+            Button {
+                appState.subtitleTranslationEnabled.toggle()
+            } label: {
+                Image(systemName: appState.subtitleTranslationEnabled ? "globe.badge.chevron.backward" : "globe")
+                    .font(.system(size: 11))
+                    .foregroundColor(appState.subtitleTranslationEnabled ? .blue : .white.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+            .help(appState.subtitleTranslationEnabled ? "Disable translation" : "Enable translation")
+
+            // Provider and language selector (only when translation is enabled)
+            if appState.subtitleTranslationEnabled {
+                // Provider selector
+                SubtitleProviderMenu(appState: appState)
+
+                Text("→")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.3))
+
+                // Language selector
+                SubtitleLanguageMenu(appState: appState)
+            }
+        }
+    }
+
     @ViewBuilder
     private var inlineControls: some View {
+        @Bindable var appState = appState
+
         HStack(spacing: 14) {
             // Font size control
             HStack(spacing: 4) {
@@ -267,5 +337,128 @@ struct SubtitleOverlayView: View {
             }
         }
         .transition(.opacity.combined(with: .move(edge: .trailing)))
+    }
+}
+
+/// Language menu that shows only available languages for macOS translation
+struct SubtitleLanguageMenu: View {
+    @Bindable var appState: AppState
+    @State private var availableLanguages: [LanguageCode] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        Menu {
+            if isLoading {
+                Text("Loading...")
+            } else if availableLanguages.isEmpty {
+                Text("No languages available")
+            } else {
+                ForEach(availableLanguages) { language in
+                    Button {
+                        appState.subtitleTranslationLanguage = language
+                    } label: {
+                        HStack {
+                            Text(language.displayName)
+                            if language == appState.subtitleTranslationLanguage {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 2) {
+                Text(appState.subtitleTranslationLanguage.displayName)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 7))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .task {
+            await loadAvailableLanguages()
+        }
+        .onChange(of: appState.subtitleTranslationProvider) { _, _ in
+            Task {
+                await loadAvailableLanguages()
+            }
+        }
+    }
+
+    private func loadAvailableLanguages() async {
+        isLoading = true
+
+        if appState.subtitleTranslationProvider == .macOS {
+            // Only show installed languages for macOS
+            availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
+
+            // If current selection is not available, switch to first available
+            if !availableLanguages.contains(appState.subtitleTranslationLanguage),
+               let first = availableLanguages.first {
+                appState.subtitleTranslationLanguage = first
+            }
+        } else {
+            // LLM providers support all languages
+            availableLanguages = LanguageCode.allCases.filter { $0 != .auto }
+        }
+
+        isLoading = false
+    }
+}
+
+/// Provider menu for subtitle translation
+struct SubtitleProviderMenu: View {
+    @Bindable var appState: AppState
+
+    /// Available providers (with API keys and OS support)
+    private var availableProviders: [TranslationProvider] {
+        TranslationProvider.allCases.filter { provider in
+            // macOS provider requires macOS 26+ for contextual translation
+            if provider == .macOS {
+                #if compiler(>=6.1)
+                if #available(macOS 26.0, *) {
+                    return true
+                }
+                #endif
+                return false
+            }
+            return provider.isAvailable || hasAPIKey(for: provider)
+        }
+    }
+
+    /// Check if API key is available for a provider
+    private func hasAPIKey(for provider: TranslationProvider) -> Bool {
+        guard let envKey = provider.envKeyName else { return true }
+        return APIKeyManager.shared.getAPIKey(for: envKey) != nil
+    }
+
+    var body: some View {
+        Menu {
+            ForEach(availableProviders) { provider in
+                Button {
+                    appState.subtitleTranslationProvider = provider
+                } label: {
+                    HStack {
+                        Text(provider.displayName)
+                        if provider == appState.subtitleTranslationProvider {
+                            Spacer()
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                .disabled(!hasAPIKey(for: provider) && provider.requiresAPIKey)
+            }
+        } label: {
+            Text(appState.subtitleTranslationProvider.displayName)
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.4))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Translation provider")
     }
 }
