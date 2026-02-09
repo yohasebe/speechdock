@@ -1,5 +1,4 @@
 import SwiftUI
-import Translation
 
 /// Translation controls for text areas in STT/TTS panels
 /// Provides separate language selection and translation execution

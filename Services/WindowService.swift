@@ -152,9 +152,11 @@ final class WindowService {
                 continue
             }
 
-            // Get bounds - handle CFDictionary properly
-            guard let boundsRef = windowDict[kCGWindowBounds as String] as? CFDictionary,
-                  let rect = CGRect(dictionaryRepresentation: boundsRef) else {
+            // Get bounds - kCGWindowBounds is always CFDictionary (toll-free bridged)
+            guard let boundsRef = windowDict[kCGWindowBounds as String] else {
+                continue
+            }
+            guard let rect = CGRect(dictionaryRepresentation: boundsRef as! CFDictionary) else {
                 continue
             }
             let bounds = rect

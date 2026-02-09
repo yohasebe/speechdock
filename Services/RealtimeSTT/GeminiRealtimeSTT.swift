@@ -251,25 +251,23 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     private func startReceivingMessages() {
-        webSocketTask?.receive { [weak self] result in
-            Task { @MainActor in
-                guard let self = self else { return }
-
-                switch result {
-                case .success(let message):
-                    self.handleWebSocketMessage(message)
-                    // Continue receiving if WebSocket is still active
-                    if self.webSocketTask != nil {
-                        self.startReceivingMessages()
+        Task { [weak self] in
+            while let self = self, let task = self.webSocketTask, task.state == .running {
+                do {
+                    let message = try await task.receive()
+                    await MainActor.run {
+                        self.handleWebSocketMessage(message)
                     }
-
-                case .failure(let error):
-                    #if DEBUG
-                    print("GeminiRealtimeSTT: WebSocket receive error: \(error)")
-                    #endif
-                    if self.isListening {
-                        self.delegate?.realtimeSTT(self, didFailWithError: error)
+                } catch {
+                    await MainActor.run {
+                        #if DEBUG
+                        print("GeminiRealtimeSTT: WebSocket receive error: \(error)")
+                        #endif
+                        if self.isListening {
+                            self.delegate?.realtimeSTT(self, didFailWithError: error)
+                        }
                     }
+                    break
                 }
             }
         }

@@ -105,8 +105,8 @@ Or in Xcode: `Cmd+U`
 
 3. **Commit your changes**
    - Use clear, descriptive commit messages
-   - Follow the format: `type: brief description`
-   - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+   - Follow the format: `Type: brief description`
+   - Types: `Add` (new feature), `Fix` (bug fix), `Update` (improvement), `Refactor` (restructure), `Remove` (deletion)
 
 4. **Push and create a PR**
    ```bash

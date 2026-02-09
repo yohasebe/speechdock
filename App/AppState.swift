@@ -546,6 +546,7 @@ final class AppState {
     private(set) var hotKeyService: HotKeyService?
     var realtimeSTTService: RealtimeSTTService?  // Internal for FloatingMicButtonManager access
     private var isLoadingPreferences = false  // Flag to prevent saving during load
+    private var savePreferencesWorkItem: DispatchWorkItem?  // Debounce coalescing for savePreferences
     private var ttsService: TTSService?
     private var fileTranscriptionTask: Task<Void, Never>?
 
@@ -2023,6 +2024,17 @@ final class AppState {
     }
 
     private func savePreferences() {
+        // Debounce: coalesce rapid didSet calls into a single UserDefaults write
+        savePreferencesWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.savePreferencesNow()
+        }
+        savePreferencesWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
+    }
+
+    private func savePreferencesNow() {
         UserDefaults.standard.set(selectedRealtimeProvider.rawValue, forKey: "selectedRealtimeProvider")
         UserDefaults.standard.set(selectedRealtimeSTTModel, forKey: "selectedRealtimeSTTModel")
         UserDefaults.standard.set(selectedProvider.rawValue, forKey: "selectedProvider")

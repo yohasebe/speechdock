@@ -5,6 +5,8 @@ import ScreenCaptureKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var hotKeyService: HotKeyService?
+    /// Flag to allow termination during permission checks (for macOS "Quit and Reopen")
+    private var isCheckingPermissions = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Check for duplicate instances
@@ -73,6 +75,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Handle termination request - for menubar apps, ⌘Q should close panels, not quit
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Allow termination during permission checks (macOS "Quit and Reopen" from System Settings)
+        if isCheckingPermissions {
+            return .terminateNow
+        }
+
         // NSApplicationDelegate methods are called on the main thread
         // Use assumeIsolated to safely access @MainActor state synchronously
         return MainActor.assumeIsolated {
@@ -185,6 +192,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Check all required permissions at startup
     private func checkRequiredPermissions() {
+        isCheckingPermissions = true
+        defer { isCheckingPermissions = false }
+
         let microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         let accessibilityGranted = AXIsProcessTrusted()
         let screenRecordingGranted = CGPreflightScreenCaptureAccess()
@@ -193,295 +203,112 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("Permission check: Microphone=\(microphoneStatus.rawValue), Accessibility=\(accessibilityGranted), ScreenRecording=\(screenRecordingGranted)")
         #endif
 
-        // Count how many permissions are missing
-        let microphoneMissing = microphoneStatus != .authorized
-        let accessibilityMissing = !accessibilityGranted
-        let screenRecordingMissing = !screenRecordingGranted
+        // Handle first-time microphone prompt (system dialog)
+        if microphoneStatus == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { _ in }
+            // Don't show our dialog yet - let the system prompt finish first.
+            // Remaining permissions will be checked on next launch.
+            return
+        }
 
-        let missingCount = [microphoneMissing, accessibilityMissing, screenRecordingMissing].filter { $0 }.count
+        // Collect missing permissions
+        var neededPermissions: [(name: String, description: String, url: String)] = []
 
-        // If multiple permissions are missing, show combined alert
-        if missingCount >= 2 {
-            #if DEBUG
-            print("Permission check: Multiple permissions missing, showing combined alert")
-            #endif
-            showCombinedPermissionAlert(microphoneStatus: microphoneStatus)
+        if microphoneStatus != .authorized {
+            neededPermissions.append((
+                name: "Microphone",
+                description: "For speech recognition",
+                url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+            ))
+        }
+        if !accessibilityGranted {
+            neededPermissions.append((
+                name: "Accessibility",
+                description: "For global keyboard shortcuts and text insertion",
+                url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+            ))
+        }
+        if !screenRecordingGranted {
+            neededPermissions.append((
+                name: "Screen Recording",
+                description: "For window thumbnails in target selection",
+                url: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+            ))
+        }
+
+        guard !neededPermissions.isEmpty else { return }
+
+        showPermissionAlert(neededPermissions: neededPermissions)
+    }
+
+    /// Show a single permission alert listing all missing permissions.
+    /// "Open Settings & Quit" opens System Settings and quits the app so macOS
+    /// won't show its own "Quit and Reopen" dialog when the user toggles permissions.
+    private func showPermissionAlert(neededPermissions: [(name: String, description: String, url: String)]) {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
+        let alert = NSAlert()
+        alert.messageText = "Permissions Required"
+
+        // Use accessory view for rich text with bold permission names
+        let normalFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let boldFont = NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)
+        let textColor = NSColor.labelColor
+
+        let body = NSMutableAttributedString()
+        let normalAttrs: [NSAttributedString.Key: Any] = [.font: normalFont, .foregroundColor: textColor]
+        let boldAttrs: [NSAttributedString.Key: Any] = [.font: boldFont, .foregroundColor: textColor]
+
+        body.append(NSAttributedString(string: "SpeechDock needs the following permissions to work properly:\n\n", attributes: normalAttrs))
+
+        for perm in neededPermissions {
+            body.append(NSAttributedString(string: "• ", attributes: normalAttrs))
+            body.append(NSAttributedString(string: perm.name, attributes: boldAttrs))
+            body.append(NSAttributedString(string: ": \(perm.description)\n", attributes: normalAttrs))
+        }
+
+        body.append(NSAttributedString(string: "\nClick \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock.", attributes: normalAttrs))
+
+        let textField = NSTextField(wrappingLabelWithString: "")
+        textField.attributedStringValue = body
+        textField.isEditable = false
+        textField.isSelectable = false
+        textField.isBordered = false
+        textField.drawsBackground = false
+        textField.translatesAutoresizingMaskIntoConstraints = false
+
+        // Container view with fixed width to prevent alert from stretching
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 340, height: 0))
+        container.addSubview(textField)
+        NSLayoutConstraint.activate([
+            textField.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textField.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textField.topAnchor.constraint(equalTo: container.topAnchor),
+            textField.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            textField.widthAnchor.constraint(equalToConstant: 340)
+        ])
+        container.layoutSubtreeIfNeeded()
+        container.frame.size.height = textField.fittingSize.height
+
+        alert.accessoryView = container
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open Settings & Quit")
+        alert.addButton(withTitle: "Later")
+
+        let response = alert.runModal()
+
+        if response == .alertFirstButtonReturn {
+            // Open the first missing permission's settings page
+            if let url = URL(string: neededPermissions[0].url) {
+                NSWorkspace.shared.open(url)
+            }
+            // Small delay to ensure System Settings opens before we quit
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.5))
+            NSApp.terminate(nil)
         } else {
-            // Check individually
-            if microphoneStatus == .notDetermined {
-                #if DEBUG
-                print("Permission check: Requesting microphone access")
-                #endif
-                AVCaptureDevice.requestAccess(for: .audio) { granted in
-                    if !granted {
-                        DispatchQueue.main.async {
-                            self.showMicrophonePermissionAlert()
-                        }
-                    }
-                }
-            } else if microphoneStatus == .denied || microphoneStatus == .restricted {
-                #if DEBUG
-                print("Permission check: Microphone denied/restricted, showing alert")
-                #endif
-                showMicrophonePermissionAlert()
-            } else {
-                #if DEBUG
-                print("Permission check: Microphone already authorized")
-                #endif
-            }
-
-            if !accessibilityGranted {
-                #if DEBUG
-                print("Permission check: Accessibility not granted, showing alert")
-                #endif
-                showAccessibilityPermissionAlert()
-            } else {
-                #if DEBUG
-                print("Permission check: Accessibility already granted")
-                #endif
-            }
-
-            if !screenRecordingGranted {
-                #if DEBUG
-                print("Permission check: Screen Recording not granted, showing alert")
-                #endif
-                showScreenRecordingPermissionAlert()
-            } else {
-                #if DEBUG
-                print("Permission check: Screen Recording already granted")
-                #endif
-            }
+            // Hide from Dock
+            NSApp.setActivationPolicy(.accessory)
         }
-    }
-
-    /// Show combined permission alert when multiple permissions are needed
-    private func showCombinedPermissionAlert(microphoneStatus: AVAuthorizationStatus) {
-        // Show in Dock while permission dialog is open
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-
-        var currentMicStatus = microphoneStatus
-
-        // Keep showing dialog until user clicks "Later" or all permissions are granted
-        while true {
-            // Check current permission status
-            let micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
-            let accessibilityGranted = AXIsProcessTrusted()
-            let screenRecordingGranted = CGPreflightScreenCaptureAccess()
-
-            // If all permissions are now granted, exit
-            if micGranted && accessibilityGranted && screenRecordingGranted {
-                break
-            }
-
-            // Re-activate app to bring alert to front (important after returning from System Settings)
-            NSApp.activate(ignoringOtherApps: true)
-
-            let alert = NSAlert()
-            alert.messageText = "Permissions Required"
-
-            // Build dynamic message based on what's still needed
-            var neededPermissions: [String] = []
-            if !micGranted {
-                neededPermissions.append("• Microphone: For speech recognition")
-            }
-            if !accessibilityGranted {
-                neededPermissions.append("• Accessibility: For global keyboard shortcuts and text insertion")
-            }
-            if !screenRecordingGranted {
-                neededPermissions.append("• Screen Recording: For window thumbnails in target selection")
-            }
-
-            alert.informativeText = """
-            SpeechDock needs the following permissions to work properly:
-
-            \(neededPermissions.joined(separator: "\n"))
-
-            Click a button below to open the relevant settings, grant the permission, then return here.
-            """
-            alert.alertStyle = .warning
-
-            // Add buttons based on what's still needed (max 3 permission buttons + Later)
-            var buttonActions: [() -> Void] = []
-
-            if !accessibilityGranted {
-                alert.addButton(withTitle: "Open Accessibility Settings")
-                buttonActions.append {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-            }
-            if !screenRecordingGranted {
-                alert.addButton(withTitle: "Open Screen Recording Settings")
-                buttonActions.append {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-            }
-            if !micGranted {
-                alert.addButton(withTitle: "Open Microphone Settings")
-                buttonActions.append {
-                    if currentMicStatus == .notDetermined {
-                        AVCaptureDevice.requestAccess(for: .audio) { _ in }
-                        currentMicStatus = .denied
-                    } else {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
-                }
-            }
-            alert.addButton(withTitle: "Later")
-
-            let response = alert.runModal()
-            let laterButtonIndex = buttonActions.count  // 0-indexed relative to first button
-
-            if response.rawValue == 1000 + laterButtonIndex {
-                // User clicked "Later"
-                break
-            } else {
-                // Execute the corresponding action
-                let buttonIndex = response.rawValue - 1000
-                if buttonIndex >= 0 && buttonIndex < buttonActions.count {
-                    buttonActions[buttonIndex]()
-                }
-            }
-
-            // Wait for user to grant permission in System Settings
-            // Give them time to interact with System Settings before showing the dialog again
-            // Allow UI events to be processed while waiting (non-blocking)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
-        }
-
-        // Hide from Dock after dialog is dismissed
-        NSApp.setActivationPolicy(.accessory)
-    }
-
-    private func showMicrophonePermissionAlert() {
-        // Show in Dock while permission dialog is open
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Keep showing dialog until user clicks "Later" or permission is granted
-        while true {
-            let micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
-            if micGranted {
-                break
-            }
-
-            // Re-activate app to bring alert to front
-            NSApp.activate(ignoringOtherApps: true)
-
-            let alert = NSAlert()
-            alert.messageText = "Microphone Access Required"
-            alert.informativeText = "SpeechDock needs microphone access to record audio for transcription.\n\nPlease enable it in System Settings, then return here."
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Later")
-
-            let response = alert.runModal()
-            if response == .alertSecondButtonReturn {
-                // User clicked "Later"
-                break
-            } else if response == .alertFirstButtonReturn {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-
-            // Wait for user to grant permission
-            // Allow UI events to be processed while waiting (non-blocking)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
-        }
-
-        // Hide from Dock after dialog is dismissed
-        NSApp.setActivationPolicy(.accessory)
-    }
-
-    private func showAccessibilityPermissionAlert() {
-        // Show in Dock while permission dialog is open
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Keep showing dialog until user clicks "Later" or permission is granted
-        while true {
-            let accessibilityGranted = AXIsProcessTrusted()
-            if accessibilityGranted {
-                break
-            }
-
-            // Re-activate app to bring alert to front
-            NSApp.activate(ignoringOtherApps: true)
-
-            let alert = NSAlert()
-            alert.messageText = "Accessibility Access Required"
-            alert.informativeText = "SpeechDock needs Accessibility access to use global keyboard shortcuts and insert transcribed text.\n\nPlease enable it in System Settings, then return here."
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Later")
-
-            let response = alert.runModal()
-            if response == .alertSecondButtonReturn {
-                // User clicked "Later"
-                break
-            } else if response == .alertFirstButtonReturn {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-
-            // Wait for user to grant permission
-            // Allow UI events to be processed while waiting (non-blocking)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
-        }
-
-        // Hide from Dock after dialog is dismissed
-        NSApp.setActivationPolicy(.accessory)
-    }
-
-    private func showScreenRecordingPermissionAlert() {
-        // Show in Dock while permission dialog is open
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Keep showing dialog until user clicks "Later" or permission is granted
-        while true {
-            let screenRecordingGranted = CGPreflightScreenCaptureAccess()
-            if screenRecordingGranted {
-                break
-            }
-
-            // Re-activate app to bring alert to front
-            NSApp.activate(ignoringOtherApps: true)
-
-            let alert = NSAlert()
-            alert.messageText = "Screen Recording Access Required"
-            alert.informativeText = "SpeechDock needs Screen Recording access to show window thumbnails when selecting a paste target.\n\nPlease enable it in System Settings, then return here."
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Later")
-
-            let response = alert.runModal()
-            if response == .alertSecondButtonReturn {
-                // User clicked "Later"
-                break
-            } else if response == .alertFirstButtonReturn {
-                // Try to trigger the system prompt first
-                CGRequestScreenCaptureAccess()
-                // Then open settings
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-
-            // Wait for user to grant permission
-            // Allow UI events to be processed while waiting (non-blocking)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 2.0))
-        }
-
-        // Hide from Dock after dialog is dismissed
-        NSApp.setActivationPolicy(.accessory)
     }
 }
