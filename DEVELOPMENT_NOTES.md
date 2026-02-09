@@ -1,4 +1,4 @@
-# TypeTalk Development Notes
+# SpeechDock Development Notes
 
 このファイルはgitにコミットしない開発メモです。
 

@@ -208,10 +208,10 @@ final class SubtitleTranslationService {
         let interval = debounceIntervals[appState.subtitleTranslationProvider] ?? defaultDebounceInterval
         let textToTranslate = fullText
 
-        debounceTask = Task { [weak self] in
+        debounceTask = Task { [weak self, weak appState] in
             do {
                 try await Task.sleep(nanoseconds: interval)
-                guard !Task.isCancelled else {
+                guard !Task.isCancelled, let appState else {
                     #if DEBUG
                     print("SubtitleTranslation: Debounce cancelled")
                     #endif
@@ -322,10 +322,10 @@ final class SubtitleTranslationService {
         pauseCheckTask?.cancel()
 
         let checkInterval = pauseCheckInterval
-        pauseCheckTask = Task { [weak self] in
+        pauseCheckTask = Task { [weak self, weak appState] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: checkInterval)
-                guard !Task.isCancelled, let self = self else { break }
+                guard !Task.isCancelled, let self = self, let appState else { break }
 
                 let elapsed = Date().timeIntervalSince(self.lastUpdateTime)
                 if elapsed >= self.pauseThreshold && !self.lastSTTText.isEmpty {

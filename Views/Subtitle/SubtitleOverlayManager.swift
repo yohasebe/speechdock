@@ -21,6 +21,15 @@ final class SubtitleOverlayManager {
 
     private init() {}
 
+    deinit {
+        positionSaveTimer?.invalidate()
+        positionSaveTimer = nil
+        if let observer = windowMoveObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowMoveObserver = nil
+        }
+    }
+
     /// Show the subtitle overlay on the specified screen
     /// - Parameter screen: The screen to show the overlay on. If nil, uses main screen.
     func show(appState: AppState, on screen: NSScreen? = nil) {

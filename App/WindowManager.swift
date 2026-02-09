@@ -8,6 +8,8 @@ final class WindowManager {
 
     private var aboutWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var aboutWindowObserver: NSObjectProtocol?
+    private var settingsWindowObserver: NSObjectProtocol?
 
     private init() {}
 
@@ -33,8 +35,13 @@ final class WindowManager {
         window.isReleasedWhenClosed = false
         window.center()
 
+        // Remove previous observer if any
+        if let observer = aboutWindowObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+
         // Set up observer to hide from Dock when window closes
-        NotificationCenter.default.addObserver(
+        aboutWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
@@ -77,8 +84,13 @@ final class WindowManager {
         window.isReleasedWhenClosed = false
         window.center()
 
+        // Remove previous observer if any
+        if let observer = settingsWindowObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+
         // Set up observer to hide from Dock when window closes
-        NotificationCenter.default.addObserver(
+        settingsWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
