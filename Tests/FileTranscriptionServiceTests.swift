@@ -22,7 +22,11 @@ final class FileTranscriptionServiceTests: XCTestCase {
     }
 
     func testProviderSupportsFileTranscription_MacOS() {
-        XCTAssertFalse(RealtimeSTTProvider.macOS.supportsFileTranscription)
+        if #available(macOS 26, *) {
+            XCTAssertTrue(RealtimeSTTProvider.macOS.supportsFileTranscription)
+        } else {
+            XCTAssertFalse(RealtimeSTTProvider.macOS.supportsFileTranscription)
+        }
     }
 
     // MARK: - Max File Size Tests
@@ -41,7 +45,11 @@ final class FileTranscriptionServiceTests: XCTestCase {
 
     func testMaxFileSizeMB_UnsupportedProviders() {
         XCTAssertEqual(RealtimeSTTProvider.grok.maxFileSizeMB, 0)
-        XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 0)
+        if #available(macOS 26, *) {
+            XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 500)
+        } else {
+            XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 0)
+        }
     }
 
     // MARK: - Supported Audio Formats Tests
@@ -69,7 +77,32 @@ final class FileTranscriptionServiceTests: XCTestCase {
 
     func testSupportedAudioFormats_UnsupportedProviders() {
         XCTAssertEqual(RealtimeSTTProvider.grok.supportedAudioFormats, "")
-        XCTAssertEqual(RealtimeSTTProvider.macOS.supportedAudioFormats, "")
+        if #available(macOS 26, *) {
+            XCTAssertTrue(RealtimeSTTProvider.macOS.supportedAudioFormats.contains("MP3"))
+            XCTAssertTrue(RealtimeSTTProvider.macOS.supportedAudioFormats.contains("AIFF"))
+        } else {
+            XCTAssertEqual(RealtimeSTTProvider.macOS.supportedAudioFormats, "")
+        }
+    }
+
+    // MARK: - macOS 26+ File Transcription Properties
+
+    func testMacOSFileTranscriptionDescription() {
+        let desc = RealtimeSTTProvider.macOS.fileTranscriptionDescription
+        if #available(macOS 26, *) {
+            XCTAssertTrue(desc.contains("Apple Speech"))
+            XCTAssertTrue(desc.contains("500MB"))
+        } else {
+            XCTAssertEqual(desc, "Realtime only")
+        }
+    }
+
+    func testMacOSMaxAudioDuration() {
+        if #available(macOS 26, *) {
+            XCTAssertEqual(RealtimeSTTProvider.macOS.maxAudioDuration, "No limit")
+        } else {
+            XCTAssertEqual(RealtimeSTTProvider.macOS.maxAudioDuration, "")
+        }
     }
 
     // MARK: - FileTranscriptionError Tests
@@ -170,7 +203,7 @@ final class FileTranscriptionServiceTests: XCTestCase {
 
     @MainActor
     func testValidateFile_AllSupportedExtensions() async throws {
-        let supportedExtensions = ["mp3", "wav", "m4a", "aac", "webm", "ogg", "flac", "mp4"]
+        let supportedExtensions = ["mp3", "wav", "m4a", "aac", "aiff", "webm", "ogg", "flac", "mp4"]
         let tempDir = FileManager.default.temporaryDirectory
         let service = FileTranscriptionService.shared
 

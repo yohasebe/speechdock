@@ -1,4 +1,6 @@
 import Foundation
+import Speech
+@preconcurrency import AVFoundation
 
 /// Error types for file transcription
 enum FileTranscriptionError: LocalizedError {
@@ -18,7 +20,7 @@ enum FileTranscriptionError: LocalizedError {
         case .fileTooLarge(let maxMB, let actualMB):
             return "File too large (\(actualMB)MB). Maximum size for this provider is \(maxMB)MB"
         case .providerNotSupported(let provider):
-            return "\(provider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, or ElevenLabs provider."
+            return "\(provider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider."
         case .readError(let error):
             return "Failed to read audio file: \(error.localizedDescription)"
         case .transcriptionFailed(let error):
@@ -33,7 +35,7 @@ final class FileTranscriptionService {
     static let shared = FileTranscriptionService()
 
     /// Supported audio file extensions (union of all providers)
-    private let supportedExtensions: Set<String> = ["mp3", "wav", "m4a", "aac", "webm", "ogg", "flac", "mp4"]
+    private let supportedExtensions: Set<String> = ["mp3", "wav", "m4a", "aac", "aiff", "webm", "ogg", "flac", "mp4"]
 
     private init() {}
 
@@ -55,6 +57,16 @@ final class FileTranscriptionService {
 
         // Validate file with provider-specific limits
         try validateFile(fileURL, for: provider)
+
+        // Route macOS provider to SpeechAnalyzer (local processing, no API client needed)
+        if provider == .macOS {
+            #if compiler(>=6.1)
+            if #available(macOS 26, *) {
+                return try await transcribeWithSpeechAnalyzer(fileURL: fileURL, language: language)
+            }
+            #endif
+            throw FileTranscriptionError.providerNotSupported(provider)
+        }
 
         // Read file data
         let audioData: Data
@@ -143,4 +155,77 @@ final class FileTranscriptionService {
             return OpenAISTTClient()
         }
     }
+
+    // MARK: - SpeechAnalyzer File Transcription (macOS 26+)
+
+    #if compiler(>=6.1)
+    @available(macOS 26, *)
+    private func transcribeWithSpeechAnalyzer(fileURL: URL, language: String?) async throws -> TranscriptionResult {
+        // Create locale based on selected language
+        let locale: Locale
+        if let lang = language, !lang.isEmpty,
+           let langCode = LanguageCode(rawValue: lang),
+           let localeId = langCode.toLocaleIdentifier() {
+            locale = Locale(identifier: localeId)
+        } else {
+            locale = Locale.current
+        }
+
+        // Create transcriber with no volatile/fast results — we only need final results for file transcription
+        let transcriber = SpeechTranscriber(
+            locale: locale,
+            transcriptionOptions: [],
+            reportingOptions: [],
+            attributeOptions: []
+        )
+
+        // Open audio file
+        let audioFile: AVAudioFile
+        do {
+            audioFile = try AVAudioFile(forReading: fileURL)
+        } catch {
+            throw FileTranscriptionError.readError(error)
+        }
+
+        // Create analyzer and start file transcription
+        let analyzer = SpeechAnalyzer(modules: [transcriber])
+
+        do {
+            try await analyzer.start(inputAudioFile: audioFile)
+        } catch {
+            throw FileTranscriptionError.transcriptionFailed(error)
+        }
+
+        // Collect all final results
+        var segments: [String] = []
+
+        do {
+            for try await result in transcriber.results {
+                try Task.checkCancellation()
+
+                guard result.isFinal else { continue }
+
+                // Extract text from AttributedString (char-by-char pattern from SpeechAnalyzerSTT)
+                var currentText = ""
+                for char in result.text.characters {
+                    currentText.append(char)
+                }
+
+                if !currentText.isEmpty {
+                    segments.append(currentText)
+                }
+            }
+        } catch is CancellationError {
+            try? await analyzer.finalizeAndFinishThroughEndOfInput()
+            throw FileTranscriptionError.transcriptionFailed(
+                NSError(domain: "FileTranscription", code: -1, userInfo: [NSLocalizedDescriptionKey: "Transcription cancelled"])
+            )
+        } catch {
+            throw FileTranscriptionError.transcriptionFailed(error)
+        }
+
+        let fullText = segments.joined(separator: " ")
+        return TranscriptionResult(text: fullText)
+    }
+    #endif
 }

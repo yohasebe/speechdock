@@ -71,13 +71,16 @@ TTS再生を任意の音声出力デバイス（スピーカー、ヘッドフ�
   <figcaption>ファイル文字起こし — 音声ファイルをドラッグ＆ドロップして文字起こし</figcaption>
 </figure>
 
-クラウドSTTプロバイダを使用して、録音済みの音声ファイルを文字起こしできます。macOSネイティブおよびGrokプロバイダでは利用できません。
+録音済みの音声ファイルを文字起こしできます。クラウドSTTプロバイダとmacOSネイティブ（macOS 26+）で利用可能です。Grokプロバイダでは利用できません。
 
 | プロバイダ | 形式 | 最大サイズ | 最大長 | API |
 |----------|---------|----------|--------------|-----|
+| **macOS**（26+） | MP3、WAV、M4A、AAC、AIFF、FLAC、MP4 | 500 MB | 無制限 | SpeechAnalyzer（オフライン） |
 | **OpenAI** | MP3、WAV、M4A、FLAC、WebM、MP4 | 25 MB | 無制限 | Whisper |
 | **Gemini** | MP3、WAV、AAC、OGG、FLAC | 20 MB | 約10分 | generateContent |
 | **ElevenLabs** | MP3、WAV、M4A、OGG、FLAC | 25 MB | 約2時間 | Scribe v2 |
+
+**注意**: macOSネイティブのファイル文字起こしにはmacOS 26以降が必要です。音声はすべてデバイス上で処理され、APIキーやインターネット接続は不要です。
 
 ### 文字起こしの方法
 

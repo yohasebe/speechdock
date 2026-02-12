@@ -110,7 +110,14 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .openAI, .gemini, .elevenLabs:
             return true
-        case .grok, .macOS:
+        case .macOS:
+            #if compiler(>=6.1)
+            if #available(macOS 26, *) {
+                return true
+            }
+            #endif
+            return false
+        case .grok:
             return false
         }
     }
@@ -124,8 +131,15 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             return "MP3, WAV, AAC, OGG, FLAC"
         case .elevenLabs:
             return "MP3, WAV, M4A, OGG, FLAC"
-        case .grok, .macOS:
-            return ""  // Not supported
+        case .macOS:
+            #if compiler(>=6.1)
+            if #available(macOS 26, *) {
+                return "MP3, WAV, M4A, AAC, AIFF, FLAC, MP4"
+            }
+            #endif
+            return ""
+        case .grok:
+            return ""
         }
     }
 
@@ -138,8 +152,15 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             return 20  // Gemini inline data limit
         case .elevenLabs:
             return 25  // Scribe v2 limit
-        case .grok, .macOS:
-            return 0  // Not supported
+        case .macOS:
+            #if compiler(>=6.1)
+            if #available(macOS 26, *) {
+                return 500  // Local processing, generous limit
+            }
+            #endif
+            return 0
+        case .grok:
+            return 0
         }
     }
 
@@ -152,8 +173,15 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             return "~10 min"  // Approximate based on file size
         case .elevenLabs:
             return "~2 hours"  // ElevenLabs supports long audio
-        case .grok, .macOS:
-            return ""  // Not supported
+        case .macOS:
+            #if compiler(>=6.1)
+            if #available(macOS 26, *) {
+                return "No limit"
+            }
+            #endif
+            return ""
+        case .grok:
+            return ""
         }
     }
 
@@ -169,6 +197,11 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .grok:
             return "Realtime only"
         case .macOS:
+            #if compiler(>=6.1)
+            if #available(macOS 26, *) {
+                return "Apple Speech (offline, max 500MB)"
+            }
+            #endif
             return "Realtime only"
         }
     }

@@ -70,13 +70,16 @@ Route TTS playback to any audio output device (speakers, headphones, virtual dev
   <figcaption>File Transcription — Drag and drop audio files to transcribe</figcaption>
 </figure>
 
-Transcribe pre-recorded audio files using cloud STT providers. Not available with macOS native or Grok providers.
+Transcribe pre-recorded audio files. Available with cloud STT providers and macOS native (macOS 26+). Not available with Grok provider.
 
 | Provider | Formats | Max Size | Max Duration | API |
 |----------|---------|----------|--------------|-----|
+| **macOS** (26+) | MP3, WAV, M4A, AAC, AIFF, FLAC, MP4 | 500 MB | No limit | SpeechAnalyzer (offline) |
 | **OpenAI** | MP3, WAV, M4A, FLAC, WebM, MP4 | 25 MB | Unlimited | Whisper |
 | **Gemini** | MP3, WAV, AAC, OGG, FLAC | 20 MB | ~10 min | generateContent |
 | **ElevenLabs** | MP3, WAV, M4A, OGG, FLAC | 25 MB | ~2 hours | Scribe v2 |
+
+**Note**: macOS native file transcription requires macOS 26 or later and processes audio entirely on-device — no API key or internet connection needed.
 
 ### How to Transcribe
 
