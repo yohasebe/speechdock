@@ -15,6 +15,7 @@
 "Off" = "オフ";
 "Floating Mic Button" = "フローティングマイク";
 "Transcribe Audio File..." = "音声ファイルの文字起こし...";
+"Provider" = "プロバイダ";
 "Provider:" = "プロバイダ:";
 "Language:" = "言語:";
 "Input:" = "入力:";
@@ -370,6 +371,33 @@
 
 /* ===== TranscriptionState ===== */
 "Error: %@" = "エラー: %@";
+
+/* ===== Text Count ===== */
+"chars" = "文字";
+"words" = "単語";
+
+/* ===== Transcription History ===== */
+"Transcription History" = "文字起こし履歴";
+"No history" = "履歴なし";
+"Clear History" = "履歴をクリア";
+
+/* ===== TTS File Drop ===== */
+"Drop text file to load" = "テキストファイルをドロップして読み込み";
+"Unsupported File" = "非対応のファイル";
+"Only text files are supported: .txt, .md, .text, .rtf" = "テキストファイルのみ対応: .txt, .md, .text, .rtf";
+"File Too Large" = "ファイルが大きすぎます";
+"Maximum file size is 1MB." = "最大ファイルサイズは1MBです。";
+
+/* ===== Target App Unavailable ===== */
+"The target application" = "対象アプリケーション";
+"Target App Unavailable" = "対象アプリが利用できません";
+"'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "「%@」はすでに終了しています。文字起こしテキストはクリップボードに保存されています。⌘Vで手動でペーストできます。";
+"Paste Failed" = "ペーストに失敗しました";
+"Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "テキストを自動でペーストできませんでした。文字起こしテキストはクリップボードに保存されています。⌘Vで手動でペーストできます。";
+"• Drop a text file (.txt, .md)" = "• テキストファイル (.txt, .md) をドロップ";
+"Or drop a text file here" = "またはテキストファイルをここにドロップ";
+"Not a Text File" = "テキストファイルではありません";
+"This file appears to be a binary file, not a text file." = "このファイルはバイナリファイルのようです。テキストファイルではありません。";
 
 /* ===== Misc ===== */
 "Auto" = "自動";

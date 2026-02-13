@@ -25,6 +25,11 @@ struct FloatingMicButtonView: View {
                     .fill(buttonBackground)
                     .frame(width: buttonSize - 4, height: buttonSize - 4)
 
+                // Border for visibility
+                Circle()
+                    .stroke(borderColor, lineWidth: borderWidth)
+                    .frame(width: buttonSize - 4, height: buttonSize - 4)
+
                 // Recording pulse animation
                 if appState.isRecording {
                     Circle()
@@ -45,6 +50,7 @@ struct FloatingMicButtonView: View {
             }
         }
         .frame(width: buttonSize, height: buttonSize)
+        .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
         .contentShape(Circle())
         .onTapGesture {
             if !isDragging {
@@ -94,7 +100,25 @@ struct FloatingMicButtonView: View {
         } else if isHovering {
             return AnyShapeStyle(Color.accentColor.opacity(0.8))
         } else {
-            return AnyShapeStyle(Color.secondary.opacity(0.3))
+            return AnyShapeStyle(Color.secondary.opacity(0.45))
+        }
+    }
+
+    private var borderColor: Color {
+        if appState.isRecording {
+            return .red
+        } else if isHovering {
+            return .accentColor
+        } else {
+            return .primary.opacity(0.4)
+        }
+    }
+
+    private var borderWidth: CGFloat {
+        if appState.isRecording || isHovering {
+            return 1.5
+        } else {
+            return 1.2
         }
     }
 

@@ -15,6 +15,7 @@
 "Off" = "Off";
 "Floating Mic Button" = "Floating Mic Button";
 "Transcribe Audio File..." = "Transcribe Audio File...";
+"Provider" = "Provider";
 "Provider:" = "Provider:";
 "Language:" = "Language:";
 "Input:" = "Input:";
@@ -370,6 +371,33 @@
 
 /* ===== TranscriptionState ===== */
 "Error: %@" = "Error: %@";
+
+/* ===== Text Count ===== */
+"chars" = "chars";
+"words" = "words";
+
+/* ===== Transcription History ===== */
+"Transcription History" = "Transcription History";
+"No history" = "No history";
+"Clear History" = "Clear History";
+
+/* ===== TTS File Drop ===== */
+"Drop text file to load" = "Drop text file to load";
+"Unsupported File" = "Unsupported File";
+"Only text files are supported: .txt, .md, .text, .rtf" = "Only text files are supported: .txt, .md, .text, .rtf";
+"File Too Large" = "File Too Large";
+"Maximum file size is 1MB." = "Maximum file size is 1MB.";
+
+/* ===== Target App Unavailable ===== */
+"The target application" = "The target application";
+"Target App Unavailable" = "Target App Unavailable";
+"'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V.";
+"Paste Failed" = "Paste Failed";
+"Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V.";
+"• Drop a text file (.txt, .md)" = "• Drop a text file (.txt, .md)";
+"Or drop a text file here" = "Or drop a text file here";
+"Not a Text File" = "Not a Text File";
+"This file appears to be a binary file, not a text file." = "This file appears to be a binary file, not a text file.";
 
 /* ===== Misc ===== */
 "Auto" = "Auto";

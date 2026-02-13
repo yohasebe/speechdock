@@ -902,9 +902,13 @@ final class AppState {
         realtimeSTTService?.stopListening()
         realtimeSTTService = nil
 
-        // If we have transcription, show result state
+        // If we have transcription, show result state and save to history
         if !currentTranscription.isEmpty {
             transcriptionState = .result(currentTranscription)
+            TranscriptionHistoryService.shared.addEntry(
+                text: currentTranscription,
+                provider: selectedRealtimeProvider.rawValue
+            )
         } else {
             transcriptionState = .idle
         }
@@ -2252,7 +2256,20 @@ extension AppState: RealtimeSTTDelegate {
 
     func realtimeSTT(_ service: RealtimeSTTService, didFailWithError error: Error) {
         errorMessage = error.localizedDescription
-        transcriptionState = .error(error.localizedDescription)
+
+        // Preserve accumulated text if any — save to history and keep in panel
+        let text = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !text.isEmpty {
+            TranscriptionHistoryService.shared.addEntry(
+                text: text,
+                provider: selectedRealtimeProvider.rawValue
+            )
+            // Keep text visible in panel via .result state instead of .error
+            transcriptionState = .result(text)
+        } else {
+            transcriptionState = .error(error.localizedDescription)
+        }
+
         // Clean up the service if it was in processing state
         realtimeSTTService = nil
     }

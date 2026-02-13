@@ -102,6 +102,10 @@ The button can be dragged anywhere on screen, and its position is saved.
 - VAD (Voice Activity Detection) auto-stop for hands-free recording
 - Text replacement rules for STT output correction
 - Translation (macOS on-device or cloud LLMs)
+- Transcription history (auto-saved, up to 50 entries, accessible from menu bar)
+- Text file drag & drop for TTS panel (.txt, .md, .text, .rtf)
+- Real-time character and word count display
+- Automatic WebSocket reconnection with exponential backoff
 - [AppleScript support](docs/applescript.md) for automation
 - Automatic updates via Sparkle
 - Launch at login option

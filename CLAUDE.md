@@ -654,8 +654,37 @@ print("WS received: \(String(data: data, encoding: .utf8) ?? "nil")")
 - Export/Importでカスタムルールとビルトインパターン設定の両方を保存
 - TTSパネルのテキストエリアで置き換え対象にオレンジ色の下線+ツールチップ表示
 
-### 未実装・部分実装
-- [ ] ElevenLabs音声キャッシュの有効期限管理
+### 文字起こし履歴 (2026-02-13)
+STTセッション完了時にテキストを自動保存（JSON、最大50件）。メニューバーから履歴参照・再利用が可能。
+
+**実装ファイル**:
+- `Services/TranscriptionHistoryService.swift` — 履歴の永続化（Application Support/SpeechDock/）
+- `Views/MenuBarView.swift` — `TranscriptionHistoryMenu` サブメニュー
+- `App/AppState.swift` — `stopRecording()` 時に自動保存
+
+### TTSテキストファイル ドラッグ＆ドロップ (2026-02-13)
+TTSパネルにテキストファイル（`.txt`, `.md`, `.text`, `.rtf`）をドロップしてテキストをロード。1MB上限、UTF-8優先（isoLatin1フォールバック）。
+
+**実装ファイル**: `Views/FloatingWindow/TTSFloatingView.swift`
+
+### 文字数・単語数カウント (2026-02-13)
+STT/TTSパネルのアクションバーにリアルタイム表示。共通コンポーネント `TextCountView` を使用。
+
+**実装ファイル**: `Views/Components/TextCountView.swift`
+
+### WebSocket自動再接続 (2026-02-13)
+OpenAI/Gemini/Grok/ElevenLabsの4プロバイダで予期せぬ切断時に自動再接続。最大3回、指数バックオフ（1s, 2s, 4s）。`isIntentionallyStopping` フラグで意図的切断と区別。再接続失敗時は蓄積テキストをデリゲートに送信してからエラー通知。
+
+### ElevenLabs音声キャッシュ有効期限管理 (2026-02-13)
+`getCachedVoices()` に期限チェック追加（期限切れなら `nil` を返す）。アプリ起動時に `cleanupExpiredCaches()` で自動クリーンアップ。
+
+**実装ファイル**: `Services/TTS/TTSVoiceCache.swift`, `App/AppDelegate.swift`
+
+### テキスト消失防止フェイルセーフ (2026-02-13)
+- **STTエラー時**: 蓄積テキストがあれば履歴に保存し、パネルに `.result` 状態で残す
+- **ターゲットアプリ終了時**: クリップボードにテキストを保持し、アラートで通知
+- **ペースト失敗時**: クリップボード復元をスキップし、テキストを保持してアラート表示
+- **WebSocket再接続失敗時**: エラー通知前に蓄積テキストをデリゲートに送信
 
 ### 音声ファイル文字起こし機能 (2026-01-22)
 STTパネルへの音声ファイルのドラッグ＆ドロップ、またはメニューバーからの選択による文字起こし機能。

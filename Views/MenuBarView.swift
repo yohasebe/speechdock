@@ -166,6 +166,9 @@ struct MenuBarView: View {
             .buttonStyle(MenuBarActionButtonStyle())
             .disabled(appState.isRecording || appState.transcriptionState == .transcribingFile)
 
+            // Transcription History submenu
+            TranscriptionHistoryMenu(appState: appState)
+
             // STT Provider picker (compact)
             HStack {
                 Text("Provider:")
@@ -1007,6 +1010,73 @@ struct MenuBarActionButtonStyle: ButtonStyle {
             return Color.primary.opacity(0.08)
         } else {
             return Color.clear
+        }
+    }
+}
+
+/// Transcription history submenu for menu bar
+struct TranscriptionHistoryMenu: View {
+    var appState: AppState
+    @State private var entries: [TranscriptionHistoryEntry] = []
+
+    var body: some View {
+        Menu {
+            if entries.isEmpty {
+                Text(NSLocalizedString("No history", comment: "Empty transcription history"))
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(entries) { entry in
+                    Button(action: {
+                        loadHistoryEntry(entry)
+                    }) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("\(entry.formattedDate) [\(entry.provider)]")
+                                .font(.caption2)
+                            Text(entry.preview)
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button(action: {
+                    TranscriptionHistoryService.shared.clearHistory()
+                    entries = []
+                }) {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text(NSLocalizedString("Clear History", comment: "Clear transcription history button"))
+                    }
+                }
+            }
+        } label: {
+            HStack {
+                Image(systemName: "clock.arrow.circlepath")
+                    .frame(width: 20)
+                Text(NSLocalizedString("Transcription History", comment: "Transcription history menu title"))
+                Spacer()
+                if !entries.isEmpty {
+                    Text("\(entries.count)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .onAppear {
+            entries = TranscriptionHistoryService.shared.allEntries
+        }
+    }
+
+    private func loadHistoryEntry(_ entry: TranscriptionHistoryEntry) {
+        StatusBarManager.shared.closePanel()
+        // Show the STT panel first (this resets state)
+        appState.showSTTPanel()
+        // Then load text (after a brief delay for the panel to initialize)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            appState.currentTranscription = entry.text
+            appState.transcriptionState = .result(entry.text)
         }
     }
 }

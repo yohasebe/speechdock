@@ -23,7 +23,8 @@ final class ClipboardService {
 
     /// Copy text and paste it to the frontmost application
     /// Uses polling to verify clipboard update before pasting, with retry logic
-    func copyAndPaste(_ text: String) async {
+    @discardableResult
+    func copyAndPaste(_ text: String) async -> Bool {
         // Perform clipboard operations synchronously on main thread
         let success = await MainActor.run {
             clipboardLock.lock()
@@ -63,7 +64,7 @@ final class ClipboardService {
             #if DEBUG
             print("ClipboardService: Failed to set clipboard after 3 attempts")
             #endif
-            return
+            return false
         }
 
         // Short delay to allow clipboard to stabilize before pasting
@@ -73,6 +74,7 @@ final class ClipboardService {
         await MainActor.run {
             simulatePasteWithCGEvent()
         }
+        return true
     }
 
     /// Simulate Cmd+V using CGEvent (no System Events permission required)

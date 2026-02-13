@@ -37,6 +37,11 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     // Connection state tracking
     private var sessionStarted = false
 
+    // Auto-reconnect support
+    private var isIntentionallyStopping = false
+    private var reconnectAttempts = 0
+    private let maxReconnectAttempts = 3
+
     func startListening() async throws {
         guard let apiKey = apiKeyManager.getAPIKey(for: .elevenLabs) else {
             throw RealtimeSTTError.apiError("ElevenLabs API key not found")
@@ -44,6 +49,9 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         // Stop any existing session
         stopListening()
+
+        isIntentionallyStopping = false
+        reconnectAttempts = 0
 
         // Reset accumulated text
         committedText = ""
@@ -66,6 +74,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     func stopListening() {
+        isIntentionallyStopping = true
+
         // Stop audio engine
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
@@ -189,13 +199,66 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                     }
                 } catch {
                     await MainActor.run {
-                        if self.isListening {
+                        if self.isListening && !self.isIntentionallyStopping {
+                            Task {
+                                await self.handleUnexpectedDisconnection()
+                            }
+                        } else if self.isListening {
                             self.delegate?.realtimeSTT(self, didFailWithError: error)
                         }
                     }
                     break
                 }
             }
+        }
+    }
+
+    private func handleUnexpectedDisconnection() async {
+        guard !isIntentionallyStopping, reconnectAttempts < maxReconnectAttempts else {
+            if isListening {
+                // Send accumulated text before reporting error so it's not lost
+                let fullText = committedText.isEmpty ? currentPartialText :
+                    (currentPartialText.isEmpty ? committedText : committedText + " " + currentPartialText)
+                if !fullText.isEmpty {
+                    delegate?.realtimeSTT(self, didReceivePartialResult: fullText)
+                }
+                let error = RealtimeSTTError.connectionError("Connection lost after \(maxReconnectAttempts) reconnect attempts")
+                delegate?.realtimeSTT(self, didFailWithError: error)
+            }
+            return
+        }
+        reconnectAttempts += 1
+        let delay = pow(2.0, Double(reconnectAttempts - 1))  // 1s, 2s, 4s
+
+        #if DEBUG
+        print("ElevenLabsRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
+        #endif
+
+        delegate?.realtimeSTT(self, didReceivePartialResult: "[Reconnecting...]")
+
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
+        sessionStarted = false
+
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        guard isListening, !isIntentionallyStopping else { return }
+
+        do {
+            guard let apiKey = apiKeyManager.getAPIKey(for: .elevenLabs) else {
+                throw RealtimeSTTError.apiError("API key not available")
+            }
+            try await connectWebSocket(apiKey: apiKey)
+            reconnectAttempts = 0
+            #if DEBUG
+            print("ElevenLabsRealtimeSTT: Reconnected successfully")
+            #endif
+        } catch {
+            #if DEBUG
+            print("ElevenLabsRealtimeSTT: Reconnect failed: \(error)")
+            #endif
+            await handleUnexpectedDisconnection()
         }
     }
 

@@ -32,9 +32,17 @@ final class TTSVoiceCache {
         }
     }
 
-    /// Get cached voices for a provider
+    /// Get cached voices for a provider (returns nil if expired)
     func getCachedVoices(for provider: TTSProvider) -> [TTSVoice]? {
         let key = cacheKeyPrefix + provider.rawValue
+
+        // Return nil if cache is expired
+        if isCacheExpired(for: provider) {
+            #if DEBUG
+            print("TTSVoiceCache: Cache expired for \(provider.rawValue)")
+            #endif
+            return nil
+        }
 
         guard let data = defaults.data(forKey: key) else {
             return nil
@@ -95,6 +103,18 @@ final class TTSVoiceCache {
 
         let cacheDate = Date(timeIntervalSince1970: timestamp)
         return Date().timeIntervalSince(cacheDate) > cacheExpirationInterval
+    }
+
+    /// Clean up expired caches for all providers
+    func cleanupExpiredCaches() {
+        for provider in TTSProvider.allCases {
+            if isCacheExpired(for: provider) {
+                clearCache(for: provider)
+                #if DEBUG
+                print("TTSVoiceCache: Cleaned up expired cache for \(provider.rawValue)")
+                #endif
+            }
+        }
     }
 
     /// Clear cache for a provider

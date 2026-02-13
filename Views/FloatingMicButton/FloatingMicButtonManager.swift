@@ -353,6 +353,17 @@ final class FloatingMicButtonManager {
         // Clear targetApp early to prevent stale reference
         targetApp = nil
 
+        // Check if target app is still running
+        if let targetApp = targetAppToActivate, targetApp.isTerminated {
+            logger.warning("Target app '\(targetApp.localizedName ?? "unknown", privacy: .public)' has been terminated")
+            // Keep text on clipboard so user doesn't lose it
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+            FloatingMicTextHUD.shared.hide()
+            showTargetAppClosedAlert(appName: targetApp.localizedName)
+            return
+        }
+
         // Use clipboard paste
         if let targetApp = targetAppToActivate {
             // Activate target app first
@@ -360,18 +371,31 @@ final class FloatingMicButtonManager {
 
             logger.debug("Activating target app: \(targetApp.localizedName ?? "unknown", privacy: .public), success: \(activated)")
 
-            // Delay to allow app activation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                Task {
-                    await ClipboardService.shared.copyAndPaste(text)
+            if !activated {
+                // Activation failed — app may have closed between check and activate
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                FloatingMicTextHUD.shared.hide()
+                showTargetAppClosedAlert(appName: targetApp.localizedName)
+                return
+            }
 
-                    // Restore clipboard after a short delay (allow paste to complete)
+            // Delay to allow app activation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                Task {
+                    let pasted = await ClipboardService.shared.copyAndPaste(text)
+
                     try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
                     await MainActor.run {
-                        ClipboardService.shared.restoreClipboardState(savedClipboardState)
-                        // Hide HUD after paste completes
+                        if pasted {
+                            ClipboardService.shared.restoreClipboardState(savedClipboardState)
+                            logger.debug("Text insertion completed, clipboard restored")
+                        } else {
+                            // Paste failed — keep text on clipboard for manual paste
+                            logger.warning("Paste failed, text preserved on clipboard")
+                            self.showPasteFailedAlert()
+                        }
                         FloatingMicTextHUD.shared.hide()
-                        logger.debug("Text insertion completed, clipboard restored")
                     }
                 }
             }
@@ -380,18 +404,43 @@ final class FloatingMicButtonManager {
 
             // No target app, just paste to current frontmost
             Task {
-                await ClipboardService.shared.copyAndPaste(text)
+                let pasted = await ClipboardService.shared.copyAndPaste(text)
 
-                // Restore clipboard after a short delay (allow paste to complete)
                 try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
                 await MainActor.run {
-                    ClipboardService.shared.restoreClipboardState(savedClipboardState)
-                    // Hide HUD after paste completes
+                    if pasted {
+                        ClipboardService.shared.restoreClipboardState(savedClipboardState)
+                        logger.debug("Text insertion completed, clipboard restored")
+                    } else {
+                        logger.warning("Paste failed, text preserved on clipboard")
+                        self.showPasteFailedAlert()
+                    }
                     FloatingMicTextHUD.shared.hide()
-                    logger.debug("Text insertion completed, clipboard restored")
                 }
             }
         }
+    }
+
+    private func showTargetAppClosedAlert(appName: String?) {
+        let alert = NSAlert()
+        let name = appName ?? NSLocalizedString("The target application", comment: "Fallback name for closed app")
+        alert.messageText = NSLocalizedString("Target App Unavailable", comment: "Alert title when target app is closed")
+        alert.informativeText = String(
+            format: NSLocalizedString("'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V.", comment: "Alert message when target app is closed"),
+            name
+        )
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+        alert.runModal()
+    }
+
+    private func showPasteFailedAlert() {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Paste Failed", comment: "Alert title when paste fails")
+        alert.informativeText = NSLocalizedString("Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V.", comment: "Alert message when paste fails")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+        alert.runModal()
     }
 
     // MARK: - Quick STT (without panel)

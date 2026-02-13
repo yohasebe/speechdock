@@ -24,6 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Clean up stale temporary files from previous sessions
         cleanupStaleTempFiles()
 
+        // Clean up expired TTS voice caches
+        Task { @MainActor in
+            TTSVoiceCache.shared.cleanupExpiredCaches()
+        }
+
         // Initialize and register hotkey service immediately
         hotKeyService = HotKeyService()
 

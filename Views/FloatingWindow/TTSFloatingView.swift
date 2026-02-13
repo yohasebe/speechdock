@@ -412,6 +412,7 @@ struct TTSFloatingView: View {
 
     @State private var editableText: String = ""
     @State private var forceTextUpdate: Bool = false  // Force text view update (for hotkey captures)
+    @State private var isDragOver: Bool = false  // Track drag over state for text file drop
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
 
     init(appState: AppState, onClose: @escaping () -> Void) {
@@ -490,6 +491,19 @@ struct TTSFloatingView: View {
                         .foregroundColor(.secondary.opacity(0.8))
                 }
                 .font(.callout)
+
+                VStack(spacing: 4) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.doc")
+                            .font(.caption)
+                        Text(NSLocalizedString("Or drop a text file here", comment: "TTS placeholder file drop hint"))
+                            .font(.caption)
+                    }
+                    .foregroundColor(.secondary.opacity(0.7))
+                    Text(".txt, .md, .text, .rtf")
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.5))
+                }
             }
         }
     }
@@ -719,9 +733,126 @@ struct TTSFloatingView: View {
                 // Floating action buttons (Clear, Spell Check)
                 textAreaFloatingButtons
             }
+            .overlay(textFileDragOverlay)
+            .onDrop(of: [.fileURL], isTargeted: $isDragOver) { providers in
+                handleTextFileDrop(providers)
+            }
             .frame(minHeight: 200, maxHeight: .infinity)
             .opacity(isEditorDisabled ? 0.85 : 1.0)
         }
+    }
+
+    /// Drag over indicator overlay for text file drop
+    @ViewBuilder
+    private var textFileDragOverlay: some View {
+        if isDragOver && !isEditorDisabled {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor, lineWidth: 3)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.accentColor.opacity(0.1))
+                VStack(spacing: 8) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 36))
+                        .foregroundColor(.accentColor)
+                    Text(NSLocalizedString("Drop text file to load", comment: "TTS file drop overlay"))
+                        .font(.callout)
+                        .fontWeight(.medium)
+                        .foregroundColor(.accentColor)
+                }
+            }
+        }
+    }
+
+    /// Handle text file drop on TTS panel
+    private func handleTextFileDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard !isEditorDisabled else { return false }
+
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier("public.file-url") {
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
+                    guard let data = item as? Data,
+                          let url = URL(dataRepresentation: data, relativeTo: nil) else {
+                        return
+                    }
+
+                    let ext = url.pathExtension.lowercased()
+                    let supportedExtensions = ["txt", "md", "text", "rtf"]
+                    guard supportedExtensions.contains(ext) else {
+                        Task { @MainActor in
+                            let alert = NSAlert()
+                            alert.messageText = NSLocalizedString("Unsupported File", comment: "TTS file drop error title")
+                            alert.informativeText = String(format: NSLocalizedString("Only text files are supported: .txt, .md, .text, .rtf", comment: "TTS file drop error message"))
+                            alert.alertStyle = .informational
+                            alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+                            alert.window.level = .floating + 1
+                            alert.runModal()
+                        }
+                        return
+                    }
+
+                    // Check file size (1MB limit)
+                    if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+                       let fileSize = attrs[.size] as? Int,
+                       fileSize > 1_048_576 {
+                        Task { @MainActor in
+                            let alert = NSAlert()
+                            alert.messageText = NSLocalizedString("File Too Large", comment: "TTS file drop error title")
+                            alert.informativeText = NSLocalizedString("Maximum file size is 1MB.", comment: "TTS file drop size error")
+                            alert.alertStyle = .informational
+                            alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+                            alert.window.level = .floating + 1
+                            alert.runModal()
+                        }
+                        return
+                    }
+
+                    // Check for binary content before attempting to read as text
+                    if let fileData = try? Data(contentsOf: url) {
+                        let checkLength = min(fileData.count, 8192)
+                        let nullCount = fileData.prefix(checkLength).filter { $0 == 0 }.count
+                        if nullCount > checkLength / 10 {
+                            // More than 10% null bytes indicates binary file
+                            Task { @MainActor in
+                                let alert = NSAlert()
+                                alert.messageText = NSLocalizedString("Not a Text File", comment: "TTS binary file drop error title")
+                                alert.informativeText = NSLocalizedString("This file appears to be a binary file, not a text file.", comment: "TTS binary file drop error message")
+                                alert.alertStyle = .informational
+                                alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+                                alert.window.level = .floating + 1
+                                alert.runModal()
+                            }
+                            return
+                        }
+                    }
+
+                    // Read the file content
+                    var text: String?
+                    if ext == "rtf" {
+                        // For RTF, extract plain text
+                        if let attrStr = try? NSAttributedString(url: url, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil) {
+                            text = attrStr.string
+                        }
+                    }
+                    if text == nil {
+                        // Try UTF-8 first, then fallback to ISO Latin 1
+                        text = try? String(contentsOf: url, encoding: .utf8)
+                        if text == nil {
+                            text = try? String(contentsOf: url, encoding: .isoLatin1)
+                        }
+                    }
+
+                    guard let loadedText = text, !loadedText.isEmpty else { return }
+
+                    Task { @MainActor in
+                        editableText = loadedText
+                        appState.ttsText = loadedText
+                    }
+                }
+                return true
+            }
+        }
+        return false
     }
 
     /// Floating action buttons inside text area (Font size, Spell Check, Clear)
@@ -859,6 +990,11 @@ struct TTSFloatingView: View {
             .buttonStyle(.plain)
             .help("Capture text with OCR (⌃⌥⇧O)")
             .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
+
+            // Character/word count
+            if !editableText.isEmpty {
+                TextCountView(text: editableText)
+            }
 
             Spacer()
 

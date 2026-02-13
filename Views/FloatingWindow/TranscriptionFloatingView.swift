@@ -1308,6 +1308,11 @@ struct TranscriptionFloatingView: View {
             .background(Color.secondary.opacity(0.08))
             .cornerRadius(8)
 
+            // Character/word count
+            if !editedText.isEmpty {
+                TextCountView(text: editedText)
+            }
+
             Spacer()
 
             if case .recording = appState.transcriptionState {
