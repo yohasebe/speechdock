@@ -252,7 +252,7 @@ final class FloatingWindowManager: ObservableObject {
 
         if !appExists {
             showDestinationUnavailableAlert(
-                message: "The application \"\(window.ownerName)\" has been terminated. Please select another destination."
+                message: String(format: NSLocalizedString("The application \"%@\" has been terminated. Please select another destination.", comment: "Paste destination unavailable"), window.ownerName)
             )
             refreshAvailableWindows()
             return .appTerminated
@@ -260,7 +260,7 @@ final class FloatingWindowManager: ObservableObject {
 
         if !windowExists {
             showDestinationUnavailableAlert(
-                message: "The window \"\(window.displayName)\" has been closed. Please select another destination."
+                message: String(format: NSLocalizedString("The window \"%@\" has been closed. Please select another destination.", comment: "Paste destination unavailable"), window.displayName)
             )
             refreshAvailableWindows()
             return .windowClosed
@@ -272,10 +272,10 @@ final class FloatingWindowManager: ObservableObject {
     /// Show alert using NSAlert for immediate display
     private func showDestinationUnavailableAlert(message: String) {
         let alert = NSAlert()
-        alert.messageText = "Paste Destination Unavailable"
+        alert.messageText = NSLocalizedString("Paste Destination Unavailable", comment: "Paste destination alert title")
         alert.informativeText = message
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
 
         // Show alert attached to floating window if available
         if let window = floatingWindow {

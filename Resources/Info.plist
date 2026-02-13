@@ -30,6 +30,8 @@
     <string>SpeechDock needs screen recording access to show window thumbnails when selecting a paste target.</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>SpeechDock needs automation access to copy selected text from other applications for text-to-speech.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Yoichiro Hasebe. All rights reserved.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 

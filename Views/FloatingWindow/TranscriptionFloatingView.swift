@@ -599,7 +599,14 @@ struct TranscriptionFloatingView: View {
     @ViewBuilder
     private var panelBackground: some View {
         if isFloatingStyle {
-            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+            ZStack {
+                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+                    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                        ? NSColor(white: 0.18, alpha: 0.85)
+                        : NSColor(white: 0.96, alpha: 0.85)
+                }))
+            }
         } else {
             Color(NSColor.windowBackgroundColor)
         }
@@ -768,7 +775,7 @@ struct TranscriptionFloatingView: View {
                         Task { @MainActor in
                             let provider = appState.selectedRealtimeProvider
                             let formats = provider.supportsFileTranscription ? provider.supportedAudioFormats : "MP3, WAV, M4A, AAC, WebM, OGG, FLAC"
-                            showDropNotice("Unsupported file format: .\(ext)\n\nSupported formats: \(formats)")
+                            showDropNotice(String(format: NSLocalizedString("Unsupported file format: .%@\n\nSupported formats: %@", comment: "File transcription error"), ext, formats))
                         }
                         return
                     }
@@ -787,10 +794,10 @@ struct TranscriptionFloatingView: View {
     /// Show notification alert for drop issues
     private func showDropNotice(_ message: String) {
         let alert = NSAlert()
-        alert.messageText = "File Transcription"
+        alert.messageText = NSLocalizedString("File Transcription", comment: "File transcription alert title")
         alert.informativeText = message
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
 
         alert.window.level = .floating + 1
 
@@ -921,6 +928,7 @@ struct TranscriptionFloatingView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .focusEffectDisabled()
                     .applyCustomShortcut(cancelShortcut)
                     .keyboardShortcut("w", modifiers: .command)
                     .help("Close (⌘W)")
@@ -1388,8 +1396,8 @@ struct TranscriptionFloatingView: View {
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.plainText]
         savePanel.nameFieldStringValue = "transcription.txt"
-        savePanel.title = "Save Transcription"
-        savePanel.message = "Choose a location to save the transcribed text"
+        savePanel.title = NSLocalizedString("Save Transcription", comment: "Save panel title")
+        savePanel.message = NSLocalizedString("Choose a location to save the transcribed text", comment: "Save panel message")
         WindowLevelCoordinator.configureSavePanel(savePanel)
 
         // Activate app and bring panel to front

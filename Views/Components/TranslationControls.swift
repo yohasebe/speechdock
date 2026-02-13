@@ -402,18 +402,11 @@ struct TranslationControls: View {
     /// Show alert for language pack download
     private func showLanguageDownloadAlert(for language: LanguageCode) {
         let alert = NSAlert()
-        alert.messageText = "Language Pack Required"
-        alert.informativeText = """
-        The \(language.displayName) language pack needs to be downloaded.
-
-        Please go to:
-        System Settings → General → Language & Region → Translation Languages
-
-        Then download "\(language.displayName)" and try again.
-        """
+        alert.messageText = NSLocalizedString("Language Pack Required", comment: "Language download alert title")
+        alert.informativeText = String(format: NSLocalizedString("The %@ language pack needs to be downloaded.\n\nPlease go to:\nSystem Settings → General → Language & Region → Translation Languages\n\nThen download \"%@\" and try again.", comment: "Language download alert message"), language.displayName, language.displayName)
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: NSLocalizedString("Open System Settings", comment: "Open system settings button"))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -429,20 +422,11 @@ struct TranslationControls: View {
     /// Show help for downloading language packs
     private func showDownloadLanguagesHelp() {
         let alert = NSAlert()
-        alert.messageText = "Download Translation Languages"
-        alert.informativeText = """
-        To download language packs for offline translation:
-
-        1. Open System Settings
-        2. Go to General → Language & Region
-        3. Scroll down to "Translation Languages"
-        4. Download the languages you need
-
-        After downloading, click "Refresh Status" to update the list.
-        """
+        alert.messageText = NSLocalizedString("Download Translation Languages", comment: "Download languages help title")
+        alert.informativeText = NSLocalizedString("To download language packs for offline translation:\n\n1. Open System Settings\n2. Go to General → Language & Region\n3. Scroll down to \"Translation Languages\"\n4. Download the languages you need\n\nAfter downloading, click \"Refresh Status\" to update the list.", comment: "Download languages help message")
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: NSLocalizedString("Open System Settings", comment: "Open system settings button"))
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {

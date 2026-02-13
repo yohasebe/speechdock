@@ -336,8 +336,8 @@ final class TextReplacementService: ObservableObject {
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.json]
         savePanel.nameFieldStringValue = "TextReplacementRules.json"
-        savePanel.title = "Export Text Replacement Rules"
-        savePanel.message = "Choose a location to save the rules"
+        savePanel.title = NSLocalizedString("Export Text Replacement Rules", comment: "Export save panel title")
+        savePanel.message = NSLocalizedString("Choose a location to save the rules", comment: "Export save panel message")
 
         savePanel.begin { [weak self] response in
             guard response == .OK, let url = savePanel.url, let self = self else { return }
@@ -369,8 +369,8 @@ final class TextReplacementService: ObservableObject {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [.json]
         openPanel.allowsMultipleSelection = false
-        openPanel.title = "Import Text Replacement Rules"
-        openPanel.message = "Select a JSON file to import"
+        openPanel.title = NSLocalizedString("Import Text Replacement Rules", comment: "Import open panel title")
+        openPanel.message = NSLocalizedString("Select a JSON file to import", comment: "Import open panel message")
 
         openPanel.begin { [weak self] response in
             guard response == .OK, let url = openPanel.url, let self = self else { return }

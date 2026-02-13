@@ -67,13 +67,17 @@ final class FloatingMicTextHUD {
     /// Update HUD position to stay near the button
     func updatePosition(near buttonFrame: NSRect) {
         guard let window = hudWindow else {
+            #if DEBUG
             print("[FloatingMicHUD] updatePosition: hudWindow is nil")
+            #endif
             return
         }
 
         // Calculate new position above the button
         let newFrame = calculateFrameNearButton(buttonFrame)
+        #if DEBUG
         print("[FloatingMicHUD] updatePosition: moving HUD from \(window.frame) to \(newFrame)")
+        #endif
         window.setFrame(newFrame, display: true, animate: false)
 
         // Clear saved position so next show() uses button-relative position

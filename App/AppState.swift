@@ -19,12 +19,12 @@ enum TranscriptionState: Equatable {
     var statusText: String {
         switch self {
         case .idle: return ""
-        case .preparing: return "Starting..."
-        case .recording: return "Recording..."
-        case .transcribingFile: return "Transcribing file..."
-        case .processing: return "Processing..."
+        case .preparing: return NSLocalizedString("Starting...", comment: "Transcription state")
+        case .recording: return NSLocalizedString("Recording...", comment: "Transcription state")
+        case .transcribingFile: return NSLocalizedString("Transcribing file...", comment: "Transcription state")
+        case .processing: return NSLocalizedString("Processing...", comment: "Transcription state")
         case .result: return ""
-        case .error(let msg): return "Error: \(msg)"
+        case .error(let msg): return String(format: NSLocalizedString("Error: %@", comment: "Transcription error with message"), msg)
         }
     }
 }
@@ -36,8 +36,8 @@ enum PanelStyle: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .floating: return "Floating"
-        case .standardWindow: return "Standard Window"
+        case .floating: return NSLocalizedString("Floating", comment: "Panel style name")
+        case .standardWindow: return NSLocalizedString("Standard Window", comment: "Panel style name")
         }
     }
 }
@@ -1336,8 +1336,8 @@ final class AppState {
             let savePanel = NSSavePanel()
             savePanel.allowedContentTypes = [.audio]
             savePanel.nameFieldStringValue = "tts_audio.\(fileExtension)"
-            savePanel.title = "Save Audio"
-            savePanel.message = "Choose a location to save the audio file"
+            savePanel.title = NSLocalizedString("Save Audio", comment: "Save panel title")
+            savePanel.message = NSLocalizedString("Choose a location to save the audio file", comment: "Save panel message")
 
             // Configure save panel to appear above all floating panels
             WindowLevelCoordinator.configureSavePanel(savePanel)
@@ -1691,10 +1691,10 @@ final class AppState {
     /// Show notification alert for file transcription issues
     private func showFileTranscriptionNotice(_ message: String) {
         let alert = NSAlert()
-        alert.messageText = "File Transcription"
+        alert.messageText = NSLocalizedString("File Transcription", comment: "File transcription alert title")
         alert.informativeText = message
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
 
         // Configure alert to appear above floating panels
         alert.window.level = .floating + 1
@@ -1707,7 +1707,7 @@ final class AppState {
     func transcribeAudioFile(_ url: URL) {
         // Check if provider supports file transcription
         guard selectedRealtimeProvider.supportsFileTranscription else {
-            showFileTranscriptionNotice("\(selectedRealtimeProvider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.")
+            showFileTranscriptionNotice(String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), selectedRealtimeProvider.rawValue))
             return
         }
 
@@ -1772,7 +1772,7 @@ final class AppState {
     func openAudioFileForTranscription() {
         // Check provider support first
         guard selectedRealtimeProvider.supportsFileTranscription else {
-            showFileTranscriptionNotice("\(selectedRealtimeProvider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.")
+            showFileTranscriptionNotice(String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), selectedRealtimeProvider.rawValue))
             return
         }
 
@@ -1791,8 +1791,8 @@ final class AppState {
         }
         openPanel.allowedContentTypes = allowedTypes
 
-        openPanel.title = "Select Audio File"
-        openPanel.message = "Choose an audio file to transcribe"
+        openPanel.title = NSLocalizedString("Select Audio File", comment: "Open panel title")
+        openPanel.message = NSLocalizedString("Choose an audio file to transcribe", comment: "Open panel message")
 
         // Configure panel to appear above floating panels
         WindowLevelCoordinator.configureSavePanel(openPanel)

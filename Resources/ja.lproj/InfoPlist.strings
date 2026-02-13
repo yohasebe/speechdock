@@ -1,0 +1,7 @@
+/* Info.plist localization - Japanese */
+
+"NSMicrophoneUsageDescription" = "SpeechDockは音声の文字起こしのためにマイクへのアクセスが必要です。";
+"NSSpeechRecognitionUsageDescription" = "SpeechDockはリアルタイム文字起こしのために音声認識を使用します。";
+"NSScreenCaptureUsageDescription" = "SpeechDockはペースト先の選択時にウィンドウのサムネイルを表示するために画面収録のアクセスが必要です。";
+"NSAppleEventsUsageDescription" = "SpeechDockはテキスト読み上げのために他のアプリケーションから選択テキストをコピーするオートメーションアクセスが必要です。";
+"NSHumanReadableCopyright" = "Copyright \U00A9 2026 Yoichiro Hasebe. All rights reserved.";

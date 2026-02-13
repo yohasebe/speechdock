@@ -54,7 +54,7 @@ class SpellCheckToast {
         toast.wantsLayer = true
         toast.layer?.cornerRadius = 8
 
-        let label = NSTextField(labelWithString: "✓ No spelling errors")
+        let label = NSTextField(labelWithString: NSLocalizedString("✓ No spelling errors", comment: "Spell check toast message"))
         label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         label.textColor = NSColor.secondaryLabelColor
         label.alignment = .center
@@ -192,10 +192,10 @@ class FocusableTextView: NSTextView {
 
             // Show a brief alert instead of toast (for better visibility)
             let alert = NSAlert()
-            alert.messageText = "Spell Check Complete"
-            alert.informativeText = "No spelling errors found."
+            alert.messageText = NSLocalizedString("Spell Check Complete", comment: "Spell check alert title")
+            alert.informativeText = NSLocalizedString("No spelling errors found.", comment: "Spell check alert message")
             alert.alertStyle = .informational
-            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
             if let parentWindow = window {
                 alert.beginSheetModal(for: parentWindow)
             } else {
@@ -450,7 +450,14 @@ struct TTSFloatingView: View {
     @ViewBuilder
     private var panelBackground: some View {
         if isFloatingStyle {
-            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+            ZStack {
+                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+                    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                        ? NSColor(white: 0.18, alpha: 0.85)
+                        : NSColor(white: 0.96, alpha: 0.85)
+                }))
+            }
         } else {
             Color(NSColor.windowBackgroundColor)
         }
@@ -501,6 +508,7 @@ struct TTSFloatingView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .focusEffectDisabled()
                     .keyboardShortcut("w", modifiers: .command)
                     .help("Close (⌘W)")
                 }

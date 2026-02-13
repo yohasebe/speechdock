@@ -4,6 +4,8 @@ options:
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "16.2"
+  developmentLanguage: en
+  knownRegions: [en, ja]
 
 packages:
   HotKey:
@@ -29,6 +31,10 @@ targets:
       - path: Resources/Assets.xcassets
         buildPhase: resources
       - path: Resources/SpeechDock.sdef
+        buildPhase: resources
+      - path: Resources/en.lproj
+        buildPhase: resources
+      - path: Resources/ja.lproj
         buildPhase: resources
     settings:
       base:

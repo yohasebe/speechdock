@@ -1,0 +1,379 @@
+/* Localizable.strings - Japanese */
+
+/* ===== Menu Bar ===== */
+"Recording" = "録音中";
+"Processing" = "処理中";
+"Speaking" = "読み上げ中";
+"Speech-to-Text" = "音声認識";
+"Text-to-Speech" = "テキスト読み上げ";
+"Microphone access required" = "マイクへのアクセスが必要です";
+"Accessibility access required" = "アクセシビリティの許可が必要です";
+"Stop" = "停止";
+"Transcription" = "文字起こし";
+"Subtitle Mode" = "字幕モード";
+"On" = "オン";
+"Off" = "オフ";
+"Floating Mic Button" = "フローティングマイク";
+"Transcribe Audio File..." = "音声ファイルの文字起こし...";
+"Provider:" = "プロバイダ:";
+"Language:" = "言語:";
+"Input:" = "入力:";
+"Output:" = "出力:";
+"Model:" = "モデル:";
+"Voice:" = "音声:";
+"Speed:" = "速度:";
+"Text to Speech" = "テキスト読み上げ";
+"OCR Region to TTS" = "OCR領域を読み上げ";
+"Help & Documentation" = "ヘルプとドキュメント";
+"About SpeechDock" = "SpeechDockについて";
+"Settings..." = "設定...";
+"Quit SpeechDock" = "SpeechDockを終了";
+
+/* ===== Audio Input/Output ===== */
+"Microphone" = "マイク";
+"System Audio" = "システム音声";
+"App Audio" = "アプリ音声";
+"App" = "アプリ";
+"No microphones detected" = "マイクが検出されません";
+"No apps detected" = "アプリが検出されません";
+"Recent" = "最近使用";
+"Refresh Apps" = "アプリ一覧を更新";
+"System Default" = "システムデフォルト";
+"No output devices detected" = "出力デバイスが検出されません";
+
+/* ===== STT Panel ===== */
+"Starting..." = "開始中...";
+"Recording..." = "録音中...";
+"Transcribing File..." = "ファイル文字起こし中...";
+"Processing..." = "処理中...";
+"Error" = "エラー";
+"Listening..." = "聴取中...";
+"Transcribing..." = "文字起こし中...";
+"Subtitle" = "字幕";
+"Target:" = "ターゲット:";
+"None" = "なし";
+"Paste Target:" = "ペースト先:";
+"No window selected" = "ウィンドウが未選択";
+"Use arrow keys to preview" = "矢印キーでプレビュー";
+"No Preview" = "プレビューなし";
+"Paste" = "ペースト";
+"Record" = "録音";
+"Save Text" = "テキスト保存";
+"Copy" = "コピー";
+"Copied!" = "コピーしました！";
+"Cancel" = "キャンセル";
+"Press keys..." = "キーを押してください...";
+
+/* STT Panel - Placeholder */
+"Press Record (%@) to start transcription" = "録音 (%@) を押して文字起こしを開始";
+"Or drop an audio file here" = "または音声ファイルをここにドロップ";
+"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "ファイルの文字起こしにはOpenAI、Gemini、またはElevenLabsに切り替えてください";
+"Transcribing file..." = "ファイル文字起こし中...";
+"Drop audio file to transcribe" = "文字起こしする音声ファイルをドロップ";
+
+/* STT Panel - Save Panel */
+"Save Transcription" = "文字起こしを保存";
+"Choose a location to save the transcribed text" = "文字起こしテキストの保存先を選択してください";
+
+/* STT Panel - File Drop */
+"File Transcription" = "ファイル文字起こし";
+
+/* ===== TTS Panel ===== */
+/* "Text-to-Speech" - already defined above */
+"Speaking..." = "読み上げ中...";
+"Paused" = "一時停止";
+"Generating audio..." = "音声を生成中...";
+"Type text here, or:" = "ここにテキストを入力、または:";
+"OCR" = "OCR";
+"Speak" = "読み上げ";
+"Save Audio" = "音声を保存";
+"Pause" = "一時停止";
+"Resume" = "再開";
+"Playback Speed" = "再生速度";
+
+/* TTS Panel - Placeholder */
+"• Select text elsewhere and press %@" = "• 他の場所でテキストを選択して %@ を押す";
+"• Use OCR (%@) to capture screen text" = "• OCR (%@) で画面のテキストを取り込む";
+
+/* ===== Subtitle Overlay ===== */
+"(%@ to stop)" = "(%@ で停止)";
+"Loading..." = "読み込み中...";
+"No languages available" = "利用可能な言語がありません";
+
+/* ===== Translation Controls ===== */
+"Translate" = "翻訳";
+"Original" = "原文";
+"Translating..." = "翻訳中...";
+"Select..." = "選択...";
+"Download Languages..." = "言語をダウンロード...";
+"Refresh Status" = "ステータスを更新";
+"Enter text to enable translation" = "テキストを入力すると翻訳できます";
+"Select a target language" = "翻訳先の言語を選択してください";
+"Translate to %@" = "%@に翻訳";
+"Revert to original text" = "原文に戻す";
+"Cancel translation" = "翻訳をキャンセル";
+"Target language: %@" = "翻訳先言語: %@";
+"Cannot change during translation" = "翻訳中は変更できません";
+"Translation provider: %@" = "翻訳プロバイダ: %@";
+"Translation model: %@" = "翻訳モデル: %@";
+
+/* Translation - Language Pack Alerts */
+"Language Pack Required" = "言語パックが必要です";
+"The %@ language pack needs to be downloaded.\n\nPlease go to:\nSystem Settings → General → Language & Region → Translation Languages\n\nThen download \"%@\" and try again." = "%@の言語パックをダウンロードする必要があります。\n\n以下にアクセスしてください:\nシステム設定 → 一般 → 言語と地域 → 翻訳言語\n\n「%@」をダウンロードしてから再度お試しください。";
+"Open System Settings" = "システム設定を開く";
+
+"Download Translation Languages" = "翻訳言語のダウンロード";
+"To download language packs for offline translation:\n\n1. Open System Settings\n2. Go to General → Language & Region\n3. Scroll down to \"Translation Languages\"\n4. Download the languages you need\n\nAfter downloading, click \"Refresh Status\" to update the list." = "オフライン翻訳用の言語パックをダウンロードするには:\n\n1. システム設定を開く\n2. 一般 → 言語と地域 を開く\n3. 「翻訳言語」までスクロール\n4. 必要な言語をダウンロード\n\nダウンロード後、「ステータスを更新」をクリックして一覧を更新してください。";
+
+/* ===== Settings Window ===== */
+"General" = "一般";
+"Shortcuts" = "ショートカット";
+"Text Replacement" = "テキスト置換";
+"API Keys" = "APIキー";
+
+/* Settings - General - STT */
+"STT Provider" = "STTプロバイダ";
+"TTS Provider" = "TTSプロバイダ";
+"Set API keys in the API Keys tab to enable more providers" = "APIキータブでAPIキーを設定すると、他のプロバイダも利用できます";
+"Language" = "言語";
+"Model" = "モデル";
+"Voice" = "音声";
+"Speed" = "速度";
+"Audio Source" = "音声ソース";
+
+/* Settings - General - STT Language Help */
+"Auto uses system locale. Select a specific language for better accuracy." = "「自動」はシステムのロケールを使用します。精度向上には特定の言語を選択してください。";
+"Auto detects the language. Specifying a language can improve accuracy." = "自動で言語を検出します。言語を指定すると精度が向上する場合があります。";
+"Auto detects the language. Note: Portuguese is not supported." = "自動で言語を検出します。注意: ポルトガル語は非対応です。";
+"Auto detects the language (100+ languages supported)." = "自動で言語を検出します（100以上の言語に対応）。";
+
+/* Settings - General - Audio Source */
+"System Audio requires Screen Recording permission." = "システム音声には画面収録の許可が必要です。";
+"App-specific audio capture is available in the menu bar and STT panel." = "アプリ個別の音声キャプチャはメニューバーとSTTパネルで利用できます。";
+"Select the microphone device for speech recognition." = "音声認識に使用するマイクデバイスを選択してください。";
+"Audio Output" = "音声出力";
+"Select the audio output device for speech playback." = "音声再生に使用する出力デバイスを選択してください。";
+
+/* Settings - General - VAD */
+"Auto-Stop Settings" = "自動停止設定";
+"Min. recording time" = "最短録音時間";
+"Silence duration" = "無音検出時間";
+"Recording must reach this duration before auto-stop activates." = "自動停止が有効になるまでに必要な最短録音時間です。";
+"Duration of silence required to trigger auto-stop." = "自動停止をトリガーするために必要な無音時間です。";
+"Reset to Defaults" = "デフォルトに戻す";
+
+/* Settings - General - STT Panel Behavior */
+"Panel Behavior" = "パネル動作";
+"Auto-start recording" = "自動録音開始";
+"When enabled, recording starts automatically when the STT panel opens." = "有効にすると、STTパネルを開いた時に自動で録音が開始されます。";
+"Close panel after paste" = "ペースト後にパネルを閉じる";
+"When enabled, the STT panel closes automatically after pasting text." = "有効にすると、テキストのペースト後にSTTパネルが自動的に閉じます。";
+
+/* Settings - General - TTS Panel Behavior */
+"Auto-speak on panel open" = "パネル表示時に自動読み上げ";
+"When enabled, TTS starts speaking automatically when the panel opens with text." = "有効にすると、テキストがある状態でパネルを開いた時に自動で読み上げが開始されます。";
+
+/* Settings - General - TTS Speed */
+"Slow" = "遅い";
+"Fast" = "速い";
+"Reset" = "リセット";
+"Adjust playback speed (0.25x–4.0x)" = "再生速度を調整 (0.25x–4.0x)";
+"Gemini uses prompt-based pacing (approximate adjustment)" = "Geminiはプロンプトベースのペース制御を使用（近似調整）";
+"Adjust playback speed (actual range: 0.7x–1.2x)" = "再生速度を調整（実際の範囲: 0.7x–1.2x）";
+"Adjust playback speed" = "再生速度を調整";
+"GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTSは速度制御に非対応です。TTS-1またはTTS-1 HDを選択してください。";
+"Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "GPT-4o Mini TTSでは速度制御は利用できません。速度制御にはTTS-1またはTTS-1 HDを使用してください。";
+"Gemini uses natural language pace control (approximate)." = "Geminiは自然言語によるペース制御を使用します（近似的）。";
+"ElevenLabs has limited speed range (0.7x-1.2x mapped)." = "ElevenLabsの速度範囲は限定的です（0.7x-1.2xにマッピング）。";
+"Grok Voice Agent does not support speed control." = "Grok Voice Agentは速度制御に非対応です。";
+"Grok Voice Agent does not support speed control" = "Grok Voice Agentは速度制御に非対応です";
+
+/* Settings - General - TTS Language */
+"Specifies the output language for speech synthesis." = "音声合成の出力言語を指定します。";
+
+/* Settings - General - Translation */
+"Translation" = "翻訳";
+
+/* Settings - General - Appearance */
+"Appearance" = "外観";
+"Text Font Size" = "テキストのフォントサイズ";
+"Font size for text in STT and TTS panels." = "STTおよびTTSパネルのテキストのフォントサイズ。";
+"Panel Style" = "パネルスタイル";
+"Floating" = "フローティング";
+"Standard Window" = "標準ウィンドウ";
+"Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time." = "フローティング: 最前面表示のボーダーレスパネル。標準ウィンドウ: タイトルバー付きの通常ウィンドウ。STTとTTSのパネルは同時に一つだけ開けます。";
+
+/* Settings - General - Subtitle Mode */
+"Enable Subtitle Mode" = "字幕モードを有効にする";
+"Display real-time transcription as subtitles during recording." = "録音中にリアルタイムの文字起こしを字幕として表示します。";
+"Position" = "位置";
+"Font Size" = "フォントサイズ";
+"Text Opacity" = "テキストの不透明度";
+"Background Opacity" = "背景の不透明度";
+"Max Lines" = "最大行数";
+"%lld lines" = "%lld行";
+"Hide STT Panel when active" = "字幕モード中はSTTパネルを隠す";
+"Temporarily hide the STT panel when subtitle mode is active." = "字幕モードがアクティブな場合にSTTパネルを一時的に隠します。";
+
+/* Settings - General - Subtitle Translation */
+"Real-Time Translation" = "リアルタイム翻訳";
+"Enable Real-Time Translation" = "リアルタイム翻訳を有効にする";
+"Translate subtitles to target language in real-time." = "字幕をリアルタイムで対象言語に翻訳します。";
+"Requires macOS 26+ for on-device translation, or set up API keys." = "オンデバイス翻訳にはmacOS 26以降が必要です。またはAPIキーを設定してください。";
+"Target Language" = "翻訳先言語";
+"Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages." = "インストール済みの言語パックのみ表示されます。追加は「システム設定 > 一般 > 言語と地域 > 翻訳言語」から行ってください。";
+"Show Original Text" = "原文を表示";
+"Display original text above the translation." = "翻訳の上に原文を表示します。";
+
+/* Subtitle translation provider descriptions */
+"Fast on-device translation. Requires macOS 26+." = "高速なオンデバイス翻訳。macOS 26以降が必要です。";
+"OpenAI translation (100+ languages). Higher latency." = "OpenAI翻訳（100以上の言語）。レイテンシが高めです。";
+"Gemini translation (100+ languages). Higher latency." = "Gemini翻訳（100以上の言語）。レイテンシが高めです。";
+"Grok translation (100+ languages). Higher latency." = "Grok翻訳（100以上の言語）。レイテンシが高めです。";
+
+/* Settings - General - Startup */
+"Startup" = "起動";
+"Launch at Login" = "ログイン時に起動";
+"SpeechDock will start automatically when you log in" = "ログイン時にSpeechDockが自動的に起動します";
+"Launch at login requires macOS 13 or later" = "ログイン時起動にはmacOS 13以降が必要です";
+
+/* ===== Settings - Shortcuts ===== */
+"Global Hotkeys" = "グローバルホットキー";
+"Toggle STT Panel" = "STTパネルの切替";
+"Toggle TTS Panel" = "TTSパネルの切替";
+"Toggle Subtitle Mode" = "字幕モードの切替";
+"Show Shortcuts" = "ショートカット一覧";
+"Quick Transcription" = "クイック文字起こし";
+"Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (⌘, ⌥, ⌃, or ⇧)." = "ショートカットをクリックし、新しいキーの組み合わせを押して変更します。修飾キー（⌘、⌥、⌃、⇧）を少なくとも1つ含める必要があります。";
+"STT Panel Shortcuts" = "STTパネルのショートカット";
+"Shortcuts available when the STT transcription panel is open." = "STT文字起こしパネルが開いている時に使用できるショートカット。";
+"TTS Panel Shortcuts" = "TTSパネルのショートカット";
+"Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts." = "TTSパネルが開いている時に使用できるショートカット。STTとTTSのパネルは排他的なので、同じショートカットを共有できます。";
+"Common Shortcuts" = "共通ショートカット";
+"Shortcuts available in both STT and TTS panels." = "STTとTTSの両方のパネルで使用できるショートカット。";
+"Reset Global Hotkeys" = "グローバルホットキーをリセット";
+"Reset Panel Shortcuts" = "パネルショートカットをリセット";
+"Reset to default" = "デフォルトに戻す";
+
+/* ===== Settings - Text Replacement ===== */
+"Built-in Patterns" = "ビルトインパターン";
+"Automatically replace common patterns like URLs and emails." = "URLやメールアドレスなどの一般的なパターンを自動的に置換します。";
+"Custom Rules" = "カスタムルール";
+"%lld rules" = "%lldルール";
+"No custom rules" = "カスタムルールなし";
+"Add rules for specific text replacements." = "特定のテキスト置換ルールを追加します。";
+"Add Rule" = "ルールを追加";
+"Find" = "検索";
+"Replace With" = "置換後";
+"Replace" = "置換";
+"Replacement" = "置換テキスト";
+"Add" = "追加";
+"Import..." = "読み込み...";
+"Export..." = "書き出し...";
+"Delete rule" = "ルールを削除";
+"Export Text Replacement Rules" = "テキスト置換ルールを書き出し";
+"Choose a location to save the rules" = "ルールの保存先を選択してください";
+"Import Text Replacement Rules" = "テキスト置換ルールを読み込み";
+"Select a JSON file to import" = "読み込むJSONファイルを選択してください";
+
+/* ===== Settings - API Keys ===== */
+"API Key" = "APIキー";
+"Validating..." = "検証中...";
+"Save to Keychain" = "キーチェーンに保存";
+"Remove" = "削除";
+"From Environment" = "環境変数から";
+"From Keychain" = "キーチェーンから";
+"Not Set" = "未設定";
+"Valid ✓ Saved!" = "有効 ✓ 保存しました！";
+"Could not verify (saved anyway)" = "検証できませんでした（保存済み）";
+"Removed" = "削除しました";
+
+/* ===== About View ===== */
+"Version %@ (%@)" = "バージョン %@ (%@)";
+"Speech-to-Text and Text-to-Speech\nfor macOS" = "macOS用の音声認識・テキスト読み上げ";
+"Created by" = "開発者";
+"GitHub Repository" = "GitHubリポジトリ";
+
+/* ===== Shortcut HUD ===== */
+"Keyboard Shortcuts" = "キーボードショートカット";
+"Press ESC or %@ to dismiss" = "ESCまたは %@ で閉じる";
+"STT Panel" = "STTパネル";
+"TTS Panel" = "TTSパネル";
+"Common" = "共通";
+"Click to execute" = "クリックで実行";
+
+/* ===== Floating Mic Button / Quick Input ===== */
+"Click or %@ to start dictation" = "クリックまたは %@ で音声入力を開始";
+
+/* ===== AppDelegate - Permission Alert ===== */
+"Permissions Required" = "アクセス許可が必要です";
+"SpeechDock needs the following permissions to work properly:" = "SpeechDockの正常な動作には以下の許可が必要です:";
+"For speech recognition" = "音声認識のため";
+"For global keyboard shortcuts and text insertion" = "グローバルキーボードショートカットとテキスト挿入のため";
+"For window thumbnails in target selection" = "ターゲット選択時のウィンドウサムネイル表示のため";
+"Accessibility" = "アクセシビリティ";
+"Screen Recording" = "画面収録";
+"Click \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock." = "「設定を開いて終了」をクリックしてシステム設定を開きます。SpeechDockは終了しますので、中断なく許可を付与できます。付与後、SpeechDockを再起動してください。";
+"Open Settings & Quit" = "設定を開いて終了";
+"Later" = "後で";
+
+/* AppDelegate - Duplicate Instance */
+"SpeechDock is already running" = "SpeechDockは既に起動しています";
+"Another instance of SpeechDock is already running. Please use the existing instance from the menu bar." = "SpeechDockの別のインスタンスが既に起動しています。メニューバーの既存のインスタンスを使用してください。";
+"OK" = "OK";
+
+/* ===== AppState ===== */
+"Select Audio File" = "音声ファイルを選択";
+"Choose a location to save the audio file" = "音声ファイルの保存先を選択してください";
+"Choose an audio file to transcribe" = "文字起こしする音声ファイルを選択してください";
+
+/* ===== FloatingWindowManager ===== */
+"Paste Destination Unavailable" = "ペースト先が利用できません";
+"The application \"%@\" has been terminated. Please select another destination." = "アプリケーション「%@」は終了しました。別のペースト先を選択してください。";
+"The window \"%@\" has been closed. Please select another destination." = "ウィンドウ「%@」は閉じられました。別のペースト先を選択してください。";
+
+/* ===== Spell Check ===== */
+"✓ No spelling errors" = "✓ スペルエラーなし";
+"No spelling errors" = "スペルエラーなし";
+"Spell Check Complete" = "スペルチェック完了";
+"No spelling errors found." = "スペルエラーは見つかりませんでした。";
+"Spell Check" = "スペルチェック";
+"Clear Text" = "テキストをクリア";
+"Press Original to edit" = "編集するには「原文」を押してください";
+
+/* ===== Tool Tips ===== */
+"Decrease Font Size (%@)" = "フォントサイズを縮小 (%@)";
+"Reset Font Size (%@)" = "フォントサイズをリセット (%@)";
+"Increase Font Size (%@)" = "フォントサイズを拡大 (%@)";
+"Close (⌘W)" = "閉じる (⌘W)";
+"Subtitle Mode: On (⌃⌥S)" = "字幕モード: オン (⌃⌥S)";
+"Subtitle Mode: Off (⌃⌥S)" = "字幕モード: オフ (⌃⌥S)";
+"Capture text with OCR (⌃⌥⇧O)" = "OCRでテキストを取り込む (⌃⌥⇧O)";
+"Refresh voice list" = "音声リストを更新";
+"Refresh voice list from API" = "APIから音声リストを更新";
+"Hide controls" = "コントロールを隠す";
+"Show controls" = "コントロールを表示";
+"Reset to default position" = "デフォルト位置に戻す";
+"Enable translation" = "翻訳を有効にする";
+"Disable translation" = "翻訳を無効にする";
+"Translation provider" = "翻訳プロバイダ";
+"Click to adjust playback speed" = "クリックして再生速度を調整";
+"Click to set playback speed" = "クリックして再生速度を設定";
+
+/* ===== File Transcription Errors ===== */
+"Audio file not found" = "音声ファイルが見つかりません";
+"Unsupported audio format: .%@\n\nSupported formats: %@" = "非対応の音声形式: .%@\n\n対応形式: %@";
+"File too large (%dMB). Maximum size for this provider is %dMB" = "ファイルが大きすぎます (%dMB)。このプロバイダの最大サイズは%dMBです";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@はファイルの文字起こしに非対応です。\n\nOpenAI、Gemini、ElevenLabs、またはmacOS (26+)プロバイダに切り替えてください。";
+"Failed to read audio file: %@" = "音声ファイルの読み込みに失敗しました: %@";
+"Transcription failed: %@" = "文字起こしに失敗しました: %@";
+
+/* ===== TranscriptionState ===== */
+"Error: %@" = "エラー: %@";
+
+/* ===== Misc ===== */
+"Auto" = "自動";
+"── Premium ──" = "── プレミアム ──";
+"── Enhanced ──" = "── エンハンスド ──";
+"── Standard ──" = "── スタンダード ──";
+"N/A" = "N/A";

@@ -14,17 +14,17 @@ enum FileTranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .fileNotFound:
-            return "Audio file not found"
+            return NSLocalizedString("Audio file not found", comment: "File transcription error")
         case .unsupportedFormat(let format, let supportedFormats):
-            return "Unsupported audio format: .\(format)\n\nSupported formats: \(supportedFormats)"
+            return String(format: NSLocalizedString("Unsupported audio format: .%@\n\nSupported formats: %@", comment: "File transcription error"), format, supportedFormats)
         case .fileTooLarge(let maxMB, let actualMB):
-            return "File too large (\(actualMB)MB). Maximum size for this provider is \(maxMB)MB"
+            return String(format: NSLocalizedString("File too large (%dMB). Maximum size for this provider is %dMB", comment: "File transcription error"), actualMB, maxMB)
         case .providerNotSupported(let provider):
-            return "\(provider.rawValue) does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider."
+            return String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), provider.rawValue)
         case .readError(let error):
-            return "Failed to read audio file: \(error.localizedDescription)"
+            return String(format: NSLocalizedString("Failed to read audio file: %@", comment: "File transcription error"), error.localizedDescription)
         case .transcriptionFailed(let error):
-            return "Transcription failed: \(error.localizedDescription)"
+            return String(format: NSLocalizedString("Transcription failed: %@", comment: "File transcription error"), error.localizedDescription)
         }
     }
 }

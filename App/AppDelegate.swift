@@ -68,10 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Show alert when duplicate instance is detected
     private func showDuplicateInstanceAlert() {
         let alert = NSAlert()
-        alert.messageText = "SpeechDock is already running"
-        alert.informativeText = "Another instance of SpeechDock is already running. Please use the existing instance from the menu bar."
+        alert.messageText = NSLocalizedString("SpeechDock is already running", comment: "Duplicate instance alert title")
+        alert.informativeText = NSLocalizedString("Another instance of SpeechDock is already running. Please use the existing instance from the menu bar.", comment: "Duplicate instance alert message")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
         alert.runModal()
     }
 
@@ -230,22 +230,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if microphoneStatus != .authorized {
             neededPermissions.append((
-                name: "Microphone",
-                description: "For speech recognition",
+                name: NSLocalizedString("Microphone", comment: "Permission name"),
+                description: NSLocalizedString("For speech recognition", comment: "Microphone permission description"),
                 url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
             ))
         }
         if !accessibilityGranted {
             neededPermissions.append((
-                name: "Accessibility",
-                description: "For global keyboard shortcuts and text insertion",
+                name: NSLocalizedString("Accessibility", comment: "Permission name"),
+                description: NSLocalizedString("For global keyboard shortcuts and text insertion", comment: "Accessibility permission description"),
                 url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
             ))
         }
         if !screenRecordingGranted {
             neededPermissions.append((
-                name: "Screen Recording",
-                description: "For window thumbnails in target selection",
+                name: NSLocalizedString("Screen Recording", comment: "Permission name"),
+                description: NSLocalizedString("For window thumbnails in target selection", comment: "Screen recording permission description"),
                 url: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
             ))
         }
@@ -263,7 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
 
         let alert = NSAlert()
-        alert.messageText = "Permissions Required"
+        alert.messageText = NSLocalizedString("Permissions Required", comment: "Permission alert title")
 
         // Use accessory view for rich text with bold permission names
         let normalFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
@@ -274,7 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let normalAttrs: [NSAttributedString.Key: Any] = [.font: normalFont, .foregroundColor: textColor]
         let boldAttrs: [NSAttributedString.Key: Any] = [.font: boldFont, .foregroundColor: textColor]
 
-        body.append(NSAttributedString(string: "SpeechDock needs the following permissions to work properly:\n\n", attributes: normalAttrs))
+        body.append(NSAttributedString(string: NSLocalizedString("SpeechDock needs the following permissions to work properly:", comment: "Permission alert body intro") + "\n\n", attributes: normalAttrs))
 
         for perm in neededPermissions {
             body.append(NSAttributedString(string: "• ", attributes: normalAttrs))
@@ -282,7 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             body.append(NSAttributedString(string: ": \(perm.description)\n", attributes: normalAttrs))
         }
 
-        body.append(NSAttributedString(string: "\nClick \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock.", attributes: normalAttrs))
+        body.append(NSAttributedString(string: "\n" + NSLocalizedString("Click \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock.", comment: "Permission alert instructions"), attributes: normalAttrs))
 
         let textField = NSTextField(wrappingLabelWithString: "")
         textField.attributedStringValue = body
@@ -307,8 +307,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         alert.accessoryView = container
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Open Settings & Quit")
-        alert.addButton(withTitle: "Later")
+        alert.addButton(withTitle: NSLocalizedString("Open Settings & Quit", comment: "Permission alert button"))
+        alert.addButton(withTitle: NSLocalizedString("Later", comment: "Permission alert button"))
 
         let response = alert.runModal()
 

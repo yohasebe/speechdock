@@ -105,8 +105,16 @@ final class WindowManager {
             }
         }
 
+        // Disable automatic key view loop to prevent Liquid Glass focus ring on tabs
+        window.autorecalculatesKeyViewLoop = false
+
         settingsWindow = window
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+
+        // Clear first responder to remove initial focus ring from tab bar
+        DispatchQueue.main.async {
+            window.makeFirstResponder(nil)
+        }
     }
 }

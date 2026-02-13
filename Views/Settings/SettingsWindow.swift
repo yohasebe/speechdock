@@ -25,6 +25,7 @@ struct SettingsWindow: View {
                 }
         }
         .frame(width: 550, height: 480)
+        .focusEffectDisabled()
     }
 }
 
