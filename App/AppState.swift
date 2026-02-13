@@ -1767,6 +1767,7 @@ final class AppState {
         transcriptionState = .idle
     }
 
+
     /// Open file picker for audio file transcription
     func openAudioFileForTranscription() {
         // Check provider support first

@@ -58,14 +58,9 @@ final class FileTranscriptionService {
         // Validate file with provider-specific limits
         try validateFile(fileURL, for: provider)
 
-        // Route macOS provider to SpeechAnalyzer (local processing, no API client needed)
+        // Route macOS provider to native speech recognition
         if provider == .macOS {
-            #if compiler(>=6.1)
-            if #available(macOS 26, *) {
-                return try await transcribeWithSpeechAnalyzer(fileURL: fileURL, language: language)
-            }
-            #endif
-            throw FileTranscriptionError.providerNotSupported(provider)
+            return try await transcribeWithMacOS(fileURL: fileURL, language: language)
         }
 
         // Read file data
@@ -158,26 +153,90 @@ final class FileTranscriptionService {
 
     // MARK: - SpeechAnalyzer File Transcription (macOS 26+)
 
-    #if compiler(>=6.1)
-    @available(macOS 26, *)
-    private func transcribeWithSpeechAnalyzer(fileURL: URL, language: String?) async throws -> TranscriptionResult {
-        // Create locale based on selected language
-        let locale: Locale
+    // MARK: - macOS Native File Transcription
+
+    /// Transcribe using macOS native speech recognition.
+    /// On macOS 26+, tries SpeechAnalyzer first, falls back to SFSpeechRecognizer.
+    /// On older macOS, uses SFSpeechRecognizer directly.
+    private func transcribeWithMacOS(fileURL: URL, language: String?) async throws -> TranscriptionResult {
+        let locale = self.locale(for: language)
+
+        // Try SpeechAnalyzer first on macOS 26+
+        #if compiler(>=6.1)
+        if #available(macOS 26, *) {
+            if let result = try await transcribeWithSpeechAnalyzerIfAvailable(fileURL: fileURL, locale: locale) {
+                return result
+            }
+            // SpeechAnalyzer not available for this locale, fall through to SFSpeechRecognizer
+        }
+        #endif
+
+        // Fallback: SFSpeechRecognizer with SFSpeechURLRecognitionRequest
+        return try await transcribeWithSFSpeechRecognizer(fileURL: fileURL, locale: locale)
+    }
+
+    /// Build Locale from language code string
+    private func locale(for language: String?) -> Locale {
         if let lang = language, !lang.isEmpty,
            let langCode = LanguageCode(rawValue: lang),
            let localeId = langCode.toLocaleIdentifier() {
-            locale = Locale(identifier: localeId)
-        } else {
-            locale = Locale.current
+            return Locale(identifier: localeId)
+        }
+        return Locale.current
+    }
+
+    // MARK: - SFSpeechRecognizer File Transcription (all macOS versions)
+
+    /// Transcribe using SFSpeechURLRecognitionRequest (supports server-based recognition)
+    private func transcribeWithSFSpeechRecognizer(fileURL: URL, locale: Locale) async throws -> TranscriptionResult {
+        guard let recognizer = SFSpeechRecognizer(locale: locale), recognizer.isAvailable else {
+            throw FileTranscriptionError.transcriptionFailed(
+                NSError(domain: "FileTranscription", code: -4, userInfo: [NSLocalizedDescriptionKey: "Speech recognition is not available for \(locale.identifier)"])
+            )
         }
 
-        // Create transcriber with no volatile/fast results — we only need final results for file transcription
+        let request = SFSpeechURLRecognitionRequest(url: fileURL)
+        request.shouldReportPartialResults = false
+
+        return try await withCheckedThrowingContinuation { continuation in
+            // Guard against multiple resumptions - the callback can fire multiple times
+            // (e.g., error after partial result, or error after isFinal)
+            var hasResumed = false
+
+            recognizer.recognitionTask(with: request) { result, error in
+                guard !hasResumed else { return }
+
+                if let error = error {
+                    hasResumed = true
+                    continuation.resume(throwing: FileTranscriptionError.transcriptionFailed(error))
+                    return
+                }
+                guard let result = result, result.isFinal else { return }
+                hasResumed = true
+                continuation.resume(returning: TranscriptionResult(text: result.bestTranscription.formattedString))
+            }
+        }
+    }
+
+    // MARK: - SpeechAnalyzer File Transcription (macOS 26+)
+
+    #if compiler(>=6.1)
+    /// Try SpeechAnalyzer transcription. Returns nil if model not available for the locale.
+    @available(macOS 26, *)
+    private func transcribeWithSpeechAnalyzerIfAvailable(fileURL: URL, locale: Locale) async throws -> TranscriptionResult? {
         let transcriber = SpeechTranscriber(
             locale: locale,
             transcriptionOptions: [],
-            reportingOptions: [],
+            reportingOptions: [.volatileResults],
             attributeOptions: []
         )
+
+        let analyzer = SpeechAnalyzer(modules: [transcriber])
+
+        // Check if SpeechAnalyzer model is available for this locale
+        guard let analyzerFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber]) else {
+            return nil  // Signal caller to use fallback
+        }
 
         // Open audio file
         let audioFile: AVAudioFile
@@ -187,36 +246,135 @@ final class FileTranscriptionService {
             throw FileTranscriptionError.readError(error)
         }
 
-        // Create analyzer and start file transcription
-        let analyzer = SpeechAnalyzer(modules: [transcriber])
+        let fileFormat = audioFile.processingFormat
+        let totalFrames = AVAudioFrameCount(audioFile.length)
 
-        do {
-            try await analyzer.start(inputAudioFile: audioFile)
-        } catch {
-            throw FileTranscriptionError.transcriptionFailed(error)
+        // Create audio converter if formats differ
+        var converter: AVAudioConverter?
+        if fileFormat != analyzerFormat {
+            converter = AVAudioConverter(from: fileFormat, to: analyzerFormat)
+            if converter == nil {
+                return nil  // Can't convert, use fallback
+            }
         }
 
-        // Collect all final results
-        var segments: [String] = []
+        // Create AsyncStream to feed audio buffers to the analyzer
+        let (inputSequence, continuation) = AsyncStream<AnalyzerInput>.makeStream()
 
-        do {
+        // Start results monitoring concurrently
+        let resultsTask = Task<String, Error> {
+            var accumulatedText = ""
             for try await result in transcriber.results {
                 try Task.checkCancellation()
 
-                guard result.isFinal else { continue }
-
-                // Extract text from AttributedString (char-by-char pattern from SpeechAnalyzerSTT)
                 var currentText = ""
                 for char in result.text.characters {
                     currentText.append(char)
                 }
 
-                if !currentText.isEmpty {
-                    segments.append(currentText)
+                if result.isFinal && !currentText.isEmpty {
+                    if accumulatedText.isEmpty {
+                        accumulatedText = currentText
+                    } else {
+                        accumulatedText += " " + currentText
+                    }
                 }
             }
-        } catch is CancellationError {
+            return accumulatedText
+        }
+
+        // Start the analyzer with input sequence
+        do {
+            try await analyzer.start(inputSequence: inputSequence)
+        } catch {
+            resultsTask.cancel()
+            continuation.finish()
+            throw FileTranscriptionError.transcriptionFailed(error)
+        }
+
+        // Read and feed the audio file in chunks
+        let bufferSize: AVAudioFrameCount = 4096
+        var framesRead: AVAudioFrameCount = 0
+        var bufferError: Error?
+
+        while framesRead < totalFrames {
+            if Task.isCancelled {
+                bufferError = CancellationError()
+                break
+            }
+
+            let framesToRead = min(bufferSize, totalFrames - framesRead)
+            guard let readBuffer = AVAudioPCMBuffer(pcmFormat: fileFormat, frameCapacity: framesToRead) else {
+                bufferError = FileTranscriptionError.readError(
+                    NSError(domain: "FileTranscription", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to allocate audio buffer"])
+                )
+                break
+            }
+
+            do {
+                try audioFile.read(into: readBuffer, frameCount: framesToRead)
+            } catch {
+                bufferError = FileTranscriptionError.readError(error)
+                break
+            }
+
+            // Convert if needed
+            let bufferToSend: AVAudioPCMBuffer
+            if let converter = converter {
+                let sampleRateRatio = analyzerFormat.sampleRate / fileFormat.sampleRate
+                let outputFrameCapacity = AVAudioFrameCount(Double(readBuffer.frameLength) * sampleRateRatio)
+                guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: analyzerFormat, frameCapacity: outputFrameCapacity) else {
+                    bufferError = FileTranscriptionError.readError(
+                        NSError(domain: "FileTranscription", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to allocate conversion buffer"])
+                    )
+                    break
+                }
+
+                var convertError: NSError?
+                let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus in
+                    outStatus.pointee = .haveData
+                    return readBuffer
+                }
+                converter.convert(to: outputBuffer, error: &convertError, withInputFrom: inputBlock)
+
+                if let convertError = convertError {
+                    bufferError = FileTranscriptionError.readError(convertError)
+                    break
+                }
+                bufferToSend = outputBuffer
+            } else {
+                bufferToSend = readBuffer
+            }
+
+            let input = AnalyzerInput(buffer: bufferToSend)
+            continuation.yield(input)
+
+            framesRead += framesToRead
+        }
+
+        // Signal end of input
+        continuation.finish()
+
+        // If buffer processing failed, clean up and throw
+        if let bufferError = bufferError {
+            resultsTask.cancel()
             try? await analyzer.finalizeAndFinishThroughEndOfInput()
+            throw bufferError is FileTranscriptionError ? bufferError : FileTranscriptionError.transcriptionFailed(bufferError)
+        }
+
+        // Wait for analyzer to finalize
+        do {
+            try await analyzer.finalizeAndFinishThroughEndOfInput()
+        } catch {
+            resultsTask.cancel()
+            throw FileTranscriptionError.transcriptionFailed(error)
+        }
+
+        // Wait for results
+        let fullText: String
+        do {
+            fullText = try await resultsTask.value
+        } catch is CancellationError {
             throw FileTranscriptionError.transcriptionFailed(
                 NSError(domain: "FileTranscription", code: -1, userInfo: [NSLocalizedDescriptionKey: "Transcription cancelled"])
             )
@@ -224,7 +382,6 @@ final class FileTranscriptionService {
             throw FileTranscriptionError.transcriptionFailed(error)
         }
 
-        let fullText = segments.joined(separator: " ")
         return TranscriptionResult(text: fullText)
     }
     #endif

@@ -376,6 +376,8 @@ struct MenuBarView: View {
 
                 // Quit
                 Button(action: {
+                    // Set explicit quit flag to bypass panel-close-first behavior
+                    (NSApplication.shared.delegate as? AppDelegate)?.isExplicitQuit = true
                     NSApplication.shared.terminate(nil)
                 }) {
                     HStack {

@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var hotKeyService: HotKeyService?
     /// Flag to allow termination during permission checks (for macOS "Quit and Reopen")
     private var isCheckingPermissions = false
+    /// Flag set by explicit "Quit SpeechDock" menu action to bypass panel-close-first behavior
+    var isExplicitQuit = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Check for duplicate instances
@@ -80,6 +82,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return .terminateNow
         }
 
+        // Allow termination for explicit "Quit SpeechDock" menu action
+        if isExplicitQuit {
+            return MainActor.assumeIsolated {
+                let appState = AppState.shared
+                appState.cancelRecording()
+                if appState.ttsState == .speaking || appState.ttsState == .loading {
+                    appState.stopTTS()
+                }
+                return .terminateNow
+            }
+        }
+
         // NSApplicationDelegate methods are called on the main thread
         // Use assumeIsolated to safely access @MainActor state synchronously
         return MainActor.assumeIsolated {
@@ -89,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let panelVisible = appState.floatingWindowManager.isVisible
             let subtitleVisible = SubtitleOverlayManager.shared.isVisible
 
-            // If any panel is visible, close it instead of terminating
+            // If any panel is visible, close it instead of terminating (⌘Q behavior)
             if panelVisible || subtitleVisible {
                 // Clean up any active recordings
                 appState.cancelRecording()

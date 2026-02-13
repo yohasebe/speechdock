@@ -215,7 +215,8 @@ extension LanguageCode {
     }
 
     /// Get available languages from macOS Speech Recognition
-    /// Returns dynamically based on system-installed languages
+    /// Shows all SFSpeechRecognizer-supported languages.
+    /// SpeechAnalyzer availability is checked at runtime (file transcription falls back to SFSpeechRecognizer).
     static func macOSAvailableLanguages() -> [LanguageCode] {
         let supportedLocales = SFSpeechRecognizer.supportedLocales()
         var availableLanguages: [LanguageCode] = []
