@@ -13,7 +13,7 @@ packages:
     from: 0.2.1
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio
-    from: 0.7.9
+    exactVersion: 0.9.1
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: 2.6.0
