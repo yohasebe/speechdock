@@ -101,7 +101,11 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
            let localeId = langCode.toLocaleIdentifier() {
             locale = Locale(identifier: localeId)
         } else {
-            locale = Locale.current
+            // Auto mode: construct a BCP-47 locale from system language
+            // Locale.current can produce identifiers like "ja_JP" which SpeechTranscriber may not support
+            let langId = Locale.current.language.languageCode?.identifier ?? "en"
+            let regionId = Locale.current.region?.identifier ?? "US"
+            locale = Locale(identifier: "\(langId)-\(regionId)")
         }
 
         #if DEBUG

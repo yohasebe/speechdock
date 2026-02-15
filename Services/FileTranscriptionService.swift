@@ -182,7 +182,10 @@ final class FileTranscriptionService {
            let localeId = langCode.toLocaleIdentifier() {
             return Locale(identifier: localeId)
         }
-        return Locale.current
+        // Auto mode: construct a BCP-47 locale from system language
+        let langId = Locale.current.language.languageCode?.identifier ?? "en"
+        let regionId = Locale.current.region?.identifier ?? "US"
+        return Locale(identifier: "\(langId)-\(regionId)")
     }
 
     // MARK: - SFSpeechRecognizer File Transcription (all macOS versions)

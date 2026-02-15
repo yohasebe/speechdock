@@ -112,12 +112,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return MainActor.assumeIsolated {
             let appState = AppState.shared
 
-            // Check if any panels are visible
+            // Check if any panels or windows are visible
             let panelVisible = appState.floatingWindowManager.isVisible
             let subtitleVisible = SubtitleOverlayManager.shared.isVisible
+            let settingsVisible = WindowManager.shared.isSettingsWindowVisible
+            let menuBarPanelVisible = StatusBarManager.shared.isPanelVisible
 
-            // If any panel is visible, close it instead of terminating (⌘Q behavior)
-            if panelVisible || subtitleVisible {
+            // Close any visible panels/windows
+            if panelVisible || subtitleVisible || settingsVisible || menuBarPanelVisible {
                 // Clean up any active recordings
                 appState.cancelRecording()
 
@@ -132,12 +134,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Hide subtitle overlay
                 SubtitleOverlayManager.shared.hide()
 
-                // Cancel termination - panels closed, app stays running
-                return .terminateCancel
+                // Close settings window
+                WindowManager.shared.closeSettingsWindow()
+
+                // Close menu bar panel
+                StatusBarManager.shared.closePanel()
             }
 
-            // No panels visible - allow termination
-            return .terminateNow
+            // Menu bar app: ⌘Q should never quit — only explicit "Quit" menu action can terminate
+            return .terminateCancel
         }
     }
 

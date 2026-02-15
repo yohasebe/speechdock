@@ -155,7 +155,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .macOS:
             #if compiler(>=6.1)
             if #available(macOS 26, *) {
-                return 500  // Local processing, generous limit
+                return 100  // Local processing, conservative limit for M1 stability
             }
             #endif
             return 0
@@ -199,7 +199,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .macOS:
             #if compiler(>=6.1)
             if #available(macOS 26, *) {
-                return NSLocalizedString("Apple Speech (offline, max 500MB)", comment: "File transcription description")
+                return NSLocalizedString("Apple Speech (offline, max 100MB)", comment: "File transcription description")
             }
             #endif
             return NSLocalizedString("Realtime only", comment: "File transcription description")

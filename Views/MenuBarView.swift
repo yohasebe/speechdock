@@ -80,7 +80,7 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: appState.isRecording ? "stop.fill" : "record.circle")
-                        .foregroundColor(appState.isRecording ? .red : (appState.hasMicrophonePermission ? .primary : .secondary))
+                        .foregroundColor(appState.isRecording ? .red : (appState.hasMicrophonePermission ? .accentColor : .secondary))
                         .frame(width: 20)
                     Text(appState.isRecording ? "Stop" : "Transcription")
                         .font(.callout)
@@ -95,12 +95,11 @@ struct MenuBarView: View {
 
             // Subtitle mode toggle
             Button(action: {
-                StatusBarManager.shared.closePanel()
                 appState.toggleSubtitleMode()
             }) {
                 HStack {
                     Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
-                        .foregroundColor(appState.subtitleModeEnabled ? .accentColor : .primary)
+                        .foregroundColor(.accentColor)
                         .frame(width: 20)
                     Text("Subtitle Mode")
                         .font(.callout)
@@ -122,12 +121,11 @@ struct MenuBarView: View {
 
             // Floating mic button toggle
             Button(action: {
-                StatusBarManager.shared.closePanel()
                 appState.toggleFloatingMicButton()
             }) {
                 HStack {
                     Image(systemName: appState.showFloatingMicButton ? "mic.circle.fill" : "mic.circle")
-                        .foregroundColor(appState.showFloatingMicButton ? .accentColor : .primary)
+                        .foregroundColor(.accentColor)
                         .frame(width: 20)
                     Text("Floating Mic Button")
                         .font(.callout)
@@ -154,7 +152,7 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: "waveform.badge.magnifyingglass")
-                        .foregroundColor(appState.selectedRealtimeProvider.supportsFileTranscription ? .primary : .secondary)
+                        .foregroundColor(appState.selectedRealtimeProvider.supportsFileTranscription ? .accentColor : .secondary)
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Transcribe Audio File...")
@@ -203,7 +201,7 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: "speaker.wave.2")
-                        .foregroundColor(appState.hasAccessibilityPermission ? .primary : .secondary)
+                        .foregroundColor(appState.hasAccessibilityPermission ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("Text to Speech")
                         .font(.callout)
@@ -223,6 +221,7 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: "text.viewfinder")
+                        .foregroundColor(.accentColor)
                         .frame(width: 20)
                     Text("OCR Region to TTS")
                         .font(.callout)
@@ -245,6 +244,7 @@ struct MenuBarView: View {
                 }) {
                     HStack {
                         Image(systemName: "gear")
+                            .foregroundColor(.accentColor)
                             .frame(width: 20)
                         Text("Settings...")
                             .font(.callout)
@@ -261,6 +261,7 @@ struct MenuBarView: View {
                 }) {
                     HStack {
                         Image(systemName: "questionmark.circle")
+                            .foregroundColor(.accentColor)
                             .frame(width: 20)
                         Text("Help & Documentation")
                             .font(.callout)
@@ -283,6 +284,7 @@ struct MenuBarView: View {
                 }) {
                     HStack {
                         Image(systemName: "power")
+                            .foregroundColor(.accentColor)
                             .frame(width: 20)
                         Text("Quit SpeechDock")
                             .font(.callout)
@@ -434,6 +436,7 @@ struct TranscriptionHistoryMenu: View {
         } label: {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
+                    .foregroundColor(.accentColor)
                     .frame(width: 20)
                 Text(NSLocalizedString("Transcription History", comment: "Transcription history menu title"))
                     .font(.callout)
@@ -447,6 +450,7 @@ struct TranscriptionHistoryMenu: View {
             .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
+        .tint(.accentColor)
         .onAppear {
             entries = TranscriptionHistoryService.shared.allEntries
         }

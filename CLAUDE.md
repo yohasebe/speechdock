@@ -696,7 +696,7 @@ STTパネルへの音声ファイルのドラッグ＆ドロップ、または�
 | Gemini | MP3, WAV, AAC, OGG, FLAC | 20MB | ~10分 | generateContent API |
 | ElevenLabs | MP3, WAV, M4A, OGG, FLAC | 25MB | ~2時間 | Scribe v2 API |
 | Grok | - | - | - | リアルタイムのみ |
-| macOS (26+) | MP3, WAV, M4A, AAC, AIFF, FLAC, MP4 | 500MB | 無制限 | SpeechAnalyzer |
+| macOS (26+) | MP3, WAV, M4A, AAC, AIFF, FLAC, MP4 | 100MB | 無制限 | SpeechAnalyzer |
 | macOS (<26) | - | - | - | リアルタイムのみ |
 
 **動的UI表示**:

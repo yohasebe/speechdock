@@ -41,6 +41,10 @@ enum SettingsCategory: String, CaseIterable, Identifiable, Hashable {
         case .about: return "info.circle"
         }
     }
+
+    var iconColor: Color {
+        return .accentColor
+    }
 }
 
 /// Observable navigation state for settings window

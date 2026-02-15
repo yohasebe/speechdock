@@ -74,6 +74,16 @@ final class WindowManager {
         }
     }
 
+    /// Whether the settings window is currently visible
+    var isSettingsWindowVisible: Bool {
+        settingsWindow?.isVisible ?? false
+    }
+
+    /// Close the settings window
+    func closeSettingsWindow() {
+        settingsWindow?.close()
+    }
+
     /// Convenience method for backward compatibility
     func openAboutWindow() {
         openSettingsWindow(selectedCategory: .about)

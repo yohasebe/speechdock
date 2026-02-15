@@ -8,8 +8,13 @@ struct UnifiedSettingsView: View {
         NavigationSplitView {
             List(selection: $navigation.selectedCategory) {
                 ForEach(SettingsCategory.allCases) { category in
-                    Label(category.displayName, systemImage: category.icon)
-                        .tag(category)
+                    Label {
+                        Text(category.displayName)
+                    } icon: {
+                        Image(systemName: category.icon)
+                            .foregroundColor(category.iconColor)
+                    }
+                    .tag(category)
                 }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 220)

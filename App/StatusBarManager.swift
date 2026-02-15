@@ -15,6 +15,11 @@ final class StatusBarManager: NSObject {
     private var animationTask: Task<Void, Never>?
     private weak var appState: AppState?
 
+    /// Whether the menu bar panel is currently visible
+    var isPanelVisible: Bool {
+        panel?.isVisible ?? false
+    }
+
     /// Event monitor for clicks outside the panel
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
