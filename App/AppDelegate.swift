@@ -41,6 +41,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Mark app as initialized - AppleScript commands can now execute
             AppState.shared.isInitialized = true
+
+            // Donation reminder - disabled for now, enable when app gains traction
+            // Task { @MainActor in
+            //     try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            //     if AppState.shared.shouldShowDonationReminder() {
+            //         AppState.shared.showDonationReminder()
+            //     }
+            // }
         }
 
         // Check permissions on first launch

@@ -318,7 +318,7 @@ struct ShortcutRecorderView: View {
                 isRecording.toggle()
             }) {
                 if isRecording {
-                    Text("Press shortcut...")
+                    Text(NSLocalizedString("Press shortcut...", comment: "Shortcut recorder"))
                         .foregroundColor(.accentColor)
                         .frame(minWidth: 120)
                 } else {

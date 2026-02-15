@@ -1,0 +1,479 @@
+/* Localizable.strings - Simplified Chinese */
+
+/* ===== Menu Bar ===== */
+"Recording" = "录音中";
+"Processing" = "处理中";
+"Speaking" = "朗读中";
+"Speech-to-Text" = "语音转文字";
+"Text-to-Speech" = "文字转语音";
+"Microphone access required" = "需要麦克风访问权限";
+"Accessibility access required" = "需要辅助功能访问权限";
+"Stop" = "停止";
+"Transcription" = "语音转录";
+"Subtitle Mode" = "字幕模式";
+"On" = "开";
+"Off" = "关";
+"Floating Mic Button" = "悬浮麦克风按钮";
+"Transcribe Audio File..." = "转录音频文件...";
+"Provider" = "服务商";
+"Provider:" = "服务商:";
+"Language:" = "语言:";
+"Input:" = "输入:";
+"Output:" = "输出:";
+"Model:" = "模型:";
+"Voice:" = "语音:";
+"Speed:" = "速度:";
+"Text to Speech" = "文字转语音";
+"OCR Region to TTS" = "OCR 区域朗读";
+"Help & Documentation" = "帮助与文档";
+"About SpeechDock" = "关于 SpeechDock";
+"Settings..." = "设置...";
+"Quit SpeechDock" = "退出 SpeechDock";
+
+/* ===== Audio Input/Output ===== */
+"Microphone" = "麦克风";
+"System Audio" = "系统音频";
+"App Audio" = "应用音频";
+"App" = "应用";
+"No microphones detected" = "未检测到麦克风";
+"No apps detected" = "未检测到应用";
+"Recent" = "最近使用";
+"Refresh Apps" = "刷新应用列表";
+"System Default" = "系统默认";
+"No output devices detected" = "未检测到输出设备";
+
+/* ===== STT Panel ===== */
+"Starting..." = "启动中...";
+"Recording..." = "录音中...";
+"Transcribing File..." = "文件转录中...";
+"Processing..." = "处理中...";
+"Error" = "错误";
+"Listening..." = "聆听中...";
+"Transcribing..." = "转录中...";
+"Subtitle" = "字幕";
+"Target:" = "目标:";
+"None" = "无";
+"Paste Target:" = "粘贴目标:";
+"No window selected" = "未选择窗口";
+"Use arrow keys to preview" = "使用方向键预览";
+"No Preview" = "无预览";
+"Paste" = "粘贴";
+"Record" = "录音";
+"Save Text" = "保存文本";
+"Copy" = "拷贝";
+"Copied!" = "已拷贝！";
+"Cancel" = "取消";
+"Press keys..." = "请按键...";
+
+/* STT Panel - Placeholder */
+"Press Record (%@) to start transcription" = "按下录音 (%@) 开始语音转录";
+"Or drop an audio file here" = "或将音频文件拖放到此处";
+"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "请切换到 OpenAI、Gemini 或 ElevenLabs 以进行文件转录";
+"Transcribing file..." = "文件转录中...";
+"Drop audio file to transcribe" = "拖放音频文件以进行转录";
+
+/* STT Panel - Save Panel */
+"Save Transcription" = "保存转录文本";
+"Choose a location to save the transcribed text" = "选择转录文本的保存位置";
+
+/* STT Panel - File Drop */
+"File Transcription" = "文件转录";
+
+/* ===== TTS Panel ===== */
+/* "Text-to-Speech" - already defined above */
+"Speaking..." = "朗读中...";
+"Paused" = "已暂停";
+"Generating audio..." = "正在生成音频...";
+"Type text here, or:" = "在此输入文本，或:";
+"OCR" = "OCR";
+"Speak" = "朗读";
+"Save Audio" = "保存音频";
+"Pause" = "暂停";
+"Resume" = "继续";
+"Playback Speed" = "播放速度";
+
+/* TTS Panel - Placeholder */
+"• Select text elsewhere and press %@" = "• 在其他位置选择文本后按 %@";
+"• Use OCR (%@) to capture screen text" = "• 使用 OCR (%@) 捕获屏幕文字";
+
+/* ===== Subtitle Overlay ===== */
+"(%@ to stop)" = "(%@ 停止)";
+"Loading..." = "加载中...";
+"No languages available" = "没有可用的语言";
+
+/* ===== Translation Controls ===== */
+"Translate" = "翻译";
+"Original" = "原文";
+"Translating..." = "翻译中...";
+"Select..." = "选择...";
+"Download Languages..." = "下载语言...";
+"Refresh Status" = "刷新状态";
+"Enter text to enable translation" = "输入文本以启用翻译";
+"Select a target language" = "请选择目标语言";
+"Translate to %@" = "翻译为%@";
+"Revert to original text" = "恢复为原文";
+"Cancel translation" = "取消翻译";
+"Target language: %@" = "目标语言: %@";
+"Cannot change during translation" = "翻译过程中无法更改";
+"Translation provider: %@" = "翻译服务商: %@";
+"Translation model: %@" = "翻译模型: %@";
+
+/* Translation - Language Pack Alerts */
+"Language Pack Required" = "需要语言包";
+"The %@ language pack needs to be downloaded.\n\nPlease go to:\nSystem Settings → General → Language & Region → Translation Languages\n\nThen download \"%@\" and try again." = "需要下载%@语言包。\n\n请前往:\n系统设置 → 通用 → 语言与地区 → 翻译语言\n\n下载「%@」后重试。";
+"Open System Settings" = "打开系统设置";
+
+"Download Translation Languages" = "下载翻译语言";
+"To download language packs for offline translation:\n\n1. Open System Settings\n2. Go to General → Language & Region\n3. Scroll down to \"Translation Languages\"\n4. Download the languages you need\n\nAfter downloading, click \"Refresh Status\" to update the list." = "要下载离线翻译语言包:\n\n1. 打开系统设置\n2. 前往通用 → 语言与地区\n3. 向下滚动到「翻译语言」\n4. 下载所需的语言\n\n下载完成后，点击「刷新状态」更新列表。";
+
+/* ===== Settings Window ===== */
+"General" = "通用";
+"Shortcuts" = "快捷键";
+"Text Replacement" = "文本替换";
+"API Keys" = "API 密钥";
+
+/* Settings - Unified Settings Sidebar */
+"About" = "关于";
+
+/* Settings - Section Headers */
+"Provider & Model" = "服务商与模型";
+"Audio Input" = "音频输入";
+"Recording & Panel" = "录音与面板";
+"Provider & Voice" = "服务商与语音";
+"Playback" = "播放";
+"Language & Output" = "语言与输出";
+"Panel Translation" = "面板翻译";
+"Subtitle Translation" = "字幕翻译";
+"Translation provider and model used by the Translate button in the STT and TTS panels." = "STT 和 TTS 面板中翻译按钮使用的服务商和模型。";
+"Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled." = "字幕模式 (STT) 的实时翻译。仅在字幕模式启用时有效。";
+"Panel Appearance" = "面板外观";
+
+/* Settings - General - STT */
+"STT Provider" = "STT 服务商";
+"TTS Provider" = "TTS 服务商";
+"Set API keys in the API Keys tab to enable more providers" = "在 API 密钥选项卡中设置 API 密钥以启用更多服务商";
+"Set API keys in the API Keys section to enable more providers" = "在 API 密钥部分设置 API 密钥以启用更多服务商";
+
+/* Settings - STT Provider Descriptions */
+"Apple Speech (offline, realtime, no time limit)" = "Apple Speech（离线、实时、无时间限制）";
+"Apple Speech (offline, fast)" = "Apple Speech（离线、快速）";
+"OpenAI Realtime API (high quality)" = "OpenAI Realtime API（高质量）";
+"Gemini Live API (multimodal)" = "Gemini Live API（多模态）";
+"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2（150ms 延迟）";
+"Grok Voice Agent (low latency)" = "Grok Voice Agent（低延迟）";
+
+/* File Transcription Descriptions */
+"Whisper API (max 25MB)" = "Whisper API（最大 25MB）";
+"Gemini API (max 20MB)" = "Gemini API（最大 20MB）";
+"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2（最大 25MB，约 2 小时音频）";
+"Realtime only" = "仅限实时";
+"Apple Speech (offline, max 500MB)" = "Apple Speech（离线，最大 500MB）";
+
+/* Settings - TTS Provider Descriptions */
+"Local (offline, fast)" = "本地（离线、快速）";
+"OpenAI TTS (high quality)" = "OpenAI TTS（高质量）";
+"Gemini TTS (multilingual)" = "Gemini TTS（多语言）";
+"ElevenLabs (natural voices)" = "ElevenLabs（自然语音）";
+"Grok Voice (5 voices)" = "Grok Voice（5 种语音）";
+
+/* Settings - Translation Provider Descriptions */
+"On-device, no API key" = "设备端处理，无需 API 密钥";
+"Requires macOS 26+" = "需要 macOS 26+";
+"GPT-5 Nano (default), high quality" = "GPT-5 Nano（默认），高质量";
+"Gemini 3 Flash (default), high quality" = "Gemini 3 Flash（默认），高质量";
+"Grok 3 Fast, high quality" = "Grok 3 Fast，高质量";
+"Language" = "语言";
+"Model" = "模型";
+"Voice" = "语音";
+"Speed" = "速度";
+"Audio Source" = "音频源";
+
+/* Settings - General - STT Language Help */
+"Auto uses system locale. Select a specific language for better accuracy." = "自动使用系统区域设置。选择特定语言可提高准确率。";
+"Auto detects the language. Specifying a language can improve accuracy." = "自动检测语言。指定语言可提高准确率。";
+"Auto detects the language. Note: Portuguese is not supported." = "自动检测语言。注意：不支持葡萄牙语。";
+"Auto detects the language (100+ languages supported)." = "自动检测语言（支持 100 多种语言）。";
+
+/* Settings - Audio Source Descriptions */
+"Record from microphone" = "从麦克风录音";
+"Capture all system audio output" = "捕获所有系统音频输出";
+"Capture audio from a specific app" = "捕获特定应用的音频";
+
+"System Audio requires Screen Recording permission." = "系统音频需要屏幕录制权限。";
+"App-specific audio capture is available in the menu bar and STT panel." = "可在菜单栏和 STT 面板中使用特定应用音频捕获功能。";
+"Select the microphone device for speech recognition." = "选择用于语音识别的麦克风设备。";
+"Audio Output" = "音频输出";
+"Select the audio output device for speech playback." = "选择用于语音播放的音频输出设备。";
+
+/* Settings - General - VAD */
+"Auto-Stop Settings" = "自动停止设置";
+"Min. recording time" = "最短录音时长";
+"Silence duration" = "静音时长";
+"Recording must reach this duration before auto-stop activates." = "录音需达到此时长后自动停止才会生效。";
+"Duration of silence required to trigger auto-stop." = "触发自动停止所需的静音时长。";
+"Reset to Defaults" = "恢复默认";
+
+/* Settings - General - STT Panel Behavior */
+"Panel Behavior" = "面板行为";
+"Auto-start recording" = "自动开始录音";
+"When enabled, recording starts automatically when the STT panel opens." = "启用后，打开 STT 面板时将自动开始录音。";
+"Close panel after paste" = "粘贴后关闭面板";
+"When enabled, the STT panel closes automatically after pasting text." = "启用后，粘贴文本后 STT 面板将自动关闭。";
+
+/* Settings - General - TTS Panel Behavior */
+"Auto-speak on panel open" = "打开面板时自动朗读";
+"When enabled, TTS starts speaking automatically when the panel opens with text." = "启用后，当面板中有文本时打开面板将自动开始朗读。";
+
+/* Settings - General - TTS Speed */
+"Slow" = "慢";
+"Fast" = "快";
+"Reset" = "重置";
+"Adjust playback speed (0.25x–4.0x)" = "调整播放速度 (0.25x–4.0x)";
+"Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini 使用基于提示的语速控制（近似调整）";
+"Adjust playback speed (actual range: 0.7x–1.2x)" = "调整播放速度（实际范围：0.7x–1.2x）";
+"Adjust playback speed" = "调整播放速度";
+"GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS 不支持速度控制。请选择 TTS-1 或 TTS-1 HD。";
+"Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "GPT-4o Mini TTS 不支持速度控制。请使用 TTS-1 或 TTS-1 HD 进行速度控制。";
+"Gemini uses natural language pace control (approximate)." = "Gemini 使用自然语言语速控制（近似）。";
+"ElevenLabs has limited speed range (0.7x-1.2x mapped)." = "ElevenLabs 速度范围有限（映射至 0.7x-1.2x）。";
+"Grok Voice Agent does not support speed control." = "Grok Voice Agent 不支持速度控制。";
+"Grok Voice Agent does not support speed control" = "Grok Voice Agent 不支持速度控制";
+
+/* Settings - General - TTS Language */
+"Specifies the output language for speech synthesis." = "指定语音合成的输出语言。";
+
+/* Settings - General - Translation */
+"Translation" = "翻译";
+
+/* Settings - General - Appearance */
+"Appearance" = "外观";
+"Text Font Size" = "文本字号";
+"Font size for text in STT and TTS panels." = "STT 和 TTS 面板中的文本字号。";
+"Panel Style" = "面板样式";
+"Floating" = "悬浮";
+"Standard Window" = "标准窗口";
+"Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time." = "悬浮：始终置顶的无边框面板。标准窗口：带标题栏的普通窗口。STT 和 TTS 面板同一时间只能打开一个。";
+
+/* Settings - General - Subtitle Mode */
+"Enable Subtitle Mode" = "启用字幕模式";
+"Display real-time transcription as subtitles during recording." = "录音时将实时转录内容显示为字幕。";
+"Position" = "位置";
+"Font Size" = "字号";
+"Text Opacity" = "文本不透明度";
+"Background Opacity" = "背景不透明度";
+"Max Lines" = "最大行数";
+"%lld lines" = "%lld 行";
+"Hide STT Panel when active" = "字幕模式激活时隐藏 STT 面板";
+"Temporarily hide the STT panel when subtitle mode is active." = "字幕模式激活时临时隐藏 STT 面板。";
+
+/* Settings - General - Subtitle Translation */
+"Real-Time Translation" = "实时翻译";
+"Enable Real-Time Translation" = "启用实时翻译";
+"Translate subtitles to target language in real-time." = "将字幕实时翻译为目标语言。";
+"Requires macOS 26+ for on-device translation, or set up API keys." = "设备端翻译需要 macOS 26+，或设置 API 密钥。";
+"Target Language" = "目标语言";
+"Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages." = "仅显示已安装语言包的语言。可在系统设置 > 通用 > 语言与地区 > 翻译语言中安装更多语言。";
+"Show Original Text" = "显示原文";
+"Display original text above the translation." = "在译文上方显示原文。";
+
+/* Subtitle translation provider descriptions */
+"Fast on-device translation. Requires macOS 26+." = "快速设备端翻译。需要 macOS 26+。";
+"OpenAI translation (100+ languages). Higher latency." = "OpenAI 翻译（100 多种语言）。延迟较高。";
+"Gemini translation (100+ languages). Higher latency." = "Gemini 翻译（100 多种语言）。延迟较高。";
+"Grok translation (100+ languages). Higher latency." = "Grok 翻译（100 多种语言）。延迟较高。";
+
+/* Settings - General - Startup */
+"Startup" = "启动";
+"Launch at Login" = "登录时启动";
+"SpeechDock will start automatically when you log in" = "登录时 SpeechDock 将自动启动";
+"Launch at login requires macOS 13 or later" = "登录时启动需要 macOS 13 或更高版本";
+
+/* ===== Settings - Shortcuts ===== */
+"Global Hotkeys" = "全局快捷键";
+"Toggle STT Panel" = "切换 STT 面板";
+"Toggle TTS Panel" = "切换 TTS 面板";
+"Toggle Subtitle Mode" = "切换字幕模式";
+"Show Shortcuts" = "显示快捷键";
+"Quick Transcription" = "快速转录";
+"Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (⌘, ⌥, ⌃, or ⇧)." = "点击快捷键并按下新的组合键进行更改。快捷键必须包含至少一个修饰键（⌘、⌥、⌃ 或 ⇧）。";
+"STT Panel Shortcuts" = "STT 面板快捷键";
+"Shortcuts available when the STT transcription panel is open." = "STT 转录面板打开时可用的快捷键。";
+"TTS Panel Shortcuts" = "TTS 面板快捷键";
+"Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts." = "TTS 面板打开时可用的快捷键。STT 和 TTS 面板互斥，因此可以共享相同的快捷键。";
+"Common Shortcuts" = "通用快捷键";
+"Shortcuts available in both STT and TTS panels." = "在 STT 和 TTS 面板中均可使用的快捷键。";
+"Press shortcut..." = "按下快捷键...";
+"Reset Global Hotkeys" = "重置全局快捷键";
+"Reset Panel Shortcuts" = "重置面板快捷键";
+"Reset to default" = "恢复默认";
+
+/* Settings - Shortcuts - Action Names */
+"Stop Recording" = "停止录音";
+"Select Target" = "选择目标";
+"Stop Speaking" = "停止朗读";
+"Close" = "关闭";
+"Increase Font Size" = "增大字号";
+"Decrease Font Size" = "减小字号";
+"Reset Font Size" = "重置字号";
+
+/* ===== Settings - Text Replacement ===== */
+"URLs" = "URL";
+"Email Addresses" = "电子邮件地址";
+"File Paths" = "文件路径";
+"Built-in Patterns" = "内置模式";
+"Automatically replace common patterns like URLs and emails." = "自动替换 URL 和电子邮件等常见模式。";
+"Custom Rules" = "自定义规则";
+"%lld rules" = "%lld 条规则";
+"No custom rules" = "无自定义规则";
+"Add rules for specific text replacements." = "添加特定文本替换规则。";
+"Add Rule" = "添加规则";
+"Find" = "查找";
+"Replace With" = "替换为";
+"Replace" = "替换";
+"Replacement" = "替换文本";
+"Add" = "添加";
+"Import..." = "导入...";
+"Export..." = "导出...";
+"Delete rule" = "删除规则";
+"Export Text Replacement Rules" = "导出文本替换规则";
+"Choose a location to save the rules" = "选择规则的保存位置";
+"Import Text Replacement Rules" = "导入文本替换规则";
+"Select a JSON file to import" = "选择要导入的 JSON 文件";
+
+/* ===== Settings - API Keys ===== */
+"API Key" = "API 密钥";
+"Validating..." = "验证中...";
+"Save to Keychain" = "保存到 Keychain";
+"Remove" = "移除";
+"From Environment" = "来自环境变量";
+"From Keychain" = "来自 Keychain";
+"Not Set" = "未设置";
+"Valid ✓ Saved!" = "有效 ✓ 已保存！";
+"Could not verify (saved anyway)" = "无法验证（已保存）";
+"Removed" = "已移除";
+
+/* ===== About View ===== */
+"Version %@ (%@)" = "版本 %@ (%@)";
+"Speech-to-Text and Text-to-Speech\nfor macOS" = "macOS 语音转文字与文字转语音工具";
+"Created by" = "开发者";
+"GitHub Repository" = "GitHub 仓库";
+"Documentation" = "文档";
+"Check for Updates..." = "检查更新...";
+
+/* ===== Shortcut HUD ===== */
+"Keyboard Shortcuts" = "键盘快捷键";
+"Press ESC or %@ to dismiss" = "按 ESC 或 %@ 关闭";
+"STT Panel" = "STT 面板";
+"TTS Panel" = "TTS 面板";
+"Common" = "通用";
+"Click to execute" = "点击执行";
+
+/* ===== Floating Mic Button / Quick Input ===== */
+"Click or %@ to start dictation" = "点击或按 %@ 开始听写";
+
+/* ===== AppDelegate - Permission Alert ===== */
+"Permissions Required" = "需要访问权限";
+"SpeechDock needs the following permissions to work properly:" = "SpeechDock 需要以下权限才能正常工作:";
+"For speech recognition" = "用于语音识别";
+"For global keyboard shortcuts and text insertion" = "用于全局键盘快捷键和文本插入";
+"For window thumbnails in target selection" = "用于目标选择中的窗口缩略图";
+"Accessibility" = "辅助功能";
+"Screen Recording" = "屏幕录制";
+"Click \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock." = "点击「打开设置并退出」以打开系统设置。SpeechDock 将退出，以便您可以不受干扰地授予权限。授权完成后，请重新启动 SpeechDock。";
+"Open Settings & Quit" = "打开设置并退出";
+"Later" = "稍后";
+
+/* AppDelegate - Duplicate Instance */
+"SpeechDock is already running" = "SpeechDock 已在运行";
+"Another instance of SpeechDock is already running. Please use the existing instance from the menu bar." = "SpeechDock 的另一个实例已在运行。请使用菜单栏中的现有实例。";
+"OK" = "好";
+
+/* ===== AppState ===== */
+"Select Audio File" = "选择音频文件";
+"Choose a location to save the audio file" = "选择音频文件的保存位置";
+"Choose an audio file to transcribe" = "选择要转录的音频文件";
+
+/* ===== FloatingWindowManager ===== */
+"Paste Destination Unavailable" = "粘贴目标不可用";
+"The application \"%@\" has been terminated. Please select another destination." = "应用程序「%@」已终止。请选择其他粘贴目标。";
+"The window \"%@\" has been closed. Please select another destination." = "窗口「%@」已关闭。请选择其他粘贴目标。";
+
+/* ===== Spell Check ===== */
+"✓ No spelling errors" = "✓ 无拼写错误";
+"No spelling errors" = "无拼写错误";
+"Spell Check Complete" = "拼写检查完成";
+"No spelling errors found." = "未发现拼写错误。";
+"Spell Check" = "拼写检查";
+"Clear Text" = "清除文本";
+"Press Original to edit" = "按「原文」以编辑";
+
+/* ===== Tool Tips ===== */
+"Decrease Font Size (%@)" = "减小字号 (%@)";
+"Reset Font Size (%@)" = "重置字号 (%@)";
+"Increase Font Size (%@)" = "增大字号 (%@)";
+"Close (⌘W)" = "关闭 (⌘W)";
+"Subtitle Mode: On (⌃⌥S)" = "字幕模式: 开 (⌃⌥S)";
+"Subtitle Mode: Off (⌃⌥S)" = "字幕模式: 关 (⌃⌥S)";
+"Capture text with OCR (⌃⌥⇧O)" = "使用 OCR 捕获文字 (⌃⌥⇧O)";
+"Refresh voice list" = "刷新语音列表";
+"Refresh voice list from API" = "从 API 刷新语音列表";
+"Hide controls" = "隐藏控件";
+"Show controls" = "显示控件";
+"Reset to default position" = "恢复默认位置";
+"Enable translation" = "启用翻译";
+"Disable translation" = "停用翻译";
+"Translation provider" = "翻译服务商";
+"Click to adjust playback speed" = "点击调整播放速度";
+"Click to set playback speed" = "点击设置播放速度";
+
+/* ===== File Transcription Errors ===== */
+"Audio file not found" = "未找到音频文件";
+"Unsupported audio format: .%@\n\nSupported formats: %@" = "不支持的音频格式：.%@\n\n支持的格式：%@";
+"File too large (%dMB). Maximum size for this provider is %dMB" = "文件过大 (%dMB)。此服务商的最大文件大小为 %dMB";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@ 不支持文件转录。\n\n请切换到 OpenAI、Gemini、ElevenLabs 或 macOS (26+) 服务商。";
+"Failed to read audio file: %@" = "无法读取音频文件：%@";
+"Transcription failed: %@" = "转录失败：%@";
+
+/* ===== TranscriptionState ===== */
+"Error: %@" = "错误：%@";
+
+/* ===== Text Count ===== */
+"chars" = "字符";
+"words" = "词";
+
+/* ===== Transcription History ===== */
+"Transcription History" = "转录历史";
+"No history" = "无历史记录";
+"Clear History" = "清除历史";
+
+/* ===== TTS File Drop ===== */
+"Drop text file to load" = "拖放文本文件以加载";
+"Unsupported File" = "不支持的文件";
+"Only text files are supported: .txt, .md, .text, .rtf" = "仅支持文本文件：.txt、.md、.text、.rtf";
+"File Too Large" = "文件过大";
+"Maximum file size is 1MB." = "最大文件大小为 1MB。";
+
+/* ===== Target App Unavailable ===== */
+"The target application" = "目标应用程序";
+"Target App Unavailable" = "目标应用不可用";
+"'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "「%@」已不再运行。转录文本已保存到剪贴板。您可以使用 ⌘V 手动粘贴。";
+"Paste Failed" = "粘贴失败";
+"Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "无法自动粘贴文本。转录文本已保存到剪贴板。您可以使用 ⌘V 手动粘贴。";
+"• Drop a text file (.txt, .md)" = "• 拖放文本文件 (.txt, .md)";
+"Or drop a text file here" = "或将文本文件拖放到此处";
+"Not a Text File" = "不是文本文件";
+"This file appears to be a binary file, not a text file." = "此文件似乎是二进制文件，而非文本文件。";
+
+/* ===== Donation ===== */
+"Thank you for using SpeechDock" = "感谢使用 SpeechDock";
+"This app is free and open source. Development and maintenance costs (Apple Developer Program, etc.) are covered by the developer. If SpeechDock has been helpful to you, please consider supporting its continued development." = "本应用免费且开源。开发和维护费用（Apple Developer Program 等）由开发者承担。如果 SpeechDock 对您有所帮助，请考虑支持其持续开发。";
+"Support" = "支持";
+"Already Supported" = "已支持";
+"Support Development" = "支持开发";
+
+/* ===== Misc ===== */
+"Auto" = "自动";
+"── Premium ──" = "── 高级 ──";
+"── Enhanced ──" = "── 增强 ──";
+"── Standard ──" = "── 标准 ──";
+"N/A" = "N/A";

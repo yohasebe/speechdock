@@ -53,6 +53,7 @@ struct CheckForUpdatesView: View {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .frame(width: 20)
                 Text("Check for Updates...")
+                    .font(.callout)
                 Spacer()
             }
             .contentShape(Rectangle())

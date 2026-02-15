@@ -132,10 +132,56 @@
 "Text Replacement" = "テキスト置換";
 "API Keys" = "APIキー";
 
+/* Settings - Unified Settings Sidebar */
+"About" = "このアプリについて";
+
+/* Settings - Section Headers */
+"Provider & Model" = "プロバイダとモデル";
+"Audio Input" = "音声入力";
+"Recording & Panel" = "録音とパネル";
+"Provider & Voice" = "プロバイダと音声";
+"Playback" = "再生";
+"Language & Output" = "言語と出力";
+"Panel Translation" = "パネル翻訳";
+"Subtitle Translation" = "字幕翻訳";
+"Translation provider and model used by the Translate button in the STT and TTS panels." = "STTパネルとTTSパネルの翻訳ボタンで使用するプロバイダとモデルです。";
+"Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled." = "字幕モード（音声認識）のリアルタイム翻訳です。字幕モードが有効な場合のみ動作します。";
+"Panel Appearance" = "パネルの外観";
+
 /* Settings - General - STT */
 "STT Provider" = "STTプロバイダ";
 "TTS Provider" = "TTSプロバイダ";
 "Set API keys in the API Keys tab to enable more providers" = "APIキータブでAPIキーを設定すると、他のプロバイダも利用できます";
+"Set API keys in the API Keys section to enable more providers" = "APIキーセクションでAPIキーを設定すると、他のプロバイダも利用できます";
+
+/* Settings - STT Provider Descriptions */
+"Apple Speech (offline, realtime, no time limit)" = "Apple Speech（オフライン、リアルタイム、時間制限なし）";
+"Apple Speech (offline, fast)" = "Apple Speech（オフライン、高速）";
+"OpenAI Realtime API (high quality)" = "OpenAI Realtime API（高品質）";
+"Gemini Live API (multimodal)" = "Gemini Live API（マルチモーダル）";
+"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2（150msレイテンシ）";
+"Grok Voice Agent (low latency)" = "Grok Voice Agent（低レイテンシ）";
+
+/* File Transcription Descriptions */
+"Whisper API (max 25MB)" = "Whisper API（最大25MB）";
+"Gemini API (max 20MB)" = "Gemini API（最大20MB）";
+"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2（最大25MB、約2時間）";
+"Realtime only" = "リアルタイムのみ";
+"Apple Speech (offline, max 500MB)" = "Apple Speech（オフライン、最大500MB）";
+
+/* Settings - TTS Provider Descriptions */
+"Local (offline, fast)" = "ローカル（オフライン、高速）";
+"OpenAI TTS (high quality)" = "OpenAI TTS（高品質）";
+"Gemini TTS (multilingual)" = "Gemini TTS（多言語）";
+"ElevenLabs (natural voices)" = "ElevenLabs（自然な音声）";
+"Grok Voice (5 voices)" = "Grok Voice（5種類の音声）";
+
+/* Settings - Translation Provider Descriptions */
+"On-device, no API key" = "オンデバイス、APIキー不要";
+"Requires macOS 26+" = "macOS 26以降が必要です";
+"GPT-5 Nano (default), high quality" = "GPT-5 Nano（デフォルト）、高品質";
+"Gemini 3 Flash (default), high quality" = "Gemini 3 Flash（デフォルト）、高品質";
+"Grok 3 Fast, high quality" = "Grok 3 Fast、高品質";
 "Language" = "言語";
 "Model" = "モデル";
 "Voice" = "音声";
@@ -149,6 +195,11 @@
 "Auto detects the language (100+ languages supported)." = "自動で言語を検出します（100以上の言語に対応）。";
 
 /* Settings - General - Audio Source */
+/* Settings - Audio Source Descriptions */
+"Record from microphone" = "マイクから録音";
+"Capture all system audio output" = "システム全体の音声出力をキャプチャ";
+"Capture audio from a specific app" = "特定のアプリの音声をキャプチャ";
+
 "System Audio requires Screen Recording permission." = "システム音声には画面収録の許可が必要です。";
 "App-specific audio capture is available in the menu bar and STT panel." = "アプリ個別の音声キャプチャはメニューバーとSTTパネルで利用できます。";
 "Select the microphone device for speech recognition." = "音声認識に使用するマイクデバイスを選択してください。";
@@ -252,11 +303,24 @@
 "Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts." = "TTSパネルが開いている時に使用できるショートカット。STTとTTSのパネルは排他的なので、同じショートカットを共有できます。";
 "Common Shortcuts" = "共通ショートカット";
 "Shortcuts available in both STT and TTS panels." = "STTとTTSの両方のパネルで使用できるショートカット。";
+"Press shortcut..." = "ショートカットを入力...";
 "Reset Global Hotkeys" = "グローバルホットキーをリセット";
 "Reset Panel Shortcuts" = "パネルショートカットをリセット";
 "Reset to default" = "デフォルトに戻す";
 
+/* Settings - Shortcuts - Action Names */
+"Stop Recording" = "録音停止";
+"Select Target" = "ターゲットを選択";
+"Stop Speaking" = "読み上げ停止";
+"Close" = "閉じる";
+"Increase Font Size" = "フォントサイズを拡大";
+"Decrease Font Size" = "フォントサイズを縮小";
+"Reset Font Size" = "フォントサイズをリセット";
+
 /* ===== Settings - Text Replacement ===== */
+"URLs" = "URL";
+"Email Addresses" = "メールアドレス";
+"File Paths" = "ファイルパス";
 "Built-in Patterns" = "ビルトインパターン";
 "Automatically replace common patterns like URLs and emails." = "URLやメールアドレスなどの一般的なパターンを自動的に置換します。";
 "Custom Rules" = "カスタムルール";
@@ -294,6 +358,8 @@
 "Speech-to-Text and Text-to-Speech\nfor macOS" = "macOS用の音声認識・テキスト読み上げ";
 "Created by" = "開発者";
 "GitHub Repository" = "GitHubリポジトリ";
+"Documentation" = "ドキュメント";
+"Check for Updates..." = "アップデートを確認...";
 
 /* ===== Shortcut HUD ===== */
 "Keyboard Shortcuts" = "キーボードショートカット";
@@ -398,6 +464,14 @@
 "Or drop a text file here" = "またはテキストファイルをここにドロップ";
 "Not a Text File" = "テキストファイルではありません";
 "This file appears to be a binary file, not a text file." = "このファイルはバイナリファイルのようです。テキストファイルではありません。";
+
+/* ===== Donation ===== */
+"Thank you for using SpeechDock" = "SpeechDock をお使いいただきありがとうございます";
+"This app is free and open source. Development and maintenance costs (Apple Developer Program, etc.) are covered by the developer. If SpeechDock has been helpful to you, please consider supporting its continued development." = "このアプリは無料のオープンソースソフトウェアです。開発・維持にかかる費用（Apple Developer Program 等）は開発者が負担しています。SpeechDock がお役に立っていれば、開発の継続をご支援いただけると幸いです。";
+"Support" = "支援する";
+"Already Supported" = "すでに支援済み";
+"Later" = "後で";
+"Support Development" = "開発を支援";
 
 /* ===== Misc ===== */
 "Auto" = "自動";

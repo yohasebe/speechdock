@@ -94,14 +94,14 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .macOS:
             if #available(macOS 26, *) {
-                return "Apple Speech (offline, realtime, no time limit)"
+                return NSLocalizedString("Apple Speech (offline, realtime, no time limit)", comment: "STT provider description")
             } else {
-                return "Apple Speech (offline, fast)"
+                return NSLocalizedString("Apple Speech (offline, fast)", comment: "STT provider description")
             }
-        case .openAI: return "OpenAI Realtime API (high quality)"
-        case .gemini: return "Gemini Live API (multimodal)"
-        case .elevenLabs: return "ElevenLabs Scribe v2 (150ms latency)"
-        case .grok: return "Grok Voice Agent (low latency)"
+        case .openAI: return NSLocalizedString("OpenAI Realtime API (high quality)", comment: "STT provider description")
+        case .gemini: return NSLocalizedString("Gemini Live API (multimodal)", comment: "STT provider description")
+        case .elevenLabs: return NSLocalizedString("ElevenLabs Scribe v2 (150ms latency)", comment: "STT provider description")
+        case .grok: return NSLocalizedString("Grok Voice Agent (low latency)", comment: "STT provider description")
         }
     }
 
@@ -189,20 +189,20 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     var fileTranscriptionDescription: String {
         switch self {
         case .openAI:
-            return "Whisper API (max 25MB)"
+            return NSLocalizedString("Whisper API (max 25MB)", comment: "File transcription description")
         case .gemini:
-            return "Gemini API (max 20MB)"
+            return NSLocalizedString("Gemini API (max 20MB)", comment: "File transcription description")
         case .elevenLabs:
-            return "Scribe v2 (max 25MB, ~2h audio)"
+            return NSLocalizedString("Scribe v2 (max 25MB, ~2h audio)", comment: "File transcription description")
         case .grok:
-            return "Realtime only"
+            return NSLocalizedString("Realtime only", comment: "File transcription description")
         case .macOS:
             #if compiler(>=6.1)
             if #available(macOS 26, *) {
-                return "Apple Speech (offline, max 500MB)"
+                return NSLocalizedString("Apple Speech (offline, max 500MB)", comment: "File transcription description")
             }
             #endif
-            return "Realtime only"
+            return NSLocalizedString("Realtime only", comment: "File transcription description")
         }
     }
 }

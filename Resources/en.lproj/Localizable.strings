@@ -132,10 +132,56 @@
 "Text Replacement" = "Text Replacement";
 "API Keys" = "API Keys";
 
+/* Settings - Unified Settings Sidebar */
+"About" = "About";
+
+/* Settings - Section Headers */
+"Provider & Model" = "Provider & Model";
+"Audio Input" = "Audio Input";
+"Recording & Panel" = "Recording & Panel";
+"Provider & Voice" = "Provider & Voice";
+"Playback" = "Playback";
+"Language & Output" = "Language & Output";
+"Panel Translation" = "Panel Translation";
+"Subtitle Translation" = "Subtitle Translation";
+"Translation provider and model used by the Translate button in the STT and TTS panels." = "Translation provider and model used by the Translate button in the STT and TTS panels.";
+"Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled." = "Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled.";
+"Panel Appearance" = "Panel Appearance";
+
 /* Settings - General - STT */
 "STT Provider" = "STT Provider";
 "TTS Provider" = "TTS Provider";
 "Set API keys in the API Keys tab to enable more providers" = "Set API keys in the API Keys tab to enable more providers";
+"Set API keys in the API Keys section to enable more providers" = "Set API keys in the API Keys section to enable more providers";
+
+/* Settings - STT Provider Descriptions */
+"Apple Speech (offline, realtime, no time limit)" = "Apple Speech (offline, realtime, no time limit)";
+"Apple Speech (offline, fast)" = "Apple Speech (offline, fast)";
+"OpenAI Realtime API (high quality)" = "OpenAI Realtime API (high quality)";
+"Gemini Live API (multimodal)" = "Gemini Live API (multimodal)";
+"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2 (150ms latency)";
+"Grok Voice Agent (low latency)" = "Grok Voice Agent (low latency)";
+
+/* File Transcription Descriptions */
+"Whisper API (max 25MB)" = "Whisper API (max 25MB)";
+"Gemini API (max 20MB)" = "Gemini API (max 20MB)";
+"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (max 25MB, ~2h audio)";
+"Realtime only" = "Realtime only";
+"Apple Speech (offline, max 500MB)" = "Apple Speech (offline, max 500MB)";
+
+/* Settings - TTS Provider Descriptions */
+"Local (offline, fast)" = "Local (offline, fast)";
+"OpenAI TTS (high quality)" = "OpenAI TTS (high quality)";
+"Gemini TTS (multilingual)" = "Gemini TTS (multilingual)";
+"ElevenLabs (natural voices)" = "ElevenLabs (natural voices)";
+"Grok Voice (5 voices)" = "Grok Voice (5 voices)";
+
+/* Settings - Translation Provider Descriptions */
+"On-device, no API key" = "On-device, no API key";
+"Requires macOS 26+" = "Requires macOS 26+";
+"GPT-5 Nano (default), high quality" = "GPT-5 Nano (default), high quality";
+"Gemini 3 Flash (default), high quality" = "Gemini 3 Flash (default), high quality";
+"Grok 3 Fast, high quality" = "Grok 3 Fast, high quality";
 "Language" = "Language";
 "Model" = "Model";
 "Voice" = "Voice";
@@ -149,6 +195,11 @@
 "Auto detects the language (100+ languages supported)." = "Auto detects the language (100+ languages supported).";
 
 /* Settings - General - Audio Source */
+/* Settings - Audio Source Descriptions */
+"Record from microphone" = "Record from microphone";
+"Capture all system audio output" = "Capture all system audio output";
+"Capture audio from a specific app" = "Capture audio from a specific app";
+
 "System Audio requires Screen Recording permission." = "System Audio requires Screen Recording permission.";
 "App-specific audio capture is available in the menu bar and STT panel." = "App-specific audio capture is available in the menu bar and STT panel.";
 "Select the microphone device for speech recognition." = "Select the microphone device for speech recognition.";
@@ -252,11 +303,24 @@
 "Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts." = "Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts.";
 "Common Shortcuts" = "Common Shortcuts";
 "Shortcuts available in both STT and TTS panels." = "Shortcuts available in both STT and TTS panels.";
+"Press shortcut..." = "Press shortcut...";
 "Reset Global Hotkeys" = "Reset Global Hotkeys";
 "Reset Panel Shortcuts" = "Reset Panel Shortcuts";
 "Reset to default" = "Reset to default";
 
+/* Settings - Shortcuts - Action Names */
+"Stop Recording" = "Stop Recording";
+"Select Target" = "Select Target";
+"Stop Speaking" = "Stop Speaking";
+"Close" = "Close";
+"Increase Font Size" = "Increase Font Size";
+"Decrease Font Size" = "Decrease Font Size";
+"Reset Font Size" = "Reset Font Size";
+
 /* ===== Settings - Text Replacement ===== */
+"URLs" = "URLs";
+"Email Addresses" = "Email Addresses";
+"File Paths" = "File Paths";
 "Built-in Patterns" = "Built-in Patterns";
 "Automatically replace common patterns like URLs and emails." = "Automatically replace common patterns like URLs and emails.";
 "Custom Rules" = "Custom Rules";
@@ -294,6 +358,8 @@
 "Speech-to-Text and Text-to-Speech\nfor macOS" = "Speech-to-Text and Text-to-Speech\nfor macOS";
 "Created by" = "Created by";
 "GitHub Repository" = "GitHub Repository";
+"Documentation" = "Documentation";
+"Check for Updates..." = "Check for Updates...";
 
 /* ===== Shortcut HUD ===== */
 "Keyboard Shortcuts" = "Keyboard Shortcuts";
@@ -398,6 +464,14 @@
 "Or drop a text file here" = "Or drop a text file here";
 "Not a Text File" = "Not a Text File";
 "This file appears to be a binary file, not a text file." = "This file appears to be a binary file, not a text file.";
+
+/* ===== Donation ===== */
+"Thank you for using SpeechDock" = "Thank you for using SpeechDock";
+"This app is free and open source. Development and maintenance costs (Apple Developer Program, etc.) are covered by the developer. If SpeechDock has been helpful to you, please consider supporting its continued development." = "This app is free and open source. Development and maintenance costs (Apple Developer Program, etc.) are covered by the developer. If SpeechDock has been helpful to you, please consider supporting its continued development.";
+"Support" = "Support";
+"Already Supported" = "Already Supported";
+"Later" = "Later";
+"Support Development" = "Support Development";
 
 /* ===== Misc ===== */
 "Auto" = "Auto";

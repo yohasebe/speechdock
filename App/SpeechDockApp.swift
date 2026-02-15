@@ -14,14 +14,14 @@ struct SpeechDockApp: App {
             EmptyView()
         }
         .commands {
-            // Replace default About command to open our custom AboutWindow
+            // Replace default About command to open Settings > About
             CommandGroup(replacing: .appInfo) {
                 Button("About SpeechDock") {
-                    WindowManager.shared.openAboutWindow()
+                    WindowManager.shared.openSettingsWindow(selectedCategory: .about)
                 }
             }
 
-            // Replace default Settings command to open our custom SettingsWindow
+            // Replace default Settings command to open Settings window
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
                     WindowManager.shared.openSettingsWindow()

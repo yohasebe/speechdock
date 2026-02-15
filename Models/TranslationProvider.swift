@@ -88,16 +88,16 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .macOS:
             if #available(macOS 26.0, *) {
-                return "On-device, no API key"
+                return NSLocalizedString("On-device, no API key", comment: "Translation provider description")
             } else {
-                return "Requires macOS 26+"
+                return NSLocalizedString("Requires macOS 26+", comment: "Translation provider description")
             }
         case .openAI:
-            return "GPT-5 Nano (default), high quality"
+            return NSLocalizedString("GPT-5 Nano (default), high quality", comment: "Translation provider description")
         case .gemini:
-            return "Gemini 3 Flash (default), high quality"
+            return NSLocalizedString("Gemini 3 Flash (default), high quality", comment: "Translation provider description")
         case .grok:
-            return "Grok 3 Fast, high quality"
+            return NSLocalizedString("Grok 3 Fast, high quality", comment: "Translation provider description")
         }
     }
 

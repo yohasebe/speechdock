@@ -18,6 +18,7 @@ final class StatusBarManager: NSObject {
     /// Event monitor for clicks outside the panel
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
+    private var keyEventMonitor: Any?
 
     /// Animation phase for pulsing effect (0.0 to 1.0)
     private var animationPhase: Double = 0.0
@@ -51,8 +52,8 @@ final class StatusBarManager: NSObject {
     }
 
     private func createPanel(appState: AppState) {
-        // Create a borderless panel
-        let panel = NSPanel(
+        // Create a borderless panel that can receive keyboard events
+        let panel = KeyablePanel(
             contentRect: NSRect(x: 0, y: 0, width: 320, height: 500),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -226,6 +227,9 @@ final class StatusBarManager: NSObject {
         panel.setFrameOrigin(NSPoint(x: panelX, y: panelY))
         panel.makeKeyAndOrderFront(nil)
 
+        // Remove initial focus from first button
+        panel.makeFirstResponder(nil)
+
         // Add event monitors to close when clicking outside
         addEventMonitors()
     }
@@ -266,6 +270,16 @@ final class StatusBarManager: NSObject {
             }
             return event
         }
+
+        // Monitor for ⌘, to open Settings (panel is nonactivatingPanel so app menu shortcuts don't work)
+        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "," {
+                self?.closePanel()
+                WindowManager.shared.openSettingsWindow()
+                return nil // consume the event
+            }
+            return event
+        }
     }
 
     private func removeEventMonitors() {
@@ -277,6 +291,10 @@ final class StatusBarManager: NSObject {
             NSEvent.removeMonitor(monitor)
             localEventMonitor = nil
         }
+        if let monitor = keyEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyEventMonitor = nil
+        }
     }
 
     deinit {
@@ -285,7 +303,8 @@ final class StatusBarManager: NSObject {
         // Clean up event monitors - must be done on main thread
         let globalMonitor = globalEventMonitor
         let localMonitor = localEventMonitor
-        if globalMonitor != nil || localMonitor != nil {
+        let keyMonitor = keyEventMonitor
+        if globalMonitor != nil || localMonitor != nil || keyMonitor != nil {
             DispatchQueue.main.async {
                 if let monitor = globalMonitor {
                     NSEvent.removeMonitor(monitor)
@@ -293,9 +312,19 @@ final class StatusBarManager: NSObject {
                 if let monitor = localMonitor {
                     NSEvent.removeMonitor(monitor)
                 }
+                if let monitor = keyMonitor {
+                    NSEvent.removeMonitor(monitor)
+                }
             }
         }
     }
+}
+
+// MARK: - Keyable Panel
+
+/// NSPanel subclass that can become key to receive keyboard events
+private class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
 }
 
 // MARK: - Panel Container View
@@ -309,9 +338,29 @@ struct MenuBarPanelContainer<Content: View>: View {
     }
 
     var body: some View {
+        #if compiler(>=6.1)
+        if #available(macOS 26, *) {
+            content
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            legacyStyledContent
+        }
+        #else
+        legacyStyledContent
+        #endif
+    }
+
+    private var legacyStyledContent: some View {
         content
             .background(
-                MenuBarVisualEffectBlur(material: .popover, blendingMode: .behindWindow)
+                ZStack {
+                    MenuBarVisualEffectBlur(material: .popover, blendingMode: .behindWindow)
+                    Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+                        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                            ? NSColor(white: 0.18, alpha: 0.85)
+                            : NSColor(white: 0.96, alpha: 0.85)
+                    }))
+                }
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(

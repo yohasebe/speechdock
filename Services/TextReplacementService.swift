@@ -24,9 +24,9 @@ enum BuiltInPattern: String, CaseIterable, Codable {
 
     var displayName: String {
         switch self {
-        case .url: return "URLs"
-        case .email: return "Email Addresses"
-        case .filePath: return "File Paths"
+        case .url: return NSLocalizedString("URLs", comment: "Built-in pattern")
+        case .email: return NSLocalizedString("Email Addresses", comment: "Built-in pattern")
+        case .filePath: return NSLocalizedString("File Paths", comment: "Built-in pattern")
         }
     }
 

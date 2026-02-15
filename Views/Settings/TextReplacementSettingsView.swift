@@ -92,11 +92,6 @@ struct TextReplacementSettingsView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-
-            Button("Add Rule") {
-                service.addRule()
-            }
-            .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)

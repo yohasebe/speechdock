@@ -1,0 +1,481 @@
+/* Localizable.strings - German */
+
+/* ===== Menu Bar ===== */
+"Recording" = "Aufnahme";
+"Processing" = "Verarbeitung";
+"Speaking" = "Sprachausgabe";
+"Speech-to-Text" = "Sprache-zu-Text";
+"Text-to-Speech" = "Text-zu-Sprache";
+"Microphone access required" = "Mikrofonzugriff erforderlich";
+"Accessibility access required" = "Bedienungshilfen-Zugriff erforderlich";
+"Stop" = "Stopp";
+"Transcription" = "Transkription";
+"Subtitle Mode" = "Untertitelmodus";
+"On" = "Ein";
+"Off" = "Aus";
+"Floating Mic Button" = "Schwebende Mikrofontaste";
+"Transcribe Audio File..." = "Audiodatei transkribieren ...";
+"Provider" = "Anbieter";
+"Provider:" = "Anbieter:";
+"Language:" = "Sprache:";
+"Input:" = "Eingabe:";
+"Output:" = "Ausgabe:";
+"Model:" = "Modell:";
+"Voice:" = "Stimme:";
+"Speed:" = "Geschwindigkeit:";
+"Text to Speech" = "Text-zu-Sprache";
+"OCR Region to TTS" = "OCR-Bereich vorlesen";
+"Help & Documentation" = "Hilfe & Dokumentation";
+"About SpeechDock" = "Über SpeechDock";
+"Settings..." = "Einstellungen ...";
+"Quit SpeechDock" = "SpeechDock beenden";
+
+/* ===== Audio Input/Output ===== */
+"Microphone" = "Mikrofon";
+"System Audio" = "Systemaudio";
+"App Audio" = "App-Audio";
+"App" = "App";
+"No microphones detected" = "Keine Mikrofone erkannt";
+"No apps detected" = "Keine Apps erkannt";
+"Recent" = "Zuletzt verwendet";
+"Refresh Apps" = "Apps aktualisieren";
+"System Default" = "Systemstandard";
+"No output devices detected" = "Keine Ausgabegeräte erkannt";
+
+/* ===== STT Panel ===== */
+"Starting..." = "Wird gestartet ...";
+"Recording..." = "Aufnahme läuft ...";
+"Transcribing File..." = "Datei wird transkribiert ...";
+"Processing..." = "Wird verarbeitet ...";
+"Error" = "Fehler";
+"Listening..." = "Hört zu ...";
+"Transcribing..." = "Transkription läuft ...";
+"Subtitle" = "Untertitel";
+"Target:" = "Ziel:";
+"None" = "Ohne";
+"Paste Target:" = "Einfügeziel:";
+"No window selected" = "Kein Fenster ausgewählt";
+"Use arrow keys to preview" = "Pfeiltasten für Vorschau verwenden";
+"No Preview" = "Keine Vorschau";
+"Paste" = "Einsetzen";
+"Record" = "Aufnahme";
+"Save Text" = "Text sichern";
+"Copy" = "Kopieren";
+"Copied!" = "Kopiert!";
+"Cancel" = "Abbrechen";
+"Press keys..." = "Tasten drücken ...";
+
+/* STT Panel - Placeholder */
+"Press Record (%@) to start transcription" = "Aufnahme (%@) drücken, um die Transkription zu starten";
+"Or drop an audio file here" = "Oder Audiodatei hierher ziehen";
+"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "Für Dateitranskription zu OpenAI, Gemini oder ElevenLabs wechseln";
+"Transcribing file..." = "Datei wird transkribiert ...";
+"Drop audio file to transcribe" = "Audiodatei zum Transkribieren hierher ziehen";
+
+/* STT Panel - Save Panel */
+"Save Transcription" = "Transkription sichern";
+"Choose a location to save the transcribed text" = "Wählen Sie einen Speicherort für den transkribierten Text";
+
+/* STT Panel - File Drop */
+"File Transcription" = "Dateitranskription";
+
+/* ===== TTS Panel ===== */
+"Text-to-Speech" = "Text-zu-Sprache";
+"Speaking..." = "Sprachausgabe ...";
+"Paused" = "Pausiert";
+"Generating audio..." = "Audio wird erzeugt ...";
+"Type text here, or:" = "Text hier eingeben, oder:";
+"OCR" = "OCR";
+"Speak" = "Vorlesen";
+"Save Audio" = "Audio sichern";
+"Pause" = "Pause";
+"Resume" = "Fortsetzen";
+"Playback Speed" = "Wiedergabegeschwindigkeit";
+
+/* TTS Panel - Placeholder */
+"• Select text elsewhere and press %@" = "• Text anderswo auswählen und %@ drücken";
+"• Use OCR (%@) to capture screen text" = "• OCR (%@) verwenden, um Bildschirmtext zu erfassen";
+
+/* ===== Subtitle Overlay ===== */
+"(%@ to stop)" = "(%@ zum Stoppen)";
+"Loading..." = "Wird geladen ...";
+"No languages available" = "Keine Sprachen verfügbar";
+
+/* ===== Translation Controls ===== */
+"Translate" = "Übersetzen";
+"Original" = "Original";
+"Translating..." = "Wird übersetzt ...";
+"Select..." = "Auswählen ...";
+"Download Languages..." = "Sprachen laden ...";
+"Refresh Status" = "Status aktualisieren";
+"Enter text to enable translation" = "Text eingeben, um Übersetzung zu aktivieren";
+"Select a target language" = "Zielsprache auswählen";
+"Translate to %@" = "Übersetzen nach %@";
+"Revert to original text" = "Zum Originaltext zurückkehren";
+"Cancel translation" = "Übersetzung abbrechen";
+"Target language: %@" = "Zielsprache: %@";
+"Cannot change during translation" = "Kann während der Übersetzung nicht geändert werden";
+"Translation provider: %@" = "Übersetzungsanbieter: %@";
+"Translation model: %@" = "Übersetzungsmodell: %@";
+
+/* Translation - Language Pack Alerts */
+"Language Pack Required" = "Sprachpaket erforderlich";
+"The %@ language pack needs to be downloaded.\n\nPlease go to:\nSystem Settings → General → Language & Region → Translation Languages\n\nThen download \"%@\" and try again." = "Das Sprachpaket für %@ muss heruntergeladen werden.\n\nBitte gehen Sie zu:\nSystemeinstellungen → Allgemein → Sprache & Region → Übersetzungssprachen\n\nLaden Sie dann „%@" herunter und versuchen Sie es erneut.";
+"Open System Settings" = "Systemeinstellungen öffnen";
+
+"Download Translation Languages" = "Übersetzungssprachen laden";
+"To download language packs for offline translation:\n\n1. Open System Settings\n2. Go to General → Language & Region\n3. Scroll down to \"Translation Languages\"\n4. Download the languages you need\n\nAfter downloading, click \"Refresh Status\" to update the list." = "So laden Sie Sprachpakete für die Offline-Übersetzung herunter:\n\n1. Systemeinstellungen öffnen\n2. Allgemein → Sprache & Region aufrufen\n3. Zu „Übersetzungssprachen" scrollen\n4. Gewünschte Sprachen herunterladen\n\nKlicken Sie nach dem Download auf „Status aktualisieren", um die Liste zu aktualisieren.";
+
+/* ===== Settings Window ===== */
+"General" = "Allgemein";
+"Shortcuts" = "Kurzbefehle";
+"Text Replacement" = "Textersetzung";
+"API Keys" = "API-Schlüssel";
+
+/* Settings - Unified Settings Sidebar */
+"About" = "Über";
+
+/* Settings - Section Headers */
+"Provider & Model" = "Anbieter & Modell";
+"Audio Input" = "Audioeingabe";
+"Recording & Panel" = "Aufnahme & Bedienfeld";
+"Provider & Voice" = "Anbieter & Stimme";
+"Playback" = "Wiedergabe";
+"Language & Output" = "Sprache & Ausgabe";
+"Panel Translation" = "Bedienfeldübersetzung";
+"Subtitle Translation" = "Untertitelübersetzung";
+"Translation provider and model used by the Translate button in the STT and TTS panels." = "Übersetzungsanbieter und -modell, die von der Übersetzen-Taste in den STT- und TTS-Bedienfeldern verwendet werden.";
+"Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled." = "Echtzeitübersetzung für den Untertitelmodus (STT). Nur aktiv, wenn der Untertitelmodus aktiviert ist.";
+"Panel Appearance" = "Erscheinungsbild des Bedienfelds";
+
+/* Settings - General - STT */
+"STT Provider" = "STT-Anbieter";
+"TTS Provider" = "TTS-Anbieter";
+"Set API keys in the API Keys tab to enable more providers" = "Legen Sie API-Schlüssel im Tab „API-Schlüssel" fest, um weitere Anbieter freizuschalten";
+"Set API keys in the API Keys section to enable more providers" = "Legen Sie API-Schlüssel im Bereich „API-Schlüssel" fest, um weitere Anbieter freizuschalten";
+
+/* Settings - STT Provider Descriptions */
+"Apple Speech (offline, realtime, no time limit)" = "Apple Speech (offline, Echtzeit, ohne Zeitlimit)";
+"Apple Speech (offline, fast)" = "Apple Speech (offline, schnell)";
+"OpenAI Realtime API (high quality)" = "OpenAI Realtime API (hohe Qualität)";
+"Gemini Live API (multimodal)" = "Gemini Live API (multimodal)";
+"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2 (150 ms Latenz)";
+"Grok Voice Agent (low latency)" = "Grok Voice Agent (niedrige Latenz)";
+
+/* File Transcription Descriptions */
+"Whisper API (max 25MB)" = "Whisper API (max. 25 MB)";
+"Gemini API (max 20MB)" = "Gemini API (max. 20 MB)";
+"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (max. 25 MB, ~2 Std. Audio)";
+"Realtime only" = "Nur Echtzeit";
+"Apple Speech (offline, max 500MB)" = "Apple Speech (offline, max. 500 MB)";
+
+/* Settings - TTS Provider Descriptions */
+"Local (offline, fast)" = "Lokal (offline, schnell)";
+"OpenAI TTS (high quality)" = "OpenAI TTS (hohe Qualität)";
+"Gemini TTS (multilingual)" = "Gemini TTS (mehrsprachig)";
+"ElevenLabs (natural voices)" = "ElevenLabs (natürliche Stimmen)";
+"Grok Voice (5 voices)" = "Grok Voice (5 Stimmen)";
+
+/* Settings - Translation Provider Descriptions */
+"On-device, no API key" = "Auf dem Gerät, kein API-Schlüssel";
+"Requires macOS 26+" = "Erfordert macOS 26+";
+"GPT-5 Nano (default), high quality" = "GPT-5 Nano (Standard), hohe Qualität";
+"Gemini 3 Flash (default), high quality" = "Gemini 3 Flash (Standard), hohe Qualität";
+"Grok 3 Fast, high quality" = "Grok 3 Fast, hohe Qualität";
+"Language" = "Sprache";
+"Model" = "Modell";
+"Voice" = "Stimme";
+"Speed" = "Geschwindigkeit";
+"Audio Source" = "Audioquelle";
+
+/* Settings - General - STT Language Help */
+"Auto uses system locale. Select a specific language for better accuracy." = "„Automatisch" verwendet die Systemsprache. Wählen Sie eine bestimmte Sprache für bessere Genauigkeit.";
+"Auto detects the language. Specifying a language can improve accuracy." = "Erkennt die Sprache automatisch. Die Angabe einer Sprache kann die Genauigkeit verbessern.";
+"Auto detects the language. Note: Portuguese is not supported." = "Erkennt die Sprache automatisch. Hinweis: Portugiesisch wird nicht unterstützt.";
+"Auto detects the language (100+ languages supported)." = "Erkennt die Sprache automatisch (über 100 Sprachen unterstützt).";
+
+/* Settings - General - Audio Source */
+/* Settings - Audio Source Descriptions */
+"Record from microphone" = "Vom Mikrofon aufnehmen";
+"Capture all system audio output" = "Gesamte Systemaudioausgabe aufzeichnen";
+"Capture audio from a specific app" = "Audio einer bestimmten App aufzeichnen";
+
+"System Audio requires Screen Recording permission." = "Systemaudio erfordert die Berechtigung zur Bildschirmaufnahme.";
+"App-specific audio capture is available in the menu bar and STT panel." = "App-spezifische Audioaufzeichnung ist in der Menüleiste und im STT-Bedienfeld verfügbar.";
+"Select the microphone device for speech recognition." = "Wählen Sie das Mikrofon für die Spracherkennung aus.";
+"Audio Output" = "Audioausgabe";
+"Select the audio output device for speech playback." = "Wählen Sie das Audioausgabegerät für die Sprachwiedergabe aus.";
+
+/* Settings - General - VAD */
+"Auto-Stop Settings" = "Autostopp-Einstellungen";
+"Min. recording time" = "Min. Aufnahmedauer";
+"Silence duration" = "Stille-Dauer";
+"Recording must reach this duration before auto-stop activates." = "Die Aufnahme muss diese Dauer erreichen, bevor der Autostopp aktiviert wird.";
+"Duration of silence required to trigger auto-stop." = "Erforderliche Stille-Dauer, um den Autostopp auszulösen.";
+"Reset to Defaults" = "Auf Standardwerte zurücksetzen";
+
+/* Settings - General - STT Panel Behavior */
+"Panel Behavior" = "Bedienfeldverhalten";
+"Auto-start recording" = "Aufnahme automatisch starten";
+"When enabled, recording starts automatically when the STT panel opens." = "Wenn aktiviert, startet die Aufnahme automatisch beim Öffnen des STT-Bedienfelds.";
+"Close panel after paste" = "Bedienfeld nach Einsetzen schließen";
+"When enabled, the STT panel closes automatically after pasting text." = "Wenn aktiviert, schließt sich das STT-Bedienfeld automatisch nach dem Einsetzen des Textes.";
+
+/* Settings - General - TTS Panel Behavior */
+"Auto-speak on panel open" = "Automatisch vorlesen beim Öffnen";
+"When enabled, TTS starts speaking automatically when the panel opens with text." = "Wenn aktiviert, beginnt die Sprachausgabe automatisch, wenn das Bedienfeld mit Text geöffnet wird.";
+
+/* Settings - General - TTS Speed */
+"Slow" = "Langsam";
+"Fast" = "Schnell";
+"Reset" = "Zurücksetzen";
+"Adjust playback speed (0.25x–4.0x)" = "Wiedergabegeschwindigkeit anpassen (0,25x–4,0x)";
+"Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini verwendet Prompt-basierte Temporegelung (ungefähre Anpassung)";
+"Adjust playback speed (actual range: 0.7x–1.2x)" = "Wiedergabegeschwindigkeit anpassen (tatsächlicher Bereich: 0,7x–1,2x)";
+"Adjust playback speed" = "Wiedergabegeschwindigkeit anpassen";
+"GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS unterstützt keine Geschwindigkeitsregelung. Wählen Sie TTS-1 oder TTS-1 HD.";
+"Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "Geschwindigkeitsregelung für GPT-4o Mini TTS nicht verfügbar. Verwenden Sie TTS-1 oder TTS-1 HD für die Geschwindigkeitsregelung.";
+"Gemini uses natural language pace control (approximate)." = "Gemini verwendet natürlichsprachliche Temporegelung (ungefähr).";
+"ElevenLabs has limited speed range (0.7x-1.2x mapped)." = "ElevenLabs hat einen begrenzten Geschwindigkeitsbereich (auf 0,7x–1,2x abgebildet).";
+"Grok Voice Agent does not support speed control." = "Grok Voice Agent unterstützt keine Geschwindigkeitsregelung.";
+"Grok Voice Agent does not support speed control" = "Grok Voice Agent unterstützt keine Geschwindigkeitsregelung";
+
+/* Settings - General - TTS Language */
+"Specifies the output language for speech synthesis." = "Legt die Ausgabesprache für die Sprachsynthese fest.";
+
+/* Settings - General - Translation */
+"Translation" = "Übersetzung";
+
+/* Settings - General - Appearance */
+"Appearance" = "Erscheinungsbild";
+"Text Font Size" = "Textschriftgröße";
+"Font size for text in STT and TTS panels." = "Schriftgröße für Text in STT- und TTS-Bedienfeldern.";
+"Panel Style" = "Bedienfeldstil";
+"Floating" = "Schwebend";
+"Standard Window" = "Standardfenster";
+"Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time." = "Schwebend: Immer im Vordergrund, randlose Bedienfelder. Standardfenster: Normale Fenster mit Titelleiste. Es kann jeweils nur ein Bedienfeld (STT oder TTS) geöffnet sein.";
+
+/* Settings - General - Subtitle Mode */
+"Enable Subtitle Mode" = "Untertitelmodus aktivieren";
+"Display real-time transcription as subtitles during recording." = "Echtzeittranskription während der Aufnahme als Untertitel anzeigen.";
+"Position" = "Position";
+"Font Size" = "Schriftgröße";
+"Text Opacity" = "Textdeckkraft";
+"Background Opacity" = "Hintergrunddeckkraft";
+"Max Lines" = "Max. Zeilen";
+"%lld lines" = "%lld Zeilen";
+"Hide STT Panel when active" = "STT-Bedienfeld bei Aktivierung ausblenden";
+"Temporarily hide the STT panel when subtitle mode is active." = "Das STT-Bedienfeld vorübergehend ausblenden, wenn der Untertitelmodus aktiv ist.";
+
+/* Settings - General - Subtitle Translation */
+"Real-Time Translation" = "Echtzeitübersetzung";
+"Enable Real-Time Translation" = "Echtzeitübersetzung aktivieren";
+"Translate subtitles to target language in real-time." = "Untertitel in Echtzeit in die Zielsprache übersetzen.";
+"Requires macOS 26+ for on-device translation, or set up API keys." = "Erfordert macOS 26+ für geräteinterne Übersetzung oder richten Sie API-Schlüssel ein.";
+"Target Language" = "Zielsprache";
+"Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages." = "Es werden nur Sprachen mit installierten Sprachpaketen angezeigt. Weitere installieren unter Systemeinstellungen > Allgemein > Sprache & Region > Übersetzungssprachen.";
+"Show Original Text" = "Originaltext anzeigen";
+"Display original text above the translation." = "Originaltext über der Übersetzung anzeigen.";
+
+/* Subtitle translation provider descriptions */
+"Fast on-device translation. Requires macOS 26+." = "Schnelle geräteinterne Übersetzung. Erfordert macOS 26+.";
+"OpenAI translation (100+ languages). Higher latency." = "OpenAI-Übersetzung (über 100 Sprachen). Höhere Latenz.";
+"Gemini translation (100+ languages). Higher latency." = "Gemini-Übersetzung (über 100 Sprachen). Höhere Latenz.";
+"Grok translation (100+ languages). Higher latency." = "Grok-Übersetzung (über 100 Sprachen). Höhere Latenz.";
+
+/* Settings - General - Startup */
+"Startup" = "Systemstart";
+"Launch at Login" = "Bei Anmeldung starten";
+"SpeechDock will start automatically when you log in" = "SpeechDock startet automatisch bei der Anmeldung";
+"Launch at login requires macOS 13 or later" = "Start bei Anmeldung erfordert macOS 13 oder neuer";
+
+/* ===== Settings - Shortcuts ===== */
+"Global Hotkeys" = "Globale Tastenkürzel";
+"Toggle STT Panel" = "STT-Bedienfeld umschalten";
+"Toggle TTS Panel" = "TTS-Bedienfeld umschalten";
+"Toggle Subtitle Mode" = "Untertitelmodus umschalten";
+"Show Shortcuts" = "Kurzbefehle anzeigen";
+"Quick Transcription" = "Schnelltranskription";
+"Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (⌘, ⌥, ⌃, or ⇧)." = "Klicken Sie auf einen Kurzbefehl und drücken Sie eine neue Tastenkombination, um ihn zu ändern. Kurzbefehle müssen mindestens eine Sondertaste enthalten (⌘, ⌥, ⌃ oder ⇧).";
+"STT Panel Shortcuts" = "STT-Bedienfeld-Kurzbefehle";
+"Shortcuts available when the STT transcription panel is open." = "Kurzbefehle, die verfügbar sind, wenn das STT-Transkriptionsbedienfeld geöffnet ist.";
+"TTS Panel Shortcuts" = "TTS-Bedienfeld-Kurzbefehle";
+"Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts." = "Kurzbefehle, die verfügbar sind, wenn das TTS-Bedienfeld geöffnet ist. STT- und TTS-Bedienfelder schließen sich gegenseitig aus und können daher dieselben Kurzbefehle verwenden.";
+"Common Shortcuts" = "Gemeinsame Kurzbefehle";
+"Shortcuts available in both STT and TTS panels." = "Kurzbefehle, die in beiden Bedienfeldern (STT und TTS) verfügbar sind.";
+"Press shortcut..." = "Kurzbefehl drücken ...";
+"Reset Global Hotkeys" = "Globale Tastenkürzel zurücksetzen";
+"Reset Panel Shortcuts" = "Bedienfeld-Kurzbefehle zurücksetzen";
+"Reset to default" = "Auf Standard zurücksetzen";
+
+/* Settings - Shortcuts - Action Names */
+"Stop Recording" = "Aufnahme stoppen";
+"Select Target" = "Ziel auswählen";
+"Stop Speaking" = "Sprachausgabe stoppen";
+"Close" = "Schließen";
+"Increase Font Size" = "Schrift vergrößern";
+"Decrease Font Size" = "Schrift verkleinern";
+"Reset Font Size" = "Schriftgröße zurücksetzen";
+
+/* ===== Settings - Text Replacement ===== */
+"URLs" = "URLs";
+"Email Addresses" = "E-Mail-Adressen";
+"File Paths" = "Dateipfade";
+"Built-in Patterns" = "Integrierte Muster";
+"Automatically replace common patterns like URLs and emails." = "Häufige Muster wie URLs und E-Mail-Adressen automatisch ersetzen.";
+"Custom Rules" = "Eigene Regeln";
+"%lld rules" = "%lld Regeln";
+"No custom rules" = "Keine eigenen Regeln";
+"Add rules for specific text replacements." = "Regeln für bestimmte Textersetzungen hinzufügen.";
+"Add Rule" = "Regel hinzufügen";
+"Find" = "Suchen";
+"Replace With" = "Ersetzen durch";
+"Replace" = "Ersetzen";
+"Replacement" = "Ersetzung";
+"Add" = "Hinzufügen";
+"Import..." = "Importieren ...";
+"Export..." = "Exportieren ...";
+"Delete rule" = "Regel löschen";
+"Export Text Replacement Rules" = "Textersetzungsregeln exportieren";
+"Choose a location to save the rules" = "Wählen Sie einen Speicherort für die Regeln";
+"Import Text Replacement Rules" = "Textersetzungsregeln importieren";
+"Select a JSON file to import" = "Wählen Sie eine JSON-Datei zum Importieren aus";
+
+/* ===== Settings - API Keys ===== */
+"API Key" = "API-Schlüssel";
+"Validating..." = "Wird überprüft ...";
+"Save to Keychain" = "In Keychain sichern";
+"Remove" = "Entfernen";
+"From Environment" = "Aus Umgebungsvariable";
+"From Keychain" = "Aus Keychain";
+"Not Set" = "Nicht festgelegt";
+"Valid ✓ Saved!" = "Gültig ✓ Gesichert!";
+"Could not verify (saved anyway)" = "Konnte nicht verifiziert werden (trotzdem gesichert)";
+"Removed" = "Entfernt";
+
+/* ===== About View ===== */
+"Version %@ (%@)" = "Version %@ (%@)";
+"Speech-to-Text and Text-to-Speech\nfor macOS" = "Sprache-zu-Text und Text-zu-Sprache\nfür macOS";
+"Created by" = "Erstellt von";
+"GitHub Repository" = "GitHub-Repository";
+"Documentation" = "Dokumentation";
+"Check for Updates..." = "Nach Updates suchen ...";
+
+/* ===== Shortcut HUD ===== */
+"Keyboard Shortcuts" = "Tastaturkurzbefehle";
+"Press ESC or %@ to dismiss" = "ESC oder %@ drücken zum Schließen";
+"STT Panel" = "STT-Bedienfeld";
+"TTS Panel" = "TTS-Bedienfeld";
+"Common" = "Allgemein";
+"Click to execute" = "Zum Ausführen klicken";
+
+/* ===== Floating Mic Button / Quick Input ===== */
+"Click or %@ to start dictation" = "Klicken oder %@ drücken, um Diktat zu starten";
+
+/* ===== AppDelegate - Permission Alert ===== */
+"Permissions Required" = "Berechtigungen erforderlich";
+"SpeechDock needs the following permissions to work properly:" = "SpeechDock benötigt folgende Berechtigungen für die ordnungsgemäße Funktion:";
+"For speech recognition" = "Für Spracherkennung";
+"For global keyboard shortcuts and text insertion" = "Für globale Tastaturkurzbefehle und Texteinfügung";
+"For window thumbnails in target selection" = "Für Fensterminiaturen bei der Zielauswahl";
+"Accessibility" = "Bedienungshilfen";
+"Screen Recording" = "Bildschirmaufnahme";
+"Click \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock." = "Klicken Sie auf „Einstellungen öffnen & Beenden", um die Systemeinstellungen zu öffnen. SpeechDock wird beendet, damit Sie die Berechtigungen ungestört erteilen können. Starten Sie SpeechDock anschließend neu.";
+"Open Settings & Quit" = "Einstellungen öffnen & Beenden";
+"Later" = "Später";
+
+/* AppDelegate - Duplicate Instance */
+"SpeechDock is already running" = "SpeechDock läuft bereits";
+"Another instance of SpeechDock is already running. Please use the existing instance from the menu bar." = "Eine weitere Instanz von SpeechDock läuft bereits. Bitte verwenden Sie die vorhandene Instanz in der Menüleiste.";
+"OK" = "OK";
+
+/* ===== AppState ===== */
+"Select Audio File" = "Audiodatei auswählen";
+"Choose a location to save the audio file" = "Wählen Sie einen Speicherort für die Audiodatei";
+"Choose an audio file to transcribe" = "Wählen Sie eine Audiodatei zum Transkribieren aus";
+
+/* ===== FloatingWindowManager ===== */
+"Paste Destination Unavailable" = "Einfügeziel nicht verfügbar";
+"The application \"%@\" has been terminated. Please select another destination." = "Die App „%@" wurde beendet. Bitte wählen Sie ein anderes Ziel.";
+"The window \"%@\" has been closed. Please select another destination." = "Das Fenster „%@" wurde geschlossen. Bitte wählen Sie ein anderes Ziel.";
+
+/* ===== Spell Check ===== */
+"✓ No spelling errors" = "✓ Keine Rechtschreibfehler";
+"No spelling errors" = "Keine Rechtschreibfehler";
+"Spell Check Complete" = "Rechtschreibprüfung abgeschlossen";
+"No spelling errors found." = "Keine Rechtschreibfehler gefunden.";
+"Spell Check" = "Rechtschreibprüfung";
+"Clear Text" = "Text löschen";
+"Press Original to edit" = "Zum Bearbeiten „Original" drücken";
+
+/* ===== Tool Tips ===== */
+"Decrease Font Size (%@)" = "Schrift verkleinern (%@)";
+"Reset Font Size (%@)" = "Schriftgröße zurücksetzen (%@)";
+"Increase Font Size (%@)" = "Schrift vergrößern (%@)";
+"Close (⌘W)" = "Schließen (⌘W)";
+"Subtitle Mode: On (⌃⌥S)" = "Untertitelmodus: Ein (⌃⌥S)";
+"Subtitle Mode: Off (⌃⌥S)" = "Untertitelmodus: Aus (⌃⌥S)";
+"Capture text with OCR (⌃⌥⇧O)" = "Text mit OCR erfassen (⌃⌥⇧O)";
+"Refresh voice list" = "Stimmenliste aktualisieren";
+"Refresh voice list from API" = "Stimmenliste über API aktualisieren";
+"Hide controls" = "Steuerelemente ausblenden";
+"Show controls" = "Steuerelemente einblenden";
+"Reset to default position" = "Auf Standardposition zurücksetzen";
+"Enable translation" = "Übersetzung aktivieren";
+"Disable translation" = "Übersetzung deaktivieren";
+"Translation provider" = "Übersetzungsanbieter";
+"Click to adjust playback speed" = "Klicken zum Anpassen der Wiedergabegeschwindigkeit";
+"Click to set playback speed" = "Klicken zum Festlegen der Wiedergabegeschwindigkeit";
+
+/* ===== File Transcription Errors ===== */
+"Audio file not found" = "Audiodatei nicht gefunden";
+"Unsupported audio format: .%@\n\nSupported formats: %@" = "Nicht unterstütztes Audioformat: .%@\n\nUnterstützte Formate: %@";
+"File too large (%dMB). Maximum size for this provider is %dMB" = "Datei zu groß (%dMB). Maximale Größe für diesen Anbieter ist %dMB";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@ unterstützt keine Dateitranskription.\n\nBitte wechseln Sie zu OpenAI, Gemini, ElevenLabs oder macOS (26+) als Anbieter.";
+"Failed to read audio file: %@" = "Audiodatei konnte nicht gelesen werden: %@";
+"Transcription failed: %@" = "Transkription fehlgeschlagen: %@";
+
+/* ===== TranscriptionState ===== */
+"Error: %@" = "Fehler: %@";
+
+/* ===== Text Count ===== */
+"chars" = "Zeichen";
+"words" = "Wörter";
+
+/* ===== Transcription History ===== */
+"Transcription History" = "Transkriptionsverlauf";
+"No history" = "Kein Verlauf";
+"Clear History" = "Verlauf löschen";
+
+/* ===== TTS File Drop ===== */
+"Drop text file to load" = "Textdatei zum Laden hierher ziehen";
+"Unsupported File" = "Nicht unterstützte Datei";
+"Only text files are supported: .txt, .md, .text, .rtf" = "Nur Textdateien werden unterstützt: .txt, .md, .text, .rtf";
+"File Too Large" = "Datei zu groß";
+"Maximum file size is 1MB." = "Maximale Dateigröße ist 1 MB.";
+
+/* ===== Target App Unavailable ===== */
+"The target application" = "Die Ziel-App";
+"Target App Unavailable" = "Ziel-App nicht verfügbar";
+"'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "„%@" wird nicht mehr ausgeführt. Der transkribierte Text wurde in die Zwischenablage kopiert. Sie können ihn manuell mit ⌘V einsetzen.";
+"Paste Failed" = "Einsetzen fehlgeschlagen";
+"Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "Der Text konnte nicht automatisch eingesetzt werden. Der transkribierte Text wurde in die Zwischenablage kopiert. Sie können ihn manuell mit ⌘V einsetzen.";
+"• Drop a text file (.txt, .md)" = "• Textdatei ablegen (.txt, .md)";
+"Or drop a text file here" = "Oder Textdatei hierher ziehen";
+"Not a Text File" = "Keine Textdatei";
+"This file appears to be a binary file, not a text file." = "Diese Datei scheint eine Binärdatei zu sein, keine Textdatei.";
+
+/* ===== Donation ===== */
+"Thank you for using SpeechDock" = "Vielen Dank, dass Sie SpeechDock verwenden";
+"This app is free and open source. Development and maintenance costs (Apple Developer Program, etc.) are covered by the developer. If SpeechDock has been helpful to you, please consider supporting its continued development." = "Diese App ist kostenlos und Open Source. Entwicklungs- und Wartungskosten (Apple Developer Program usw.) werden vom Entwickler getragen. Wenn SpeechDock Ihnen nützlich war, unterstützen Sie bitte die Weiterentwicklung.";
+"Support" = "Unterstützen";
+"Already Supported" = "Bereits unterstützt";
+"Later" = "Später";
+"Support Development" = "Entwicklung unterstützen";
+
+/* ===== Misc ===== */
+"Auto" = "Automatisch";
+"── Premium ──" = "── Premium ──";
+"── Enhanced ──" = "── Erweitert ──";
+"── Standard ──" = "── Standard ──";
+"N/A" = "N/A";

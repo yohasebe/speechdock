@@ -162,11 +162,11 @@ enum TTSProvider: String, CaseIterable, Identifiable, Codable {
 
     var description: String {
         switch self {
-        case .macOS: return "Local (offline, fast)"
-        case .openAI: return "OpenAI TTS (high quality)"
-        case .gemini: return "Gemini TTS (multilingual)"
-        case .elevenLabs: return "ElevenLabs (natural voices)"
-        case .grok: return "Grok Voice (5 voices)"
+        case .macOS: return NSLocalizedString("Local (offline, fast)", comment: "TTS provider description")
+        case .openAI: return NSLocalizedString("OpenAI TTS (high quality)", comment: "TTS provider description")
+        case .gemini: return NSLocalizedString("Gemini TTS (multilingual)", comment: "TTS provider description")
+        case .elevenLabs: return NSLocalizedString("ElevenLabs (natural voices)", comment: "TTS provider description")
+        case .grok: return NSLocalizedString("Grok Voice (5 voices)", comment: "TTS provider description")
         }
     }
 }

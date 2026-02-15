@@ -36,6 +36,14 @@ targets:
         buildPhase: resources
       - path: Resources/ja.lproj
         buildPhase: resources
+      - path: Resources/zh-Hans.lproj
+        buildPhase: resources
+      - path: Resources/ko.lproj
+        buildPhase: resources
+      - path: Resources/de.lproj
+        buildPhase: resources
+      - path: Resources/fr.lproj
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app

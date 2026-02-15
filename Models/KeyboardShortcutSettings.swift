@@ -222,19 +222,19 @@ enum ShortcutAction: String, CaseIterable, Codable {
 
     var displayName: String {
         switch self {
-        case .sttRecord: return "Record"
-        case .sttStop: return "Stop Recording"
-        case .sttPaste: return "Paste"
-        case .sttSave: return "Save Text"
-        case .sttTargetSelect: return "Select Target"
-        case .sttCancel: return "Cancel"
-        case .ttsSpeak: return "Speak"
-        case .ttsStop: return "Stop Speaking"
-        case .ttsSave: return "Save Audio"
-        case .ttsClose: return "Close"
-        case .fontSizeIncrease: return "Increase Font Size"
-        case .fontSizeDecrease: return "Decrease Font Size"
-        case .fontSizeReset: return "Reset Font Size"
+        case .sttRecord: return NSLocalizedString("Record", comment: "Shortcut action")
+        case .sttStop: return NSLocalizedString("Stop Recording", comment: "Shortcut action")
+        case .sttPaste: return NSLocalizedString("Paste", comment: "Shortcut action")
+        case .sttSave: return NSLocalizedString("Save Text", comment: "Shortcut action")
+        case .sttTargetSelect: return NSLocalizedString("Select Target", comment: "Shortcut action")
+        case .sttCancel: return NSLocalizedString("Cancel", comment: "Shortcut action")
+        case .ttsSpeak: return NSLocalizedString("Speak", comment: "Shortcut action")
+        case .ttsStop: return NSLocalizedString("Stop Speaking", comment: "Shortcut action")
+        case .ttsSave: return NSLocalizedString("Save Audio", comment: "Shortcut action")
+        case .ttsClose: return NSLocalizedString("Close", comment: "Shortcut action")
+        case .fontSizeIncrease: return NSLocalizedString("Increase Font Size", comment: "Shortcut action")
+        case .fontSizeDecrease: return NSLocalizedString("Decrease Font Size", comment: "Shortcut action")
+        case .fontSizeReset: return NSLocalizedString("Reset Font Size", comment: "Shortcut action")
         }
     }
 

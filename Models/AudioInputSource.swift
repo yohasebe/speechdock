@@ -20,11 +20,11 @@ enum AudioInputSourceType: String, CaseIterable, Codable, Identifiable {
     var description: String {
         switch self {
         case .microphone:
-            return "Record from microphone"
+            return NSLocalizedString("Record from microphone", comment: "Audio input source description")
         case .systemAudio:
-            return "Capture all system audio output"
+            return NSLocalizedString("Capture all system audio output", comment: "Audio input source description")
         case .applicationAudio:
-            return "Capture audio from a specific app"
+            return NSLocalizedString("Capture audio from a specific app", comment: "Audio input source description")
         }
     }
 }

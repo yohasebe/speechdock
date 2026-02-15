@@ -1,0 +1,481 @@
+/* Localizable.strings - Korean */
+
+/* ===== Menu Bar ===== */
+"Recording" = "녹음 중";
+"Processing" = "처리 중";
+"Speaking" = "읽는 중";
+"Speech-to-Text" = "음성 인식";
+"Text-to-Speech" = "텍스트 읽기";
+"Microphone access required" = "마이크 접근 권한이 필요합니다";
+"Accessibility access required" = "손쉬운 사용 접근 권한이 필요합니다";
+"Stop" = "중지";
+"Transcription" = "받아쓰기";
+"Subtitle Mode" = "자막 모드";
+"On" = "켜기";
+"Off" = "끄기";
+"Floating Mic Button" = "플로팅 마이크 버튼";
+"Transcribe Audio File..." = "오디오 파일 받아쓰기...";
+"Provider" = "공급자";
+"Provider:" = "공급자:";
+"Language:" = "언어:";
+"Input:" = "입력:";
+"Output:" = "출력:";
+"Model:" = "모델:";
+"Voice:" = "음성:";
+"Speed:" = "속도:";
+"Text to Speech" = "텍스트 읽기";
+"OCR Region to TTS" = "OCR 영역 읽기";
+"Help & Documentation" = "도움말 및 문서";
+"About SpeechDock" = "SpeechDock에 관하여";
+"Settings..." = "설정...";
+"Quit SpeechDock" = "SpeechDock 종료";
+
+/* ===== Audio Input/Output ===== */
+"Microphone" = "마이크";
+"System Audio" = "시스템 오디오";
+"App Audio" = "앱 오디오";
+"App" = "앱";
+"No microphones detected" = "마이크가 감지되지 않습니다";
+"No apps detected" = "앱이 감지되지 않습니다";
+"Recent" = "최근 사용";
+"Refresh Apps" = "앱 목록 새로고침";
+"System Default" = "시스템 기본값";
+"No output devices detected" = "출력 장치가 감지되지 않습니다";
+
+/* ===== STT Panel ===== */
+"Starting..." = "시작 중...";
+"Recording..." = "녹음 중...";
+"Transcribing File..." = "파일 받아쓰기 중...";
+"Processing..." = "처리 중...";
+"Error" = "오류";
+"Listening..." = "듣는 중...";
+"Transcribing..." = "받아쓰기 중...";
+"Subtitle" = "자막";
+"Target:" = "대상:";
+"None" = "없음";
+"Paste Target:" = "붙여넣기 대상:";
+"No window selected" = "선택된 윈도우 없음";
+"Use arrow keys to preview" = "화살표 키로 미리보기";
+"No Preview" = "미리보기 없음";
+"Paste" = "붙여넣기";
+"Record" = "녹음";
+"Save Text" = "텍스트 저장";
+"Copy" = "복사";
+"Copied!" = "복사됨!";
+"Cancel" = "취소";
+"Press keys..." = "키를 누르세요...";
+
+/* STT Panel - Placeholder */
+"Press Record (%@) to start transcription" = "녹음(%@)을 눌러 받아쓰기를 시작하세요";
+"Or drop an audio file here" = "또는 오디오 파일을 여기에 드롭하세요";
+"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "파일 받아쓰기를 사용하려면 OpenAI, Gemini 또는 ElevenLabs로 전환하세요";
+"Transcribing file..." = "파일 받아쓰기 중...";
+"Drop audio file to transcribe" = "받아쓸 오디오 파일을 드롭하세요";
+
+/* STT Panel - Save Panel */
+"Save Transcription" = "받아쓰기 저장";
+"Choose a location to save the transcribed text" = "받아쓰기 텍스트를 저장할 위치를 선택하세요";
+
+/* STT Panel - File Drop */
+"File Transcription" = "파일 받아쓰기";
+
+/* ===== TTS Panel ===== */
+"Text-to-Speech" = "텍스트 읽기";
+"Speaking..." = "읽는 중...";
+"Paused" = "일시 정지";
+"Generating audio..." = "오디오 생성 중...";
+"Type text here, or:" = "여기에 텍스트를 입력하거나:";
+"OCR" = "OCR";
+"Speak" = "읽기";
+"Save Audio" = "오디오 저장";
+"Pause" = "일시 정지";
+"Resume" = "재개";
+"Playback Speed" = "재생 속도";
+
+/* TTS Panel - Placeholder */
+"• Select text elsewhere and press %@" = "• 다른 곳에서 텍스트를 선택한 후 %@을 누르세요";
+"• Use OCR (%@) to capture screen text" = "• OCR(%@)로 화면 텍스트를 캡처하세요";
+
+/* ===== Subtitle Overlay ===== */
+"(%@ to stop)" = "(%@(으)로 중지)";
+"Loading..." = "로딩 중...";
+"No languages available" = "사용 가능한 언어가 없습니다";
+
+/* ===== Translation Controls ===== */
+"Translate" = "번역";
+"Original" = "원문";
+"Translating..." = "번역 중...";
+"Select..." = "선택...";
+"Download Languages..." = "언어 다운로드...";
+"Refresh Status" = "상태 새로고침";
+"Enter text to enable translation" = "텍스트를 입력하면 번역할 수 있습니다";
+"Select a target language" = "번역 대상 언어를 선택하세요";
+"Translate to %@" = "%@(으)로 번역";
+"Revert to original text" = "원문으로 되돌리기";
+"Cancel translation" = "번역 취소";
+"Target language: %@" = "대상 언어: %@";
+"Cannot change during translation" = "번역 중에는 변경할 수 없습니다";
+"Translation provider: %@" = "번역 공급자: %@";
+"Translation model: %@" = "번역 모델: %@";
+
+/* Translation - Language Pack Alerts */
+"Language Pack Required" = "언어 팩이 필요합니다";
+"The %@ language pack needs to be downloaded.\n\nPlease go to:\nSystem Settings → General → Language & Region → Translation Languages\n\nThen download \"%@\" and try again." = "%@ 언어 팩을 다운로드해야 합니다.\n\n다음으로 이동하세요:\n시스템 설정 → 일반 → 언어 및 지역 → 번역 언어\n\n\"%@\"을(를) 다운로드한 후 다시 시도하세요.";
+"Open System Settings" = "시스템 설정 열기";
+
+"Download Translation Languages" = "번역 언어 다운로드";
+"To download language packs for offline translation:\n\n1. Open System Settings\n2. Go to General → Language & Region\n3. Scroll down to \"Translation Languages\"\n4. Download the languages you need\n\nAfter downloading, click \"Refresh Status\" to update the list." = "오프라인 번역을 위한 언어 팩을 다운로드하려면:\n\n1. 시스템 설정을 여세요\n2. 일반 → 언어 및 지역으로 이동하세요\n3. \"번역 언어\"까지 스크롤하세요\n4. 필요한 언어를 다운로드하세요\n\n다운로드 후 \"상태 새로고침\"을 클릭하여 목록을 업데이트하세요.";
+
+/* ===== Settings Window ===== */
+"General" = "일반";
+"Shortcuts" = "단축키";
+"Text Replacement" = "텍스트 대치";
+"API Keys" = "API 키";
+
+/* Settings - Unified Settings Sidebar */
+"About" = "정보";
+
+/* Settings - Section Headers */
+"Provider & Model" = "공급자 및 모델";
+"Audio Input" = "오디오 입력";
+"Recording & Panel" = "녹음 및 패널";
+"Provider & Voice" = "공급자 및 음성";
+"Playback" = "재생";
+"Language & Output" = "언어 및 출력";
+"Panel Translation" = "패널 번역";
+"Subtitle Translation" = "자막 번역";
+"Translation provider and model used by the Translate button in the STT and TTS panels." = "STT 및 TTS 패널의 번역 버튼에서 사용하는 번역 공급자와 모델입니다.";
+"Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled." = "자막 모드(음성 인식)의 실시간 번역입니다. 자막 모드가 활성화된 경우에만 작동합니다.";
+"Panel Appearance" = "패널 외형";
+
+/* Settings - General - STT */
+"STT Provider" = "STT 공급자";
+"TTS Provider" = "TTS 공급자";
+"Set API keys in the API Keys tab to enable more providers" = "API 키 탭에서 API 키를 설정하면 더 많은 공급자를 사용할 수 있습니다";
+"Set API keys in the API Keys section to enable more providers" = "API 키 섹션에서 API 키를 설정하면 더 많은 공급자를 사용할 수 있습니다";
+
+/* Settings - STT Provider Descriptions */
+"Apple Speech (offline, realtime, no time limit)" = "Apple Speech (오프라인, 실시간, 시간 제한 없음)";
+"Apple Speech (offline, fast)" = "Apple Speech (오프라인, 빠름)";
+"OpenAI Realtime API (high quality)" = "OpenAI Realtime API (고품질)";
+"Gemini Live API (multimodal)" = "Gemini Live API (멀티모달)";
+"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2 (150ms 지연)";
+"Grok Voice Agent (low latency)" = "Grok Voice Agent (저지연)";
+
+/* File Transcription Descriptions */
+"Whisper API (max 25MB)" = "Whisper API (최대 25MB)";
+"Gemini API (max 20MB)" = "Gemini API (최대 20MB)";
+"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (최대 25MB, 약 2시간)";
+"Realtime only" = "실시간만 지원";
+"Apple Speech (offline, max 500MB)" = "Apple Speech (오프라인, 최대 500MB)";
+
+/* Settings - TTS Provider Descriptions */
+"Local (offline, fast)" = "로컬 (오프라인, 빠름)";
+"OpenAI TTS (high quality)" = "OpenAI TTS (고품질)";
+"Gemini TTS (multilingual)" = "Gemini TTS (다국어)";
+"ElevenLabs (natural voices)" = "ElevenLabs (자연스러운 음성)";
+"Grok Voice (5 voices)" = "Grok Voice (5종 음성)";
+
+/* Settings - Translation Provider Descriptions */
+"On-device, no API key" = "온디바이스, API 키 불필요";
+"Requires macOS 26+" = "macOS 26 이상 필요";
+"GPT-5 Nano (default), high quality" = "GPT-5 Nano (기본), 고품질";
+"Gemini 3 Flash (default), high quality" = "Gemini 3 Flash (기본), 고품질";
+"Grok 3 Fast, high quality" = "Grok 3 Fast, 고품질";
+"Language" = "언어";
+"Model" = "모델";
+"Voice" = "음성";
+"Speed" = "속도";
+"Audio Source" = "오디오 소스";
+
+/* Settings - General - STT Language Help */
+"Auto uses system locale. Select a specific language for better accuracy." = "자동은 시스템 로캘을 사용합니다. 정확도를 높이려면 특정 언어를 선택하세요.";
+"Auto detects the language. Specifying a language can improve accuracy." = "자동으로 언어를 감지합니다. 언어를 지정하면 정확도가 향상될 수 있습니다.";
+"Auto detects the language. Note: Portuguese is not supported." = "자동으로 언어를 감지합니다. 참고: 포르투갈어는 지원되지 않습니다.";
+"Auto detects the language (100+ languages supported)." = "자동으로 언어를 감지합니다 (100개 이상의 언어 지원).";
+
+/* Settings - General - Audio Source */
+/* Settings - Audio Source Descriptions */
+"Record from microphone" = "마이크로 녹음";
+"Capture all system audio output" = "시스템 전체 오디오 출력 캡처";
+"Capture audio from a specific app" = "특정 앱의 오디오 캡처";
+
+"System Audio requires Screen Recording permission." = "시스템 오디오를 사용하려면 화면 기록 권한이 필요합니다.";
+"App-specific audio capture is available in the menu bar and STT panel." = "앱별 오디오 캡처는 메뉴 막대와 STT 패널에서 사용할 수 있습니다.";
+"Select the microphone device for speech recognition." = "음성 인식에 사용할 마이크 장치를 선택하세요.";
+"Audio Output" = "오디오 출력";
+"Select the audio output device for speech playback." = "음성 재생에 사용할 출력 장치를 선택하세요.";
+
+/* Settings - General - VAD */
+"Auto-Stop Settings" = "자동 중지 설정";
+"Min. recording time" = "최소 녹음 시간";
+"Silence duration" = "무음 감지 시간";
+"Recording must reach this duration before auto-stop activates." = "자동 중지가 활성화되기 전에 녹음이 이 시간에 도달해야 합니다.";
+"Duration of silence required to trigger auto-stop." = "자동 중지를 트리거하는 데 필요한 무음 시간입니다.";
+"Reset to Defaults" = "기본값으로 재설정";
+
+/* Settings - General - STT Panel Behavior */
+"Panel Behavior" = "패널 동작";
+"Auto-start recording" = "자동 녹음 시작";
+"When enabled, recording starts automatically when the STT panel opens." = "활성화하면 STT 패널이 열릴 때 자동으로 녹음이 시작됩니다.";
+"Close panel after paste" = "붙여넣기 후 패널 닫기";
+"When enabled, the STT panel closes automatically after pasting text." = "활성화하면 텍스트를 붙여넣은 후 STT 패널이 자동으로 닫힙니다.";
+
+/* Settings - General - TTS Panel Behavior */
+"Auto-speak on panel open" = "패널 열 때 자동 읽기";
+"When enabled, TTS starts speaking automatically when the panel opens with text." = "활성화하면 텍스트가 있는 상태에서 패널을 열 때 자동으로 읽기가 시작됩니다.";
+
+/* Settings - General - TTS Speed */
+"Slow" = "느리게";
+"Fast" = "빠르게";
+"Reset" = "재설정";
+"Adjust playback speed (0.25x–4.0x)" = "재생 속도 조절 (0.25x–4.0x)";
+"Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini는 프롬프트 기반 속도 조절을 사용합니다 (근사 조절)";
+"Adjust playback speed (actual range: 0.7x–1.2x)" = "재생 속도 조절 (실제 범위: 0.7x–1.2x)";
+"Adjust playback speed" = "재생 속도 조절";
+"GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS는 속도 조절을 지원하지 않습니다. TTS-1 또는 TTS-1 HD를 선택하세요.";
+"Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "GPT-4o Mini TTS에서는 속도 조절을 사용할 수 없습니다. 속도 조절을 사용하려면 TTS-1 또는 TTS-1 HD를 사용하세요.";
+"Gemini uses natural language pace control (approximate)." = "Gemini는 자연어 기반 속도 조절을 사용합니다 (근사치).";
+"ElevenLabs has limited speed range (0.7x-1.2x mapped)." = "ElevenLabs의 속도 범위는 제한적입니다 (0.7x-1.2x 매핑).";
+"Grok Voice Agent does not support speed control." = "Grok Voice Agent는 속도 조절을 지원하지 않습니다.";
+"Grok Voice Agent does not support speed control" = "Grok Voice Agent는 속도 조절을 지원하지 않습니다";
+
+/* Settings - General - TTS Language */
+"Specifies the output language for speech synthesis." = "음성 합성의 출력 언어를 지정합니다.";
+
+/* Settings - General - Translation */
+"Translation" = "번역";
+
+/* Settings - General - Appearance */
+"Appearance" = "외형";
+"Text Font Size" = "텍스트 글꼴 크기";
+"Font size for text in STT and TTS panels." = "STT 및 TTS 패널의 텍스트 글꼴 크기입니다.";
+"Panel Style" = "패널 스타일";
+"Floating" = "플로팅";
+"Standard Window" = "표준 윈도우";
+"Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time." = "플로팅: 항상 위에 표시되는 테두리 없는 패널. 표준 윈도우: 제목 막대가 있는 일반 윈도우. STT 또는 TTS 패널 중 하나만 열 수 있습니다.";
+
+/* Settings - General - Subtitle Mode */
+"Enable Subtitle Mode" = "자막 모드 활성화";
+"Display real-time transcription as subtitles during recording." = "녹음 중 실시간 받아쓰기를 자막으로 표시합니다.";
+"Position" = "위치";
+"Font Size" = "글꼴 크기";
+"Text Opacity" = "텍스트 불투명도";
+"Background Opacity" = "배경 불투명도";
+"Max Lines" = "최대 줄 수";
+"%lld lines" = "%lld줄";
+"Hide STT Panel when active" = "활성화 시 STT 패널 숨기기";
+"Temporarily hide the STT panel when subtitle mode is active." = "자막 모드가 활성화되면 STT 패널을 일시적으로 숨깁니다.";
+
+/* Settings - General - Subtitle Translation */
+"Real-Time Translation" = "실시간 번역";
+"Enable Real-Time Translation" = "실시간 번역 활성화";
+"Translate subtitles to target language in real-time." = "자막을 대상 언어로 실시간 번역합니다.";
+"Requires macOS 26+ for on-device translation, or set up API keys." = "온디바이스 번역에는 macOS 26 이상이 필요하며, API 키를 설정할 수도 있습니다.";
+"Target Language" = "대상 언어";
+"Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages." = "설치된 언어 팩만 표시됩니다. 시스템 설정 > 일반 > 언어 및 지역 > 번역 언어에서 추가로 설치하세요.";
+"Show Original Text" = "원문 표시";
+"Display original text above the translation." = "번역 위에 원문을 표시합니다.";
+
+/* Subtitle translation provider descriptions */
+"Fast on-device translation. Requires macOS 26+." = "빠른 온디바이스 번역. macOS 26 이상 필요.";
+"OpenAI translation (100+ languages). Higher latency." = "OpenAI 번역 (100개 이상의 언어). 지연이 다소 높음.";
+"Gemini translation (100+ languages). Higher latency." = "Gemini 번역 (100개 이상의 언어). 지연이 다소 높음.";
+"Grok translation (100+ languages). Higher latency." = "Grok 번역 (100개 이상의 언어). 지연이 다소 높음.";
+
+/* Settings - General - Startup */
+"Startup" = "시작";
+"Launch at Login" = "로그인 시 실행";
+"SpeechDock will start automatically when you log in" = "로그인 시 SpeechDock이 자동으로 시작됩니다";
+"Launch at login requires macOS 13 or later" = "로그인 시 실행에는 macOS 13 이상이 필요합니다";
+
+/* ===== Settings - Shortcuts ===== */
+"Global Hotkeys" = "글로벌 단축키";
+"Toggle STT Panel" = "STT 패널 전환";
+"Toggle TTS Panel" = "TTS 패널 전환";
+"Toggle Subtitle Mode" = "자막 모드 전환";
+"Show Shortcuts" = "단축키 목록";
+"Quick Transcription" = "빠른 받아쓰기";
+"Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (⌘, ⌥, ⌃, or ⇧)." = "단축키를 클릭하고 새로운 키 조합을 눌러 변경하세요. 단축키에는 최소 하나의 보조 키(⌘, ⌥, ⌃ 또는 ⇧)가 포함되어야 합니다.";
+"STT Panel Shortcuts" = "STT 패널 단축키";
+"Shortcuts available when the STT transcription panel is open." = "STT 받아쓰기 패널이 열려 있을 때 사용할 수 있는 단축키입니다.";
+"TTS Panel Shortcuts" = "TTS 패널 단축키";
+"Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts." = "TTS 패널이 열려 있을 때 사용할 수 있는 단축키입니다. STT와 TTS 패널은 배타적이므로 동일한 단축키를 공유할 수 있습니다.";
+"Common Shortcuts" = "공통 단축키";
+"Shortcuts available in both STT and TTS panels." = "STT 및 TTS 패널 모두에서 사용할 수 있는 단축키입니다.";
+"Press shortcut..." = "단축키를 입력하세요...";
+"Reset Global Hotkeys" = "글로벌 단축키 재설정";
+"Reset Panel Shortcuts" = "패널 단축키 재설정";
+"Reset to default" = "기본값으로 재설정";
+
+/* Settings - Shortcuts - Action Names */
+"Stop Recording" = "녹음 중지";
+"Select Target" = "대상 선택";
+"Stop Speaking" = "읽기 중지";
+"Close" = "닫기";
+"Increase Font Size" = "글꼴 크기 확대";
+"Decrease Font Size" = "글꼴 크기 축소";
+"Reset Font Size" = "글꼴 크기 재설정";
+
+/* ===== Settings - Text Replacement ===== */
+"URLs" = "URL";
+"Email Addresses" = "이메일 주소";
+"File Paths" = "파일 경로";
+"Built-in Patterns" = "기본 제공 패턴";
+"Automatically replace common patterns like URLs and emails." = "URL이나 이메일 등 일반적인 패턴을 자동으로 대치합니다.";
+"Custom Rules" = "사용자 정의 규칙";
+"%lld rules" = "%lld개 규칙";
+"No custom rules" = "사용자 정의 규칙 없음";
+"Add rules for specific text replacements." = "특정 텍스트 대치 규칙을 추가합니다.";
+"Add Rule" = "규칙 추가";
+"Find" = "찾기";
+"Replace With" = "대치할 내용";
+"Replace" = "대치";
+"Replacement" = "대치 텍스트";
+"Add" = "추가";
+"Import..." = "가져오기...";
+"Export..." = "내보내기...";
+"Delete rule" = "규칙 삭제";
+"Export Text Replacement Rules" = "텍스트 대치 규칙 내보내기";
+"Choose a location to save the rules" = "규칙을 저장할 위치를 선택하세요";
+"Import Text Replacement Rules" = "텍스트 대치 규칙 가져오기";
+"Select a JSON file to import" = "가져올 JSON 파일을 선택하세요";
+
+/* ===== Settings - API Keys ===== */
+"API Key" = "API 키";
+"Validating..." = "검증 중...";
+"Save to Keychain" = "Keychain에 저장";
+"Remove" = "제거";
+"From Environment" = "환경 변수에서";
+"From Keychain" = "Keychain에서";
+"Not Set" = "미설정";
+"Valid ✓ Saved!" = "유효 ✓ 저장됨!";
+"Could not verify (saved anyway)" = "검증할 수 없음 (저장됨)";
+"Removed" = "제거됨";
+
+/* ===== About View ===== */
+"Version %@ (%@)" = "버전 %@ (%@)";
+"Speech-to-Text and Text-to-Speech\nfor macOS" = "macOS용 음성 인식 및 텍스트 읽기";
+"Created by" = "개발자";
+"GitHub Repository" = "GitHub 저장소";
+"Documentation" = "문서";
+"Check for Updates..." = "업데이트 확인...";
+
+/* ===== Shortcut HUD ===== */
+"Keyboard Shortcuts" = "키보드 단축키";
+"Press ESC or %@ to dismiss" = "ESC 또는 %@을 눌러 닫기";
+"STT Panel" = "STT 패널";
+"TTS Panel" = "TTS 패널";
+"Common" = "공통";
+"Click to execute" = "클릭하여 실행";
+
+/* ===== Floating Mic Button / Quick Input ===== */
+"Click or %@ to start dictation" = "클릭 또는 %@(으)로 받아쓰기 시작";
+
+/* ===== AppDelegate - Permission Alert ===== */
+"Permissions Required" = "권한이 필요합니다";
+"SpeechDock needs the following permissions to work properly:" = "SpeechDock이 제대로 작동하려면 다음 권한이 필요합니다:";
+"For speech recognition" = "음성 인식용";
+"For global keyboard shortcuts and text insertion" = "글로벌 키보드 단축키 및 텍스트 삽입용";
+"For window thumbnails in target selection" = "대상 선택 시 윈도우 축소판 표시용";
+"Accessibility" = "손쉬운 사용";
+"Screen Recording" = "화면 기록";
+"Click \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock." = "\"설정 열기 및 종료\"를 클릭하여 시스템 설정을 여세요. SpeechDock이 종료되어 중단 없이 권한을 부여할 수 있습니다. 권한 부여 후 SpeechDock을 다시 실행하세요.";
+"Open Settings & Quit" = "설정 열기 및 종료";
+"Later" = "나중에";
+
+/* AppDelegate - Duplicate Instance */
+"SpeechDock is already running" = "SpeechDock이 이미 실행 중입니다";
+"Another instance of SpeechDock is already running. Please use the existing instance from the menu bar." = "SpeechDock의 다른 인스턴스가 이미 실행 중입니다. 메뉴 막대의 기존 인스턴스를 사용하세요.";
+"OK" = "확인";
+
+/* ===== AppState ===== */
+"Select Audio File" = "오디오 파일 선택";
+"Choose a location to save the audio file" = "오디오 파일을 저장할 위치를 선택하세요";
+"Choose an audio file to transcribe" = "받아쓸 오디오 파일을 선택하세요";
+
+/* ===== FloatingWindowManager ===== */
+"Paste Destination Unavailable" = "붙여넣기 대상을 사용할 수 없음";
+"The application \"%@\" has been terminated. Please select another destination." = "응용 프로그램 \"%@\"이(가) 종료되었습니다. 다른 대상을 선택하세요.";
+"The window \"%@\" has been closed. Please select another destination." = "윈도우 \"%@\"이(가) 닫혔습니다. 다른 대상을 선택하세요.";
+
+/* ===== Spell Check ===== */
+"✓ No spelling errors" = "✓ 맞춤법 오류 없음";
+"No spelling errors" = "맞춤법 오류 없음";
+"Spell Check Complete" = "맞춤법 검사 완료";
+"No spelling errors found." = "맞춤법 오류가 없습니다.";
+"Spell Check" = "맞춤법 검사";
+"Clear Text" = "텍스트 지우기";
+"Press Original to edit" = "편집하려면 \"원문\"을 누르세요";
+
+/* ===== Tool Tips ===== */
+"Decrease Font Size (%@)" = "글꼴 크기 축소 (%@)";
+"Reset Font Size (%@)" = "글꼴 크기 재설정 (%@)";
+"Increase Font Size (%@)" = "글꼴 크기 확대 (%@)";
+"Close (⌘W)" = "닫기 (⌘W)";
+"Subtitle Mode: On (⌃⌥S)" = "자막 모드: 켜짐 (⌃⌥S)";
+"Subtitle Mode: Off (⌃⌥S)" = "자막 모드: 꺼짐 (⌃⌥S)";
+"Capture text with OCR (⌃⌥⇧O)" = "OCR로 텍스트 캡처 (⌃⌥⇧O)";
+"Refresh voice list" = "음성 목록 새로고침";
+"Refresh voice list from API" = "API에서 음성 목록 새로고침";
+"Hide controls" = "컨트롤 숨기기";
+"Show controls" = "컨트롤 표시";
+"Reset to default position" = "기본 위치로 재설정";
+"Enable translation" = "번역 활성화";
+"Disable translation" = "번역 비활성화";
+"Translation provider" = "번역 공급자";
+"Click to adjust playback speed" = "클릭하여 재생 속도 조절";
+"Click to set playback speed" = "클릭하여 재생 속도 설정";
+
+/* ===== File Transcription Errors ===== */
+"Audio file not found" = "오디오 파일을 찾을 수 없습니다";
+"Unsupported audio format: .%@\n\nSupported formats: %@" = "지원하지 않는 오디오 형식: .%@\n\n지원 형식: %@";
+"File too large (%dMB). Maximum size for this provider is %dMB" = "파일이 너무 큽니다 (%dMB). 이 공급자의 최대 크기는 %dMB입니다";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@은(는) 파일 받아쓰기를 지원하지 않습니다.\n\nOpenAI, Gemini, ElevenLabs 또는 macOS (26+) 공급자로 전환하세요.";
+"Failed to read audio file: %@" = "오디오 파일 읽기 실패: %@";
+"Transcription failed: %@" = "받아쓰기 실패: %@";
+
+/* ===== TranscriptionState ===== */
+"Error: %@" = "오류: %@";
+
+/* ===== Text Count ===== */
+"chars" = "자";
+"words" = "단어";
+
+/* ===== Transcription History ===== */
+"Transcription History" = "받아쓰기 기록";
+"No history" = "기록 없음";
+"Clear History" = "기록 지우기";
+
+/* ===== TTS File Drop ===== */
+"Drop text file to load" = "텍스트 파일을 드롭하여 불러오기";
+"Unsupported File" = "지원하지 않는 파일";
+"Only text files are supported: .txt, .md, .text, .rtf" = "텍스트 파일만 지원됩니다: .txt, .md, .text, .rtf";
+"File Too Large" = "파일이 너무 큼";
+"Maximum file size is 1MB." = "최대 파일 크기는 1MB입니다.";
+
+/* ===== Target App Unavailable ===== */
+"The target application" = "대상 응용 프로그램";
+"Target App Unavailable" = "대상 앱을 사용할 수 없음";
+"'%@' is no longer running. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "'%@'이(가) 더 이상 실행되지 않습니다. 받아쓰기 텍스트가 클립보드에 저장되었습니다. ⌘V로 수동으로 붙여넣을 수 있습니다.";
+"Paste Failed" = "붙여넣기 실패";
+"Could not paste the text automatically. The transcribed text has been saved to your clipboard. You can paste it manually with ⌘V." = "텍스트를 자동으로 붙여넣을 수 없습니다. 받아쓰기 텍스트가 클립보드에 저장되었습니다. ⌘V로 수동으로 붙여넣을 수 있습니다.";
+"• Drop a text file (.txt, .md)" = "• 텍스트 파일 (.txt, .md) 드롭";
+"Or drop a text file here" = "또는 텍스트 파일을 여기에 드롭하세요";
+"Not a Text File" = "텍스트 파일이 아닙니다";
+"This file appears to be a binary file, not a text file." = "이 파일은 바이너리 파일인 것 같습니다. 텍스트 파일이 아닙니다.";
+
+/* ===== Donation ===== */
+"Thank you for using SpeechDock" = "SpeechDock을 이용해 주셔서 감사합니다";
+"This app is free and open source. Development and maintenance costs (Apple Developer Program, etc.) are covered by the developer. If SpeechDock has been helpful to you, please consider supporting its continued development." = "이 앱은 무료 오픈 소스 소프트웨어입니다. 개발 및 유지 비용(Apple Developer Program 등)은 개발자가 부담하고 있습니다. SpeechDock이 도움이 되셨다면 지속적인 개발을 지원해 주세요.";
+"Support" = "지원하기";
+"Already Supported" = "이미 지원함";
+"Later" = "나중에";
+"Support Development" = "개발 지원";
+
+/* ===== Misc ===== */
+"Auto" = "자동";
+"── Premium ──" = "── 프리미엄 ──";
+"── Enhanced ──" = "── 고급 ──";
+"── Standard ──" = "── 표준 ──";
+"N/A" = "N/A";
