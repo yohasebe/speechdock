@@ -284,6 +284,14 @@ Apache License 2.0 - see [LICENSE](LICENSE) for details.
 
 Yoichiro Hasebe
 
+## Support the Project
+
+SpeechDock is free and open source. If you find it useful, please consider supporting its development:
+
+- [GitHub Sponsors](https://github.com/sponsors/yohasebe)
+- [Buy Me a Coffee](https://buymeacoffee.com/yohasebe)
+- [Ko-fi](https://ko-fi.com/yohasebe)
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or pull request on GitHub.

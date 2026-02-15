@@ -284,6 +284,14 @@ Apache License 2.0 - 詳細は[LICENSE](LICENSE)を参照してください。
 
 長谷部陽一郎
 
+## 開発を支援
+
+SpeechDock は無料のオープンソースソフトウェアです。お役に立てていれば、開発の継続をご支援いただけると幸いです。
+
+- [GitHub Sponsors](https://github.com/sponsors/yohasebe)
+- [Buy Me a Coffee](https://buymeacoffee.com/yohasebe)
+- [Ko-fi](https://ko-fi.com/yohasebe)
+
 ## コントリビュート
 
 コントリビュートを歓迎します！ガイドラインは[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
