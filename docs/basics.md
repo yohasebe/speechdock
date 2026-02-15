@@ -75,8 +75,8 @@ Open the STT panel with the global hotkey (default: `Cmd + Shift + Space`), or f
 
 Automatically stops recording when silence is detected:
 
-- **Minimum recording time**: How long to record before VAD activates (default: 3 seconds)
-- **Silence duration**: How long silence lasts before stopping (default: 2 seconds)
+- **Minimum recording time**: How long to record before VAD activates (default: 10 seconds)
+- **Silence duration**: How long silence lasts before stopping (default: 3 seconds)
 
 Configure in **Settings** > **Speech-to-Text**.
 

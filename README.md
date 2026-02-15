@@ -28,7 +28,7 @@ Convert speech to text using:
 |----------|--------|---------|
 | **macOS Native** | System Default (SpeechAnalyzer on macOS 26+) | Not required |
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | Required |
-| **Google Gemini** | Gemini 2.5 Flash, Gemini 2.0 Flash, Gemini 1.5 Pro | Required |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | Required |
 | **ElevenLabs** | Scribe v2 Realtime | Required |
 | **Grok** | Grok Realtime | Required |
 
@@ -114,7 +114,7 @@ The button can be dragged anywhere on screen, and its position is saved.
 
 - macOS 14.0 (Sonoma) or later
 - Apple Silicon Mac (M1/M2/M3/M4)
-- API keys for cloud providers are **optional** (required only if using OpenAI, Google Gemini, or ElevenLabs)
+- API keys for cloud providers are **optional** (required only if using OpenAI, Google Gemini, ElevenLabs, or Grok)
 
 ## Installation
 
@@ -134,6 +134,7 @@ To use cloud providers, you need to configure API keys:
    - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys)
    - **Google Gemini**: [Google AI Studio](https://aistudio.google.com/apikey)
    - **ElevenLabs**: [ElevenLabs Settings](https://elevenlabs.io/app/settings/api-keys)
+   - **Grok (xAI)**: [xAI Console](https://console.x.ai/)
 
 API keys are securely stored in macOS Keychain.
 
@@ -183,57 +184,40 @@ Shortcuts can be customized in **Settings** > **Shortcuts**.
 
 ### Menu Bar
 
-Click the SpeechDock icon in the menu bar to:
+Click the SpeechDock icon in the menu bar for quick access to:
 
 - Start/stop STT recording
-- Start TTS for selected text
-- Select audio input source and device
-- Select audio output device
-- Change providers and settings
-- Access settings
-
-### Audio Input Selection
-
-Select audio input from the **Menu Bar** or **STT Panel**:
-
-- **Microphone**: Choose from available microphone devices
-- **System Audio**: Capture all Mac audio output
-- **App Audio**: Capture audio from a specific running application
-
-Note: System Audio and App Audio require Screen Recording permission.
-
-### Audio Output Selection
-
-Select audio output device from **Settings**, **Menu Bar**, or **TTS Panel** to route TTS playback to a specific speaker or headphone.
+- Open TTS for selected text
+- Toggle subtitle mode and floating mic button
+- Transcribe audio files
+- Open transcription history
+- OCR to speech
+- Access Settings, Help, and About
 
 ## Configuration
 
 ### Settings
 
-- **General**: Select STT/TTS providers, models, voices, languages, playback speed, and panel style
-- **Shortcuts**: Customize global hotkeys and panel shortcuts
-- **Text Replacement**: Define rules to automatically correct or replace text in STT output
-- **API Keys**: Manage API keys for cloud providers
+Open Settings with `Cmd + ,` or from the menu bar. The unified settings window uses a sidebar with the following categories:
+
+- **Speech-to-Text**: Provider, model, language, audio input, auto-stop, panel behavior
+- **Text-to-Speech**: Provider, model, voice, speed, audio output, panel behavior
+- **Translation**: Panel translation provider/model, subtitle translation settings
+- **Subtitle**: On/off, position, font size, text/background opacity, max lines
+- **Shortcuts**: Global hotkeys and panel shortcuts
+- **Text Replacement**: Built-in patterns and custom rules
+- **Appearance**: Text font size, panel style, launch at login
+- **API Keys**: Cloud provider API keys (optional)
+- **About**: Version info, links, check for updates, support
 
 ### Panel Style
 
-Choose between two panel styles in **Settings** > **General**:
+Choose between two panel styles in **Settings** > **Appearance**:
 
 - **Floating**: Always-on-top borderless panels that can be dragged from anywhere
 - **Standard Window**: Regular macOS windows with title bar, can be minimized
 
 Note: Only one panel (STT or TTS) can be open at a time. Opening one will close the other.
-
-### Language Selection
-
-Both STT and TTS support language selection:
-
-- **Auto** (default): Automatically detects the language
-- **Manual**: Choose from supported languages including English, Japanese, Chinese, Korean, Spanish, French, German, Italian, Portuguese, Russian, Arabic, and Hindi
-
-### Launch at Login
-
-Enable **Launch at Login** in **Settings** > **General** to start SpeechDock automatically.
 
 ## Troubleshooting
 

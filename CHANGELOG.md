@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Unified settings window with NavigationSplitView sidebar (9 categories)
+- Multilingual localization: Simplified Chinese (zh-Hans), Korean (ko), German (de), French (fr)
+- macOS 26+ Liquid Glass support for menu bar panel
+- `Cmd + ,` keyboard shortcut support in menu bar panel
+
+### Changed
+- Menu bar panel simplified to quick actions only (settings controls moved to Settings window)
+- Settings window restructured from 4 tabs to 9 sidebar categories
+- About window integrated into Settings as a category
+
+### Removed
+- Audio input/output selectors from menu bar panel
+- STT/TTS provider/model selectors from menu bar panel
+
+## [0.1.26] - 2026-02-14
+
+### Added
 - Real-time subtitle translation with context-aware translation service
   - Per-provider debounce intervals (macOS: 300ms, Gemini: 600ms, OpenAI/Grok: 800ms)
   - LRU translation cache (200 entries) with pause detection (1.5s)
@@ -16,16 +33,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS on-device translation provider (macOS 26+, no API key required)
 - Grok (xAI) as translation provider
 - Translation model selection per provider in Settings
+- macOS native file transcription via SpeechAnalyzer (macOS 26+, offline)
+- Japanese localization
+- macOS 26 Liquid Glass UI support for floating panels
 
 ### Changed
 - Translation controls redesigned: separate language selection from translation execution
 - Subtitle translation uses provider's default model to avoid cross-provider conflicts
+- Improved permission flow and debounced preferences saving
+- Pinned FluidAudio to v0.9.1 for Xcode 26 compatibility
 
 ### Fixed
 - Force unwraps replaced with safe guard-let patterns across translation services
 - Accessibility API force casts now protected with CFGetTypeID checks
 - `precondition` in LLMTranslation replaced with debug-only `assert`
 - WindowService CFDictionary cast made safe with conditional cast
+- Memory leaks and resource cleanup issues
+- File transcription robustness and quit behavior improvements
 
 ## [0.1.25] - 2026-01-26
 
