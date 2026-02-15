@@ -39,7 +39,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok 2 | xAI's realtime transcription |
 
-Select the provider in **Settings** > **General** or from the menu bar.
+Select the provider in **Settings** > **Speech-to-Text**.
 
 ## Cloud TTS Providers
 
@@ -55,13 +55,12 @@ Cloud TTS provides natural-sounding voices with various styles and languages.
 ### Voice and Model Selection
 
 Each provider offers different voices and models. Select them in:
-- **Settings** > **General** (persistent setting)
+- **Settings** > **Text-to-Speech** (persistent setting)
 - **TTS Panel** header (quick switch)
-- **Menu Bar** (quick switch)
 
 ### Audio Output Device
 
-Route TTS playback to any audio output device (speakers, headphones, virtual devices). Select in Settings, menu bar, or the TTS panel.
+Route TTS playback to any audio output device (speakers, headphones, virtual devices). Select in **Settings** > **Text-to-Speech** or the TTS panel.
 
 ## Audio File Transcription
 
@@ -107,7 +106,7 @@ While macOS on-device translation supports ~18 languages, cloud providers offer:
 
 ### Switching Translation Provider
 
-- **Settings** > **General** > **Translation**: Set the default provider and model
+- **Settings** > **Translation**: Set the default provider and model
 - **Panel**: Click the `⚡` button next to the translation controls for quick switching
 
 ### Provider Auto-Sync

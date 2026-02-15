@@ -103,8 +103,8 @@ tell application "SpeechDock"
 end tell
 ```
 
-- Requires a cloud STT provider (OpenAI, Gemini, or ElevenLabs)
-- macOS native and Grok providers do not support file transcription
+- Requires a supported STT provider (OpenAI, Gemini, ElevenLabs, or macOS 26+)
+- Grok provider does not support file transcription
 - See [Advanced Features](advanced.md#audio-file-transcription) for supported formats and limits
 - This command blocks until transcription is complete
 

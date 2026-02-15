@@ -78,7 +78,7 @@ Automatically stops recording when silence is detected:
 - **Minimum recording time**: How long to record before VAD activates (default: 3 seconds)
 - **Silence duration**: How long silence lasts before stopping (default: 2 seconds)
 
-Configure in **Settings** > **General**.
+Configure in **Settings** > **Speech-to-Text**.
 
 ## Text-to-Speech (TTS)
 
@@ -262,7 +262,7 @@ Panel shortcuts can be customized with modifier key support in **Settings** > **
 
 ## Panel Style
 
-Choose in **Settings** > **General**:
+Choose in **Settings** > **Appearance**:
 
 - **Floating** — Always-on-top borderless panel, draggable from anywhere
 - **Standard Window** — Regular macOS window with title bar
@@ -276,39 +276,31 @@ Only one panel (STT or TTS) can be open at a time. Opening one closes the other.
   <figcaption>Menu Bar — Quick access to all features</figcaption>
 </figure>
 
-Click the SpeechDock icon in the menu bar to:
+Click the SpeechDock icon in the menu bar for quick access to:
 
 - Start/stop STT recording
 - Open TTS for selected text
-- Select audio input source and device
-- Select audio output device
-- Change providers and settings
-- Transcribe audio files (with cloud providers)
-- Access Settings and About
+- Toggle subtitle mode and floating mic button
+- Transcribe audio files
+- Open transcription history
+- OCR to speech
+- Access Settings, Help, and About
 
 ## Settings
 
-| Tab | Options |
-|-----|---------|
-| **General** | Providers, models, voices, languages, speed, panel style, launch at login |
+Open Settings with `Cmd + ,` or from the menu bar. The unified settings window uses a sidebar with the following categories:
+
+| Category | Options |
+|----------|---------|
+| **Speech-to-Text** | Provider, model, language, audio input, VAD, panel behavior |
+| **Text-to-Speech** | Provider, model, voice, speed, language, audio output, panel behavior |
+| **Translation** | Panel translation provider/model, subtitle translation provider/language |
+| **Subtitle** | Position, font size, opacity, max lines, translation |
 | **Shortcuts** | Global hotkeys and panel shortcuts |
 | **Text Replacement** | Built-in patterns and custom rules |
+| **Appearance** | Font size, panel style, launch at login |
 | **API Keys** | Cloud provider API keys (optional) |
-
-<figure>
-  <img src="images/settings-general.png" alt="Settings - General" style="max-width: 500px;">
-  <figcaption>Settings — General tab with provider and voice options</figcaption>
-</figure>
-
-<figure>
-  <img src="images/settings-shortcuts.png" alt="Settings - Shortcuts" style="max-width: 500px;">
-  <figcaption>Settings — Shortcuts tab for customizing keyboard shortcuts</figcaption>
-</figure>
-
-<figure>
-  <img src="images/settings-text-replacement.png" alt="Settings - Text Replacement" style="max-width: 500px;">
-  <figcaption>Settings — Text Replacement tab for custom rules</figcaption>
-</figure>
+| **About** | Version info, help, check for updates |
 
 ## Privacy & Security
 

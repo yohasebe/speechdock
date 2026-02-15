@@ -104,8 +104,8 @@ tell application "SpeechDock"
 end tell
 ```
 
-- クラウドSTTプロバイダ（OpenAI、Gemini、またはElevenLabs）が必要です
-- macOSネイティブおよびGrokプロバイダはファイル文字起こしに対応していません
+- 対応STTプロバイダ（OpenAI、Gemini、ElevenLabs、またはmacOS 26+）が必要です
+- Grokプロバイダはファイル文字起こしに対応していません
 - 対応形式と制限については[高度な機能](advanced_ja.md#音声ファイルの文字起こし)を参照してください
 - このコマンドは文字起こしが完了するまでブロックします
 
