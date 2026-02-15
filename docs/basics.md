@@ -292,15 +292,15 @@ Open Settings with `Cmd + ,` or from the menu bar. The unified settings window u
 
 | Category | Options |
 |----------|---------|
-| **Speech-to-Text** | Provider, model, language, audio input, VAD, panel behavior |
-| **Text-to-Speech** | Provider, model, voice, speed, language, audio output, panel behavior |
-| **Translation** | Panel translation provider/model, subtitle translation provider/language |
-| **Subtitle** | Position, font size, opacity, max lines, translation |
+| **Speech-to-Text** | Provider, model, language, audio input, auto-stop, panel behavior |
+| **Text-to-Speech** | Provider, model, voice, speed, audio output, panel behavior |
+| **Translation** | Panel translation provider/model, subtitle translation settings |
+| **Subtitle** | On/off, position, font size, text/background opacity, max lines |
 | **Shortcuts** | Global hotkeys and panel shortcuts |
 | **Text Replacement** | Built-in patterns and custom rules |
-| **Appearance** | Font size, panel style, launch at login |
+| **Appearance** | Text font size, panel style, launch at login |
 | **API Keys** | Cloud provider API keys (optional) |
-| **About** | Version info, help, check for updates |
+| **About** | Version info, links, check for updates, support |
 
 ## Privacy & Security
 
