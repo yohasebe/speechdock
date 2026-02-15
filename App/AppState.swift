@@ -105,6 +105,11 @@ final class AppState {
             } else {
                 selectedRealtimeSTTModel = ""
             }
+            // macOS provider doesn't support Auto — set default language if Auto is selected
+            if selectedRealtimeProvider == .macOS && selectedSTTLanguage.isEmpty {
+                let available = LanguageCode.supportedLanguages(for: .macOS)
+                selectedSTTLanguage = available.first?.rawValue ?? "en"
+            }
             savePreferences()
         }
     }
@@ -2034,6 +2039,12 @@ final class AppState {
         // Validate STT provider
         if selectedRealtimeProvider.requiresAPIKey && !hasAPIKeyForSTT(selectedRealtimeProvider) {
             selectedRealtimeProvider = .macOS
+        }
+
+        // macOS STT doesn't support Auto — ensure a language is explicitly set
+        if selectedRealtimeProvider == .macOS && selectedSTTLanguage.isEmpty {
+            let available = LanguageCode.supportedLanguages(for: .macOS)
+            selectedSTTLanguage = available.first?.rawValue ?? "en"
         }
 
         // Validate TTS provider

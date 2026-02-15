@@ -245,8 +245,8 @@ extension LanguageCode {
             sorted.append(lang)
         }
 
-        // Add Auto at the beginning (uses system locale)
-        sorted.insert(.auto, at: 0)
+        // macOS STT does not support Auto — language must be explicitly selected
+        // (system locale may not match the user's speech language preference)
 
         return sorted
     }

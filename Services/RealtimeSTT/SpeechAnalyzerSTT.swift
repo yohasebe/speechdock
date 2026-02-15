@@ -95,17 +95,15 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
         #endif
 
         // Create locale based on selected language
+        // Note: macOS provider does not offer Auto — language is always explicitly set
         let locale: Locale
         if !selectedLanguage.isEmpty,
            let langCode = LanguageCode(rawValue: selectedLanguage),
            let localeId = langCode.toLocaleIdentifier() {
             locale = Locale(identifier: localeId)
         } else {
-            // Auto mode: construct a BCP-47 locale from system language
-            // Locale.current can produce identifiers like "ja_JP" which SpeechTranscriber may not support
-            let langId = Locale.current.language.languageCode?.identifier ?? "en"
-            let regionId = Locale.current.region?.identifier ?? "US"
-            locale = Locale(identifier: "\(langId)-\(regionId)")
+            // Fallback: should not reach here for macOS provider, but default to en-US
+            locale = Locale(identifier: "en-US")
         }
 
         #if DEBUG

@@ -182,10 +182,9 @@ final class FileTranscriptionService {
            let localeId = langCode.toLocaleIdentifier() {
             return Locale(identifier: localeId)
         }
-        // Auto mode: construct a BCP-47 locale from system language
-        let langId = Locale.current.language.languageCode?.identifier ?? "en"
-        let regionId = Locale.current.region?.identifier ?? "US"
-        return Locale(identifier: "\(langId)-\(regionId)")
+        // Auto mode: use system locale directly
+        // SFSpeechRecognizer accepts Locale.current; SpeechAnalyzer validates separately
+        return Locale.current
     }
 
     // MARK: - SFSpeechRecognizer File Transcription (all macOS versions)
@@ -227,8 +226,11 @@ final class FileTranscriptionService {
     /// Try SpeechAnalyzer transcription. Returns nil if model not available for the locale.
     @available(macOS 26, *)
     private func transcribeWithSpeechAnalyzerIfAvailable(fileURL: URL, locale: Locale) async throws -> TranscriptionResult? {
+        // Resolve locale to one supported by SpeechTranscriber
+        let resolvedLocale = await resolveLocaleForSpeechTranscriber(locale)
+
         let transcriber = SpeechTranscriber(
-            locale: locale,
+            locale: resolvedLocale,
             transcriptionOptions: [],
             reportingOptions: [.volatileResults],
             attributeOptions: []
@@ -386,6 +388,37 @@ final class FileTranscriptionService {
         }
 
         return TranscriptionResult(text: fullText)
+    }
+    /// Resolve a locale to one supported by SpeechTranscriber.
+    /// If the given locale is already supported, returns it as-is.
+    /// Otherwise, finds the best match from supported locales by language code.
+    @available(macOS 26, *)
+    private func resolveLocaleForSpeechTranscriber(_ locale: Locale) async -> Locale {
+        let supported = await SpeechTranscriber.supportedLocales
+        let langCode = locale.language.languageCode?.identifier ?? "en"
+
+        // Check if exact locale is supported
+        if supported.contains(where: { $0.identifier == locale.identifier }) {
+            return locale
+        }
+
+        // Find match by language+region
+        if let region = locale.region?.identifier,
+           let match = supported.first(where: {
+               $0.language.languageCode?.identifier == langCode &&
+               $0.region?.identifier == region
+           }) {
+            return match
+        }
+
+        // Find match by language only
+        if let match = supported.first(where: {
+            $0.language.languageCode?.identifier == langCode
+        }) {
+            return match
+        }
+
+        return Locale(identifier: "en-US")
     }
     #endif
 }

@@ -95,31 +95,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return .terminateNow
         }
 
-        // Allow termination for explicit "Quit SpeechDock" menu action
-        if isExplicitQuit {
+        // Detect ⌘Q keyboard shortcut — close panels instead of quitting (menu bar app behavior)
+        if !isExplicitQuit,
+           let event = NSApp.currentEvent,
+           event.type == .keyDown,
+           event.modifierFlags.contains(.command),
+           event.charactersIgnoringModifiers == "q" {
             return MainActor.assumeIsolated {
                 let appState = AppState.shared
-                appState.cancelRecording()
-                if appState.ttsState == .speaking || appState.ttsState == .loading {
-                    appState.stopTTS()
-                }
-                return .terminateNow
-            }
-        }
 
-        // NSApplicationDelegate methods are called on the main thread
-        // Use assumeIsolated to safely access @MainActor state synchronously
-        return MainActor.assumeIsolated {
-            let appState = AppState.shared
-
-            // Check if any panels or windows are visible
-            let panelVisible = appState.floatingWindowManager.isVisible
-            let subtitleVisible = SubtitleOverlayManager.shared.isVisible
-            let settingsVisible = WindowManager.shared.isSettingsWindowVisible
-            let menuBarPanelVisible = StatusBarManager.shared.isPanelVisible
-
-            // Close any visible panels/windows
-            if panelVisible || subtitleVisible || settingsVisible || menuBarPanelVisible {
                 // Clean up any active recordings
                 appState.cancelRecording()
 
@@ -128,21 +112,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     appState.stopTTS()
                 }
 
-                // Close floating panel
+                // Close all visible panels/windows
                 appState.floatingWindowManager.hideFloatingWindow()
-
-                // Hide subtitle overlay
                 SubtitleOverlayManager.shared.hide()
-
-                // Close settings window
                 WindowManager.shared.closeSettingsWindow()
-
-                // Close menu bar panel
                 StatusBarManager.shared.closePanel()
-            }
 
-            // Menu bar app: ⌘Q should never quit — only explicit "Quit" menu action can terminate
-            return .terminateCancel
+                return .terminateCancel
+            }
+        }
+
+        // Explicit quit (Quit button or app menu) — allow termination with cleanup
+        return MainActor.assumeIsolated {
+            let appState = AppState.shared
+            appState.cancelRecording()
+            if appState.ttsState == .speaking || appState.ttsState == .loading {
+                appState.stopTTS()
+            }
+            return .terminateNow
         }
     }
 
