@@ -22,6 +22,7 @@ Package.resolved
 .AppleDouble
 .LSOverride
 ._*
+.$*.bkp
 
 # App bundle and installer
 *.app
