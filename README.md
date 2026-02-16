@@ -2,11 +2,11 @@
   <img src="assets/social-preview.png" alt="SpeechDock - Listen and speak, from anywhere on your Mac" width="640">
 </p>
 
-**Making macOS TTS/STT more flexible and accessible** — macOS has powerful speech recognition and synthesis capabilities, but no convenient way to use them. SpeechDock fills this gap.
+**Hear any text on your screen** — Selected text, typed text, pasted content, or text captured via OCR from any screen region. If you can see it, SpeechDock can read it aloud.
 
-**Always accessible from your menu bar** — Use STT and TTS anywhere on your Mac with global hotkeys. Transcribe not only your voice but also system audio or audio from specific apps. Read aloud typed text, pasted content, or text captured via OCR from any screen region.
+**Transcribe any audio on your Mac** — Your voice through the microphone, system-wide audio, or sound from a specific app. If your Mac can hear it, SpeechDock can turn it into text in real time.
 
-**Ready to use immediately after installation** — No API keys or additional downloads required. macOS native STT and TTS work out of the box. Cloud providers are optional enhancements.
+**Always accessible from your menu bar** — Global hotkeys let you use STT and TTS from anywhere, without switching apps. Works immediately after installation with no API keys required. Cloud providers are optional enhancements.
 
 English | [日本語](README_ja.md)
 
@@ -140,15 +140,15 @@ API keys are securely stored in macOS Keychain.
 
 ### Permissions
 
-SpeechDock requires the following permissions:
+SpeechDock requires or recommends the following permissions:
 
-| Permission | Purpose |
-|------------|---------|
-| **Microphone** | Speech recognition input |
-| **Accessibility** | Global keyboard shortcuts and text insertion |
-| **Screen Recording** | Window thumbnails and System/App Audio capture |
+| Permission | Level | Purpose |
+|------------|-------|---------|
+| **Microphone** | Required | Speech recognition input |
+| **Accessibility** | Recommended | Global keyboard shortcuts and text insertion |
+| **Screen Recording** | Optional | System/App Audio capture, OCR, and window thumbnails |
 
-Grant permissions in **System Settings** > **Privacy & Security**. SpeechDock will prompt you on first use.
+On first launch, SpeechDock displays a permission setup window with real-time status indicators. Grant permissions in **System Settings** > **Privacy & Security** — the setup window updates automatically without restarting the app. Features that require missing permissions are disabled in the UI with clear visual indicators.
 
 ## Usage
 

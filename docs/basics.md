@@ -25,13 +25,15 @@ It works immediately after installation with no API keys or additional downloads
 
 ### Permissions
 
-SpeechDock will prompt you on first use. Grant permissions in **System Settings** > **Privacy & Security**.
+SpeechDock requires or recommends the following permissions:
 
-| Permission | Purpose |
-|------------|---------|
-| **Microphone** | Speech recognition input |
-| **Accessibility** | Global keyboard shortcuts and text insertion |
-| **Screen Recording** | System/App Audio capture and OCR |
+| Permission | Level | Purpose |
+|------------|-------|---------|
+| **Microphone** | Required | Speech recognition input |
+| **Accessibility** | Recommended | Global keyboard shortcuts and text insertion |
+| **Screen Recording** | Optional | System/App Audio capture, OCR, and window thumbnails |
+
+On first launch, SpeechDock displays a permission setup window with real-time status indicators. Grant permissions in **System Settings** > **Privacy & Security** — the setup window updates automatically without restarting the app. Features that require missing permissions are disabled in the UI with clear visual indicators.
 
 ## Speech-to-Text (STT)
 

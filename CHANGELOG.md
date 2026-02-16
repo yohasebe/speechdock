@@ -12,15 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multilingual localization: Simplified Chinese (zh-Hans), Korean (ko), German (de), French (fr)
 - macOS 26+ Liquid Glass support for menu bar panel
 - `Cmd + ,` keyboard shortcut support in menu bar panel
+- Reactive permission setup window with real-time status monitoring (replaces quit-and-reopen flow)
+  - PermissionService with polling + DistributedNotificationCenter for instant detection
+  - Checklist UI showing Microphone (Required), Accessibility (Recommended), Screen Recording (Optional)
+  - Permissions update in real-time without app restart
+- Screen Recording permission warning in menu bar panel
+- Permission-aware UI: buttons and input sources are disabled when required permissions are missing
+  - Subtitle Mode and Floating Mic Button disabled without Microphone permission
+  - OCR button disabled without Screen Recording permission
+  - System Audio / App Audio input sources disabled without Screen Recording permission
+  - Automatic fallback to microphone input when Screen Recording permission is revoked
 
 ### Changed
 - Menu bar panel simplified to quick actions only (settings controls moved to Settings window)
 - Settings window restructured from 4 tabs to 9 sidebar categories
 - About window integrated into Settings as a category
+- Permission checking delegated to PermissionService singleton (replaces inline checks in AppState)
+- Subtitle Mode and Floating Mic Button toggles keep menu bar panel open (instead of closing it)
+- Menu bar and settings sidebar icons use accent color
 
 ### Removed
 - Audio input/output selectors from menu bar panel
 - STT/TTS provider/model selectors from menu bar panel
+- Old permission alert with "Open Settings & Quit" flow (replaced by reactive setup window)
 
 ## [0.1.26] - 2026-02-14
 

@@ -13,7 +13,7 @@ nav_order: 1
 # SpeechDock
 {: .text-center }
 
-**A macOS menu bar app for Speech-to-Text and Text-to-Speech**
+**Any sound to text. Any text to speech. From your menu bar.**
 {: .text-center .fs-6 }
 
 [Download](https://github.com/yohasebe/SpeechDock/releases){: .btn .btn-primary .mr-2 }
@@ -24,24 +24,26 @@ nav_order: 1
 
 ## What is SpeechDock?
 
-SpeechDock makes macOS TTS/STT more flexible and accessible. While macOS includes powerful speech recognition and synthesis engines, there's no convenient way to use them. SpeechDock fills this gap — a menu bar application that makes TTS and STT accessible from anywhere on your Mac.
+**Hear any text on your screen** — Selected text, typed text, pasted content, or text captured via OCR from any screen region. If you can see it, SpeechDock can read it aloud.
 
-**Works immediately after installation** — no API keys or additional downloads required.
+**Transcribe any audio on your Mac** — Your voice through the microphone, system-wide audio, or sound from a specific app. If your Mac can hear it, SpeechDock can turn it into text in real time.
+
+A menu bar app that makes STT and TTS accessible from anywhere on your Mac with global hotkeys. Works immediately after installation — no API keys or additional downloads required.
 
 ---
 
 ## Key Features
 
 ### Speech-to-Text (STT)
-- **Multiple audio sources** — Microphone, System Audio, or specific App Audio
+- **Any audio source** — Microphone, System Audio, or specific App Audio
 - **Real-time transcription** — See text as you speak
 - **Subtitle mode** — Floating overlay for presentations and meetings
 - **Quick transcription** — Floating mic button for instant dictation
 
 ### Text-to-Speech (TTS)
+- **Any text source** — Type, paste, select in other apps, or OCR from screen
 - **Natural voices** — Use macOS built-in or cloud provider voices
 - **Speed control** — Adjust playback speed in real-time (0.5x to 2.0x)
-- **OCR to speech** — Capture and read text from any screen region
 - **Save audio** — Export speech to audio files
 
 ### Translation

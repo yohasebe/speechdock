@@ -45,6 +45,29 @@ macOS メニューバー常駐型の音声認識（STT）・音声合成（TTS�
 - `FloatingMicTextHUD.swift` - クイック入力HUD（リアルタイム文字起こし表示）
 - `WindowLevelCoordinator.swift` - ウィンドウレベル調整
 
+### 権限管理 (`Services/PermissionService.swift`)
+- `PermissionService` - @Observable @MainActor シングルトン、3つの権限をリアクティブに監視
+  - `microphoneGranted` / `accessibilityGranted` / `screenRecordingGranted` — 権限状態プロパティ
+  - `allRequiredGranted` — 必須権限（Microphone）が付与済みか
+  - `allGranted` — 全権限付与済みか
+  - `startMonitoring()` / `stopMonitoring()` — ポーリング＋通知の監視ライフサイクル
+  - ポーリング: 最初の10秒は0.5秒間隔、その後2秒間隔、全権限付与で停止、5分タイムアウト
+  - Accessibility: `DistributedNotificationCenter` (`com.apple.accessibility.api`) で即時検出
+  - `refreshAllPermissions()` — 即時リフレッシュ（`AVCaptureDevice`, `AXIsProcessTrusted`, `CGPreflightScreenCaptureAccess`）
+- `PermissionSetupController` (`Views/Settings/PermissionSetupController.swift`) — NSWindowライフサイクル管理
+- `PermissionSetupView` (`Views/Settings/PermissionSetupView.swift`) — SwiftUI セットアップビュー（チェックリスト形式）
+- `AppState` の権限プロパティは `PermissionService.shared` に委譲:
+  ```swift
+  var hasMicrophonePermission: Bool { PermissionService.shared.microphoneGranted }
+  var hasAccessibilityPermission: Bool { PermissionService.shared.accessibilityGranted }
+  var hasScreenRecordingPermission: Bool { PermissionService.shared.screenRecordingGranted }
+  ```
+- 権限不足時のUI対応:
+  - Subtitle Mode / Floating Mic Button: Microphone権限なしで無効化
+  - OCR: Screen Recording権限なしで無効化
+  - System Audio / App Audio: Screen Recording権限なしで無効化、Microphone入力にフォールバック
+  - メニューバー: 不足権限ごとにオレンジ色の警告バッジ表示
+
 ### 状態管理
 - `AppState.swift` - @Observable、シングルトン、全設定の保存/読み込み
 
@@ -384,12 +407,13 @@ speechdock/
 │   │   ├── SubtitleTranslationService.swift  # 字幕リアルタイム翻訳
 │   │   └── ...
 │   ├── HotKeyService.swift   # グローバルホットキー
+│   ├── PermissionService.swift  # リアクティブ権限監視
 │   └── ...
 ├── Views/
 │   ├── FloatingWindow/       # STT/TTSパネル
 │   ├── FloatingMicButton/    # クイック入力ボタン
 │   ├── Subtitle/             # 字幕オーバーレイ
-│   ├── Settings/             # 設定画面
+│   ├── Settings/             # 設定画面、権限セットアップ
 │   ├── Components/           # 共有UIコンポーネント（翻訳コントロールなど）
 │   └── MenuBarView.swift     # メニューバー
 ├── Tests/                    # ユニットテスト
