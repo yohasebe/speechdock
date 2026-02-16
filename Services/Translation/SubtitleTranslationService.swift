@@ -107,16 +107,13 @@ final class SubtitleTranslationService {
 
         // Update last known text
         lastSTTText = trimmedText
+        dprint("SubtitleTranslation: text='\(trimmedText.prefix(40))...', isFinal=\(isFinal), provider=\(appState.subtitleTranslationProvider.displayName)")
 
-        #if DEBUG
-        print("SubtitleTranslation: text='\(trimmedText.prefix(40))...', isFinal=\(isFinal), provider=\(appState.subtitleTranslationProvider.displayName)")
-        #endif
 
         if isFinal {
             // Final result - translate the full text immediately
-            #if DEBUG
-            print("SubtitleTranslation: isFinal=true, translating immediately")
-            #endif
+            dprint("SubtitleTranslation: isFinal=true, translating immediately")
+
             debounceTask?.cancel()
             pauseCheckTask?.cancel()
 
@@ -124,9 +121,8 @@ final class SubtitleTranslationService {
             await translateFullText(trimmedText, appState: appState)
         } else {
             // Partial result - schedule debounced translation
-            #if DEBUG
-            print("SubtitleTranslation: isFinal=false, scheduling debounced translation (interval: \(debounceIntervals[appState.subtitleTranslationProvider] ?? defaultDebounceInterval)ns)")
-            #endif
+            dprint("SubtitleTranslation: isFinal=false, scheduling debounced translation (interval: \(debounceIntervals[appState.subtitleTranslationProvider] ?? defaultDebounceInterval)ns)")
+
             await scheduleTranslation(fullText: trimmedText, appState: appState)
             // Start pause check for auto-confirm
             startPauseCheck(appState: appState)
@@ -186,9 +182,9 @@ final class SubtitleTranslationService {
             currentProvider = provider
 
             #if DEBUG
-            print("SubtitleTranslation: Created translator for \(provider.displayName), model: \(modelToUse), language: \(targetLang.displayName)")
+            dprint("SubtitleTranslation: Created translator for \(provider.displayName), model: \(modelToUse), language: \(targetLang.displayName)")
             if translator == nil {
-                print("SubtitleTranslation: WARNING - translator is nil!")
+                dprint("SubtitleTranslation: WARNING - translator is nil!")
             }
             #endif
 
@@ -212,15 +208,12 @@ final class SubtitleTranslationService {
             do {
                 try await Task.sleep(nanoseconds: interval)
                 guard !Task.isCancelled, let appState else {
-                    #if DEBUG
-                    print("SubtitleTranslation: Debounce cancelled")
-                    #endif
+                    dprint("SubtitleTranslation: Debounce cancelled")
+
                     return
                 }
+                dprint("SubtitleTranslation: Debounce fired, translating...")
 
-                #if DEBUG
-                print("SubtitleTranslation: Debounce fired, translating...")
-                #endif
                 await self?.translateFullText(textToTranslate, appState: appState)
             } catch {
                 // Cancelled, ignore
@@ -237,9 +230,8 @@ final class SubtitleTranslationService {
 
         // Prevent concurrent translations
         guard appState.subtitleTranslationState != .translating else {
-            #if DEBUG
-            print("SubtitleTranslation: Skipping - already translating")
-            #endif
+            dprint("SubtitleTranslation: Skipping - already translating")
+
             return
         }
 
@@ -247,9 +239,8 @@ final class SubtitleTranslationService {
         let cacheKey = makeCacheKey(text: text, language: appState.subtitleTranslationLanguage)
         if let cached = translationCache[cacheKey] {
             appState.subtitleTranslatedText = cached
-            #if DEBUG
-            print("SubtitleTranslation: Cache hit for '\(text.prefix(20))...'")
-            #endif
+            dprint("SubtitleTranslation: Cache hit for '\(text.prefix(20))...'")
+
             return
         }
 
@@ -259,10 +250,8 @@ final class SubtitleTranslationService {
             guard let translator = translator else {
                 throw TranslationError.translationUnavailable("Translator not available")
             }
+            dprint("SubtitleTranslation: Translating '\(text.prefix(40))...' to \(appState.subtitleTranslationLanguage.displayName)")
 
-            #if DEBUG
-            print("SubtitleTranslation: Translating '\(text.prefix(40))...' to \(appState.subtitleTranslationLanguage.displayName)")
-            #endif
 
             let translated = try await translator.translate(
                 text: text,
@@ -272,9 +261,8 @@ final class SubtitleTranslationService {
 
             // Validate translation result - don't cache empty results
             guard !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                #if DEBUG
-                print("SubtitleTranslation: Empty translation result, skipping cache")
-                #endif
+                dprint("SubtitleTranslation: Empty translation result, skipping cache")
+
                 appState.subtitleTranslationState = .idle
                 return
             }
@@ -292,15 +280,12 @@ final class SubtitleTranslationService {
             }
 
             appState.subtitleTranslationState = .idle
+            dprint("SubtitleTranslation: Success → '\(translated.prefix(40))...'")
 
-            #if DEBUG
-            print("SubtitleTranslation: Success → '\(translated.prefix(40))...'")
-            #endif
 
         } catch {
-            #if DEBUG
-            print("SubtitleTranslation: Error: \(error)")
-            #endif
+            dprint("SubtitleTranslation: Error: \(error)")
+
 
             let errorMessage = error.localizedDescription
             appState.subtitleTranslationState = .error(errorMessage)
@@ -332,15 +317,12 @@ final class SubtitleTranslationService {
                     // Only trigger if debounce hasn't already started translating
                     // Check if we're already translating
                     guard appState.subtitleTranslationState != .translating else {
-                        #if DEBUG
-                        print("SubtitleTranslation: Pause timeout skipped - already translating")
-                        #endif
+                        dprint("SubtitleTranslation: Pause timeout skipped - already translating")
+
                         break
                     }
+                    dprint("SubtitleTranslation: Pause timeout - triggering translation")
 
-                    #if DEBUG
-                    print("SubtitleTranslation: Pause timeout - triggering translation")
-                    #endif
 
                     // Cancel debounce and translate immediately
                     self.debounceTask?.cancel()

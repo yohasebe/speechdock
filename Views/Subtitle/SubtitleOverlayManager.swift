@@ -89,11 +89,9 @@ final class SubtitleOverlayManager {
                 height: windowHeight
             )
         }
+        dprint("SubtitleOverlayManager: Screen frame: \(targetScreen.frame), visible: \(screenFrame)")
+        dprint("SubtitleOverlayManager: Window frame: \(windowFrame)")
 
-        #if DEBUG
-        print("SubtitleOverlayManager: Screen frame: \(targetScreen.frame), visible: \(screenFrame)")
-        print("SubtitleOverlayManager: Window frame: \(windowFrame)")
-        #endif
 
         // Create the overlay window
         let window = NSWindow(
@@ -125,10 +123,8 @@ final class SubtitleOverlayManager {
 
         // Observe window move events to save position
         setupWindowMoveObserver(for: window)
+        dprint("SubtitleOverlayManager: Overlay shown on screen: \(targetScreen.localizedName)")
 
-        #if DEBUG
-        print("SubtitleOverlayManager: Overlay shown on screen: \(targetScreen.localizedName)")
-        #endif
     }
 
     /// Hide the subtitle overlay
@@ -148,10 +144,8 @@ final class SubtitleOverlayManager {
         windowToHide?.orderOut(nil)
 
         isHiding = false
+        dprint("SubtitleOverlayManager: Overlay hidden")
 
-        #if DEBUG
-        print("SubtitleOverlayManager: Overlay hidden")
-        #endif
     }
 
     /// Update the overlay position (top/bottom or custom)
@@ -228,10 +222,8 @@ final class SubtitleOverlayManager {
 
         // Clear dragging flag
         isDragging = false
+        dprint("SubtitleOverlayManager: Position saved at (\(frame.origin.x), \(frame.origin.y))")
 
-        #if DEBUG
-        print("SubtitleOverlayManager: Position saved at (\(frame.origin.x), \(frame.origin.y))")
-        #endif
     }
 
     private func cancelPendingSave() {

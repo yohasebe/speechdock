@@ -10,7 +10,7 @@ import Speech
 private func debugLog(_ message: String) {
     #if DEBUG
     let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-    print("[\(timestamp)] \(message)")
+    dprint("[\(timestamp)] \(message)")
     #endif
 }
 

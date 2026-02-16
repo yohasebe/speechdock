@@ -1,0 +1,7 @@
+/* Info.plist localization - Simplified Chinese */
+
+"NSMicrophoneUsageDescription" = "SpeechDock 需要麦克风访问权限来录制您的语音以进行转录。";
+"NSSpeechRecognitionUsageDescription" = "SpeechDock 使用语音识别进行实时转录。";
+"NSScreenCaptureUsageDescription" = "SpeechDock 需要屏幕录制权限以在选择粘贴目标时显示窗口缩略图。";
+"NSAppleEventsUsageDescription" = "SpeechDock 需要自动化访问权限以从其他应用程序复制选中的文本用于语音合成。";
+"NSHumanReadableCopyright" = "Copyright \U00A9 2026 Yoichiro Hasebe. All rights reserved.";

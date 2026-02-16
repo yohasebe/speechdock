@@ -149,9 +149,8 @@ final class StreamingAudioPlayer {
         if !preRollComplete {
             if pendingData.count >= preRollBufferBytes {
                 preRollComplete = true
-                #if DEBUG
-                print("StreamingAudioPlayer: Pre-roll complete, accumulated \(pendingData.count) bytes (~\(pendingData.count / 48)ms)")
-                #endif
+                dprint("StreamingAudioPlayer: Pre-roll complete, accumulated \(pendingData.count) bytes (~\(pendingData.count / 48)ms)")
+
                 // Schedule all accumulated data in chunks
                 while pendingData.count >= minBufferBytes {
                     let chunk = pendingData.prefix(minBufferBytes)
@@ -179,9 +178,8 @@ final class StreamingAudioPlayer {
 
         // If pre-roll wasn't complete (short audio), schedule all accumulated data now
         if !preRollComplete && !pendingData.isEmpty {
-            #if DEBUG
-            print("StreamingAudioPlayer: Stream ended before pre-roll complete, scheduling \(pendingData.count) bytes")
-            #endif
+            dprint("StreamingAudioPlayer: Stream ended before pre-roll complete, scheduling \(pendingData.count) bytes")
+
             preRollComplete = true
             // Schedule in chunks
             while pendingData.count >= minBufferBytes {
@@ -259,9 +257,8 @@ final class StreamingAudioPlayer {
         guard frameCount > 0 else { return }
 
         guard let buffer = AVAudioPCMBuffer(pcmFormat: pcmFormat, frameCapacity: frameCount) else {
-            #if DEBUG
-            print("StreamingAudioPlayer: Failed to create buffer")
-            #endif
+            dprint("StreamingAudioPlayer: Failed to create buffer")
+
             return
         }
 

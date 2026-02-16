@@ -186,9 +186,8 @@ enum TranslationAPIHelper {
                     if attempt < maxRetries - 1 {
                         let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
                         try await Task.sleep(nanoseconds: delay)
-                        #if DEBUG
-                        print("\(providerName) Translation: Retry \(attempt + 1)/\(maxRetries) after HTTP \(httpResponse.statusCode)")
-                        #endif
+                        dprint("\(providerName) Translation: Retry \(attempt + 1)/\(maxRetries) after HTTP \(httpResponse.statusCode)")
+
                         continue
                     }
                 }

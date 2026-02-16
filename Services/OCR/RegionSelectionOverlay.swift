@@ -92,10 +92,8 @@ class RegionSelectionOverlay: NSWindow {
         // Make this window key and first responder to receive events immediately
         self.makeKey()
         self.makeFirstResponder(selectionView)
+        dprint("RegionSelectionOverlay: Selection started, frame: \(allScreensFrame)")
 
-        #if DEBUG
-        print("RegionSelectionOverlay: Selection started, frame: \(allScreensFrame)")
-        #endif
     }
 
     /// Close the overlay and clean up
@@ -104,10 +102,8 @@ class RegionSelectionOverlay: NSWindow {
 
         // Close main window
         self.orderOut(nil)
+        dprint("RegionSelectionOverlay: Selection ended")
 
-        #if DEBUG
-        print("RegionSelectionOverlay: Selection ended")
-        #endif
     }
 
     // MARK: - Private Methods

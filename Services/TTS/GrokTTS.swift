@@ -52,9 +52,8 @@ final class GrokTTS: NSObject, TTSService {
     private func setupStreamingPlayer() {
         streamingPlayer.onPlaybackStarted = { [weak self] in
             guard let self = self else { return }
-            #if DEBUG
-            print("Grok TTS: Streaming playback started")
-            #endif
+            dprint("Grok TTS: Streaming playback started")
+
             self.delegate?.ttsDidStartSpeaking(self)
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
@@ -159,10 +158,8 @@ final class GrokTTS: NSObject, TTSService {
         guard let url = URL(string: "wss://api.x.ai/v1/realtime") else {
             throw TTSError.apiError("Invalid WebSocket URL")
         }
+        dprint("Grok TTS: Connecting to \(url.absoluteString)")
 
-        #if DEBUG
-        print("Grok TTS: Connecting to \(url.absoluteString)")
-        #endif
 
         var request = URLRequest(url: url)
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -224,10 +221,8 @@ final class GrokTTS: NSObject, TTSService {
               let jsonString = String(data: jsonData, encoding: .utf8) else {
             throw TTSError.apiError("Failed to serialize session config")
         }
+        dprint("Grok TTS: Sending session config: \(jsonString)")
 
-        #if DEBUG
-        print("Grok TTS: Sending session config: \(jsonString)")
-        #endif
 
         try await webSocketTask?.send(.string(jsonString))
 
@@ -278,10 +273,8 @@ final class GrokTTS: NSObject, TTSService {
 
         // Start streaming player
         try streamingPlayer.startStreaming()
+        dprint("Grok TTS: Sent text message and requested response")
 
-        #if DEBUG
-        print("Grok TTS: Sent text message and requested response")
-        #endif
     }
 
     private func waitForCompletion() async throws {
@@ -300,9 +293,8 @@ final class GrokTTS: NSObject, TTSService {
         if !accumulatedPCMData.isEmpty {
             if let m4aData = await convertPCMToM4A(accumulatedPCMData) {
                 lastAudioData = m4aData
-                #if DEBUG
-                print("Grok TTS: Converted to M4A, size: \(m4aData.count) bytes")
-                #endif
+                dprint("Grok TTS: Converted to M4A, size: \(m4aData.count) bytes")
+
             }
             accumulatedPCMData = Data()
         }
@@ -322,9 +314,8 @@ final class GrokTTS: NSObject, TTSService {
                     }
 
                 case .failure(let error):
-                    #if DEBUG
-                    print("Grok TTS: WebSocket receive error: \(error)")
-                    #endif
+                    dprint("Grok TTS: WebSocket receive error: \(error)")
+
                     if self.isSpeaking {
                         self.isSpeaking = false
                         self.delegate?.tts(self, didFailWithError: error)
@@ -356,15 +347,14 @@ final class GrokTTS: NSObject, TTSService {
 
         #if DEBUG
         if !eventType.starts(with: "rate_limits") {
-            print("Grok TTS: Received event: \(eventType)")
+            dprint("Grok TTS: Received event: \(eventType)")
         }
         #endif
 
         switch eventType {
         case "session.created", "session.updated":
-            #if DEBUG
-            print("Grok TTS: Session ready")
-            #endif
+            dprint("Grok TTS: Session ready")
+
 
         case "response.output_audio.delta":
             // Audio chunk received
@@ -376,23 +366,20 @@ final class GrokTTS: NSObject, TTSService {
             }
 
         case "response.output_audio.done":
-            #if DEBUG
-            print("Grok TTS: Audio generation complete")
-            #endif
+            dprint("Grok TTS: Audio generation complete")
+
             // Signal end of stream
             streamingPlayer.finishStream()
 
         case "response.done":
-            #if DEBUG
-            print("Grok TTS: Response complete")
-            #endif
+            dprint("Grok TTS: Response complete")
+
             isSpeaking = false
 
         case "error":
             let errorMessage = (json["error"] as? [String: Any])?["message"] as? String ?? "Unknown error"
-            #if DEBUG
-            print("Grok TTS: Error: \(errorMessage)")
-            #endif
+            dprint("Grok TTS: Error: \(errorMessage)")
+
             isSpeaking = false
             delegate?.tts(self, didFailWithError: TTSError.apiError(errorMessage))
 

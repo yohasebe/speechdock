@@ -26,9 +26,8 @@ final class TTSVoiceCache {
                 clearCache(for: provider)
             }
             defaults.set(currentCacheVersion, forKey: cacheVersionKey)
-            #if DEBUG
-            print("TTSVoiceCache: Migrated from version \(storedVersion) to \(currentCacheVersion)")
-            #endif
+            dprint("TTSVoiceCache: Migrated from version \(storedVersion) to \(currentCacheVersion)")
+
         }
     }
 
@@ -38,9 +37,8 @@ final class TTSVoiceCache {
 
         // Return nil if cache is expired
         if isCacheExpired(for: provider) {
-            #if DEBUG
-            print("TTSVoiceCache: Cache expired for \(provider.rawValue)")
-            #endif
+            dprint("TTSVoiceCache: Cache expired for \(provider.rawValue)")
+
             return nil
         }
 
@@ -60,9 +58,8 @@ final class TTSVoiceCache {
                 )
             }
         } catch {
-            #if DEBUG
-            print("TTSVoiceCache: Failed to decode cached voices for \(provider.rawValue): \(error.localizedDescription)")
-            #endif
+            dprint("TTSVoiceCache: Failed to decode cached voices for \(provider.rawValue): \(error.localizedDescription)")
+
             return nil
         }
     }
@@ -87,9 +84,8 @@ final class TTSVoiceCache {
             defaults.set(data, forKey: key)
             defaults.set(Date().timeIntervalSince1970, forKey: timestampKey)
         } catch {
-            #if DEBUG
-            print("TTSVoiceCache: Failed to cache voices for \(provider.rawValue): \(error)")
-            #endif
+            dprint("TTSVoiceCache: Failed to cache voices for \(provider.rawValue): \(error)")
+
         }
     }
 
@@ -110,9 +106,8 @@ final class TTSVoiceCache {
         for provider in TTSProvider.allCases {
             if isCacheExpired(for: provider) {
                 clearCache(for: provider)
-                #if DEBUG
-                print("TTSVoiceCache: Cleaned up expired cache for \(provider.rawValue)")
-                #endif
+                dprint("TTSVoiceCache: Cleaned up expired cache for \(provider.rawValue)")
+
             }
         }
     }

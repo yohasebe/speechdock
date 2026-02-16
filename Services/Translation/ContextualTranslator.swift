@@ -72,9 +72,8 @@ final class MacOSContextualTranslator: ContextualTranslator {
         // Skip only if we're confident it's the same language
         if let sourceLocale = detectedLocale,
            sourceLocale.languageCode == targetLocale.languageCode {
-            #if DEBUG
-            print("MacOSTranslation: Skipping - same language detected (\(sourceLocale.languageCode?.identifier ?? "?"))")
-            #endif
+            dprint("MacOSTranslation: Skipping - same language detected (\(sourceLocale.languageCode?.identifier ?? "?"))")
+
             return trimmedText
         }
 
@@ -120,10 +119,8 @@ final class MacOSContextualTranslator: ContextualTranslator {
                         ? Locale.Language(identifier: "ja")
                         : Locale.Language(identifier: "en")
                 }
+                dprint("MacOSTranslation: Language detection failed, using \(actualSourceLocale.languageCode?.identifier ?? "?") as source")
 
-                #if DEBUG
-                print("MacOSTranslation: Language detection failed, using \(actualSourceLocale.languageCode?.identifier ?? "?") as source")
-                #endif
             } else {
                 actualSourceLocale = sourceLocale
             }
@@ -474,10 +471,8 @@ final class MacOSTranslationAvailability {
             let result = Array(available).sorted { $0.displayName < $1.displayName }
             availableLanguagesCache = result
             lastCacheTime = Date()
+            dprint("MacOSTranslationAvailability: Found \(result.count) installed languages: \(result.map { $0.rawValue })")
 
-            #if DEBUG
-            print("MacOSTranslationAvailability: Found \(result.count) installed languages: \(result.map { $0.rawValue })")
-            #endif
 
             return result
         }

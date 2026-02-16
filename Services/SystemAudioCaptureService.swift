@@ -112,9 +112,8 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
 
             self.availableApps = apps
         } catch {
-            #if DEBUG
-            print("Failed to get shareable content: \(error)")
-            #endif
+            dprint("Failed to get shareable content: \(error)")
+
         }
     }
 
@@ -308,10 +307,8 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
         // Start capture
         try await stream.startCapture()
         isCapturing = true
+        dprint("SystemAudioCapture: Started capturing \(captureType.rawValue)")
 
-        #if DEBUG
-        print("SystemAudioCapture: Started capturing \(captureType.rawValue)")
-        #endif
     }
 
     /// Stop capturing
@@ -321,18 +318,15 @@ final class SystemAudioCaptureService: NSObject, ObservableObject {
         do {
             try await stream.stopCapture()
         } catch {
-            #if DEBUG
-            print("SystemAudioCapture: Error stopping capture: \(error)")
-            #endif
+            dprint("SystemAudioCapture: Error stopping capture: \(error)")
+
         }
 
         self.stream = nil
         self.streamOutput = nil
         isCapturing = false
+        dprint("SystemAudioCapture: Stopped capturing")
 
-        #if DEBUG
-        print("SystemAudioCapture: Stopped capturing")
-        #endif
     }
 }
 

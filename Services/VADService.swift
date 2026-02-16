@@ -32,13 +32,11 @@ final class VADService: ObservableObject {
             vadManager = try await VadManager(config: config)
             streamState = await vadManager?.makeStreamState()
             isInitialized = true
-            #if DEBUG
-            print("VADService: Initialized with threshold \(vadThreshold)")
-            #endif
+            dprint("VADService: Initialized with threshold \(vadThreshold)")
+
         } catch {
-            #if DEBUG
-            print("VADService: Failed to initialize: \(error)")
-            #endif
+            dprint("VADService: Failed to initialize: \(error)")
+
             throw error
         }
     }
@@ -77,7 +75,7 @@ final class VADService: ObservableObject {
 
             #if DEBUG
             if isSpeech != isSpeaking {
-                print("VADService: Speech state changed to \(isSpeech ? "speaking" : "silent") (prob: \(String(format: "%.2f", result.probability)))")
+                dprint("VADService: Speech state changed to \(isSpeech ? "speaking" : "silent") (prob: \(String(format: "%.2f", result.probability)))")
             }
             #endif
 
@@ -106,9 +104,8 @@ final class VADService: ObservableObject {
                 return VADResult(isSpeech: false, shouldCommitSegment: false)
             }
         } catch {
-            #if DEBUG
-            print("VADService: Processing error: \(error)")
-            #endif
+            dprint("VADService: Processing error: \(error)")
+
             // On error, assume speech to avoid losing audio
             return VADResult(isSpeech: true, shouldCommitSegment: false)
         }

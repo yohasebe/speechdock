@@ -214,10 +214,8 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     /// Restart recognition session to avoid Apple's ~1 minute limit
     private func restartRecognitionSession() {
         guard isListening, !isRestarting else { return }
+        dprint("MacOSRealtimeSTT: Restarting session to avoid Apple's time limit")
 
-        #if DEBUG
-        print("MacOSRealtimeSTT: Restarting session to avoid Apple's time limit")
-        #endif
 
         isRestarting = true
         restartTimestamp = Date()
@@ -250,9 +248,8 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
             do {
                 try await startListeningWithExistingRequest()
             } catch {
-                #if DEBUG
-                print("MacOSRealtimeSTT: Failed to restart session: \(error)")
-                #endif
+                dprint("MacOSRealtimeSTT: Failed to restart session: \(error)")
+
                 isRestarting = false
                 delegate?.realtimeSTT(self, didFailWithError: error)
             }

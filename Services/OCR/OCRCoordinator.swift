@@ -43,17 +43,15 @@ final class OCRCoordinator: ObservableObject {
     /// Start the region selection process
     func startSelection() {
         guard !isSelecting && !isProcessing else {
-            #if DEBUG
-            print("OCRCoordinator: Already selecting or processing")
-            #endif
+            dprint("OCRCoordinator: Already selecting or processing")
+
             return
         }
 
         // Check screen recording permission
         guard ScreenCaptureService.hasScreenRecordingPermission else {
-            #if DEBUG
-            print("OCRCoordinator: Screen recording permission not granted")
-            #endif
+            dprint("OCRCoordinator: Screen recording permission not granted")
+
             ScreenCaptureService.requestScreenRecordingPermission()
             onError?(OCRError.permissionDenied)
             return
@@ -71,10 +69,8 @@ final class OCRCoordinator: ObservableObject {
             self?.handleCancel()
         }
         overlayWindow?.beginSelection()
+        dprint("OCRCoordinator: Selection started")
 
-        #if DEBUG
-        print("OCRCoordinator: Selection started")
-        #endif
     }
 
     /// Cancel the current selection or processing
@@ -87,10 +83,8 @@ final class OCRCoordinator: ObservableObject {
 
         // Note: Cannot cancel ongoing OCR processing easily
         // It will complete in background
+        dprint("OCRCoordinator: Cancelled")
 
-        #if DEBUG
-        print("OCRCoordinator: Cancelled")
-        #endif
     }
 
     // MARK: - Private Methods
@@ -98,10 +92,8 @@ final class OCRCoordinator: ObservableObject {
     private func handleSelectionComplete(rect: CGRect) {
         isSelecting = false
         overlayWindow = nil
+        dprint("OCRCoordinator: Selection complete - \(rect)")
 
-        #if DEBUG
-        print("OCRCoordinator: Selection complete - \(rect)")
-        #endif
 
         // Start capture and OCR
         Task {
@@ -112,10 +104,8 @@ final class OCRCoordinator: ObservableObject {
     private func handleCancel() {
         isSelecting = false
         overlayWindow = nil
+        dprint("OCRCoordinator: Selection cancelled")
 
-        #if DEBUG
-        print("OCRCoordinator: Selection cancelled")
-        #endif
 
         onError?(nil)  // nil error indicates cancellation
     }
@@ -129,16 +119,14 @@ final class OCRCoordinator: ObservableObject {
 
         do {
             // Step 1: Capture the selected region
-            #if DEBUG
-            print("OCRCoordinator: Capturing region...")
-            #endif
+            dprint("OCRCoordinator: Capturing region...")
+
 
             let image = try ScreenCaptureService.capture(rect: rect)
 
             // Step 2: Perform OCR
-            #if DEBUG
-            print("OCRCoordinator: Performing OCR...")
-            #endif
+            dprint("OCRCoordinator: Performing OCR...")
+
 
             let recognizedText = try await OCRService.recognizeText(
                 from: image,
@@ -149,20 +137,16 @@ final class OCRCoordinator: ObservableObject {
             // Step 3: Report success
             lastRecognizedText = recognizedText
             lastError = nil
+            dprint("OCRCoordinator: OCR complete - \(recognizedText.prefix(100))...")
 
-            #if DEBUG
-            print("OCRCoordinator: OCR complete - \(recognizedText.prefix(100))...")
-            #endif
 
             onTextRecognized?(recognizedText)
 
         } catch {
             lastError = error
             lastRecognizedText = nil
+            dprint("OCRCoordinator: Error - \(error.localizedDescription)")
 
-            #if DEBUG
-            print("OCRCoordinator: Error - \(error.localizedDescription)")
-            #endif
 
             onError?(error)
         }

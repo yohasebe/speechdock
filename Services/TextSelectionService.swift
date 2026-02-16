@@ -22,16 +22,13 @@ final class TextSelectionService {
     func getSelectedText(from targetApp: NSRunningApplication? = nil) async -> String? {
         // Use pre-captured app if provided, otherwise get current frontmost
         let frontApp = targetApp ?? NSWorkspace.shared.frontmostApplication
+        dprint("TextSelectionService: getSelectedText called, target app: \(frontApp?.localizedName ?? "unknown") (bundle: \(frontApp?.bundleIdentifier ?? "unknown")), pre-captured: \(targetApp != nil)")
 
-        #if DEBUG
-        print("TextSelectionService: getSelectedText called, target app: \(frontApp?.localizedName ?? "unknown") (bundle: \(frontApp?.bundleIdentifier ?? "unknown")), pre-captured: \(targetApp != nil)")
-        #endif
 
         // Try accessibility API first (more reliable, less intrusive)
         if let text = getSelectedTextViaAccessibility(from: frontApp) {
-            #if DEBUG
-            print("TextSelectionService: Got text via Accessibility API, length: \(text.count)")
-            #endif
+            dprint("TextSelectionService: Got text via Accessibility API, length: \(text.count)")
+
             return text
         }
 
@@ -40,9 +37,9 @@ final class TextSelectionService {
         let clipboardText = await getSelectedTextViaClipboard(targetApp: frontApp)
         #if DEBUG
         if let text = clipboardText {
-            print("TextSelectionService: Got text via Clipboard fallback, length: \(text.count)")
+            dprint("TextSelectionService: Got text via Clipboard fallback, length: \(text.count)")
         } else {
-            print("TextSelectionService: No text found via any method")
+            dprint("TextSelectionService: No text found via any method")
         }
         #endif
         return clipboardText
@@ -71,7 +68,7 @@ final class TextSelectionService {
         if let targetApp = targetApp {
             #if DEBUG
             let currentFrontmost = NSWorkspace.shared.frontmostApplication
-            print("TextSelectionService: Current frontmost: \(currentFrontmost?.localizedName ?? "none"), target: \(targetApp.localizedName ?? "unknown")")
+            dprint("TextSelectionService: Current frontmost: \(currentFrontmost?.localizedName ?? "none"), target: \(targetApp.localizedName ?? "unknown")")
             #endif
 
             // Force activate the target app, ignoring other apps
@@ -82,7 +79,7 @@ final class TextSelectionService {
 
             #if DEBUG
             let newFrontmost = NSWorkspace.shared.frontmostApplication
-            print("TextSelectionService: After activation, frontmost: \(newFrontmost?.localizedName ?? "none")")
+            dprint("TextSelectionService: After activation, frontmost: \(newFrontmost?.localizedName ?? "none")")
             #endif
         }
 
@@ -96,17 +93,15 @@ final class TextSelectionService {
         var selectedText: String? = nil
         let startTime = Date()
         let pollIntervalNanoseconds = UInt64(pollInterval * 1_000_000_000)
+        dprint("TextSelectionService: Clipboard fallback - waiting for copy response (timeout: \(maxCopyWaitTime)s)")
 
-        #if DEBUG
-        print("TextSelectionService: Clipboard fallback - waiting for copy response (timeout: \(maxCopyWaitTime)s)")
-        #endif
 
         while Date().timeIntervalSince(startTime) < maxCopyWaitTime {
             if pasteboard.changeCount != clearedChangeCount {
                 // Clipboard was updated
                 #if DEBUG
                 let availableTypes = pasteboard.types?.map { $0.rawValue } ?? []
-                print("TextSelectionService: Clipboard updated, available types: \(availableTypes)")
+                dprint("TextSelectionService: Clipboard updated, available types: \(availableTypes)")
                 #endif
 
                 // Try to get rich text formats for better layout preservation
@@ -114,18 +109,16 @@ final class TextSelectionService {
                 // 1. Try HTML first (web browsers)
                 if let htmlString = pasteboard.string(forType: htmlType) {
                     selectedText = convertHTMLToFormattedText(htmlString)
-                    #if DEBUG
-                    print("TextSelectionService: Got HTML from clipboard, converted to formatted text")
-                    #endif
+                    dprint("TextSelectionService: Got HTML from clipboard, converted to formatted text")
+
                 }
 
                 // 2. Try RTF if HTML not available (Word, Pages, etc.)
                 if (selectedText == nil || selectedText?.isEmpty == true),
                    let rtfData = pasteboard.data(forType: .rtf) {
                     selectedText = convertRTFToFormattedText(rtfData)
-                    #if DEBUG
-                    print("TextSelectionService: Got RTF from clipboard, converted to formatted text")
-                    #endif
+                    dprint("TextSelectionService: Got RTF from clipboard, converted to formatted text")
+
                 }
 
                 // 3. Fall back to plain text if rich text conversion failed or unavailable
@@ -133,7 +126,7 @@ final class TextSelectionService {
                     selectedText = pasteboard.string(forType: .string)
                     #if DEBUG
                     if selectedText != nil {
-                        print("TextSelectionService: Got plain text from clipboard")
+                        dprint("TextSelectionService: Got plain text from clipboard")
                     }
                     #endif
                 }
@@ -146,9 +139,9 @@ final class TextSelectionService {
         #if DEBUG
         let elapsed = Date().timeIntervalSince(startTime)
         if selectedText != nil {
-            print("TextSelectionService: Clipboard fallback succeeded in \(String(format: "%.3f", elapsed))s")
+            dprint("TextSelectionService: Clipboard fallback succeeded in \(String(format: "%.3f", elapsed))s")
         } else {
-            print("TextSelectionService: Clipboard fallback timed out after \(String(format: "%.3f", elapsed))s")
+            dprint("TextSelectionService: Clipboard fallback timed out after \(String(format: "%.3f", elapsed))s")
         }
         #endif
 
@@ -159,9 +152,8 @@ final class TextSelectionService {
         if totalChanges <= 2 {
             clipboardService.restoreClipboardState(savedState)
         } else {
-            #if DEBUG
-            print("TextSelectionService: Clipboard modified externally, not restoring (changes: \(totalChanges))")
-            #endif
+            dprint("TextSelectionService: Clipboard modified externally, not restoring (changes: \(totalChanges))")
+
         }
 
         return selectedText
@@ -227,18 +219,16 @@ final class TextSelectionService {
 
         // Create key down event with Command modifier
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: true) else {
-            #if DEBUG
-            print("TextSelectionService: Failed to create key down event")
-            #endif
+            dprint("TextSelectionService: Failed to create key down event")
+
             return
         }
         keyDown.flags = .maskCommand
 
         // Create key up event with Command modifier
         guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCodeC, keyDown: false) else {
-            #if DEBUG
-            print("TextSelectionService: Failed to create key up event")
-            #endif
+            dprint("TextSelectionService: Failed to create key up event")
+
             return
         }
         keyUp.flags = .maskCommand
@@ -246,25 +236,20 @@ final class TextSelectionService {
         // Post events to the HID system
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
+        dprint("TextSelectionService: Sent Cmd+C via CGEvent")
 
-        #if DEBUG
-        print("TextSelectionService: Sent Cmd+C via CGEvent")
-        #endif
     }
 
     /// Alternative method using Accessibility API (requires accessibility permissions)
     /// - Parameter targetApp: The app to get selected text from (if nil, uses current frontmost)
     func getSelectedTextViaAccessibility(from targetApp: NSRunningApplication? = nil) -> String? {
         guard let app = targetApp ?? NSWorkspace.shared.frontmostApplication else {
-            #if DEBUG
-            print("TextSelectionService: No target application")
-            #endif
+            dprint("TextSelectionService: No target application")
+
             return nil
         }
+        dprint("TextSelectionService: Trying Accessibility API for \(app.localizedName ?? "unknown") (bundle: \(app.bundleIdentifier ?? "unknown"))")
 
-        #if DEBUG
-        print("TextSelectionService: Trying Accessibility API for \(app.localizedName ?? "unknown") (bundle: \(app.bundleIdentifier ?? "unknown"))")
-        #endif
 
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
 
@@ -274,9 +259,8 @@ final class TextSelectionService {
         guard focusResult == .success,
               let element = focusedElement,
               CFGetTypeID(element) == AXUIElementGetTypeID() else {
-            #if DEBUG
-            print("TextSelectionService: Accessibility API failed to get focused element (result: \(focusResult.rawValue))")
-            #endif
+            dprint("TextSelectionService: Accessibility API failed to get focused element (result: \(focusResult.rawValue))")
+
             return nil
         }
 
@@ -286,9 +270,8 @@ final class TextSelectionService {
         let textResult = AXUIElementCopyAttributeValue(axElement, kAXSelectedTextAttribute as CFString, &selectedText)
 
         guard textResult == .success, let text = selectedText as? String else {
-            #if DEBUG
-            print("TextSelectionService: Accessibility API failed to get selected text (result: \(textResult.rawValue))")
-            #endif
+            dprint("TextSelectionService: Accessibility API failed to get selected text (result: \(textResult.rawValue))")
+
             return nil
         }
 

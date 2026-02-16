@@ -103,9 +103,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             await flushPreBuffer()
         } catch {
             // Clean up on error
-            #if DEBUG
-            print("GeminiRealtimeSTT: startListening failed: \(error)")
-            #endif
+            dprint("GeminiRealtimeSTT: startListening failed: \(error)")
+
             stopListening()
             throw error
         }
@@ -113,10 +112,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
     func stopListening() {
         isIntentionallyStopping = true
+        dprint("GeminiRealtimeSTT: stopListening called, isListening=\(isListening)")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: stopListening called, isListening=\(isListening)")
-        #endif
 
         // Stop audio engine
         audioEngine?.stop()
@@ -150,10 +147,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         isSetupComplete = false
+        dprint("GeminiRealtimeSTT: stopListening completed")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: stopListening completed")
-        #endif
     }
 
     /// Process audio buffer from external source
@@ -184,10 +179,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         guard let url = URL(string: "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=\(apiKey)") else {
             throw RealtimeSTTError.apiError("Invalid WebSocket URL")
         }
+        dprint("GeminiRealtimeSTT: Connecting to WebSocket...")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: Connecting to WebSocket...")
-        #endif
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -214,10 +207,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             }
             try await Task.sleep(nanoseconds: 100_000_000)  // 0.1 second
         }
+        dprint("GeminiRealtimeSTT: WebSocket connected")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: WebSocket connected")
-        #endif
     }
 
     private func sendSetupMessage() async throws {
@@ -252,10 +243,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
               let jsonString = String(data: jsonData, encoding: .utf8) else {
             throw RealtimeSTTError.apiError("Failed to serialize setup message")
         }
+        dprint("GeminiRealtimeSTT: Sending setup: \(jsonString)")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: Sending setup: \(jsonString)")
-        #endif
 
         try await webSocketTask?.send(.string(jsonString))
     }
@@ -270,9 +259,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
                     }
                 } catch {
                     await MainActor.run {
-                        #if DEBUG
-                        print("GeminiRealtimeSTT: WebSocket receive error: \(error)")
-                        #endif
+                        dprint("GeminiRealtimeSTT: WebSocket receive error: \(error)")
+
                         if self.isListening && !self.isIntentionallyStopping {
                             Task {
                                 await self.handleUnexpectedDisconnection()
@@ -301,10 +289,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         }
         reconnectAttempts += 1
         let delay = pow(2.0, Double(reconnectAttempts - 1))  // 1s, 2s, 4s
+        dprint("GeminiRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
-        #endif
 
         delegate?.realtimeSTT(self, didReceivePartialResult: "[Reconnecting...]")
 
@@ -325,13 +311,11 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             try await connectWebSocket(apiKey: apiKey)
             try await sendSetupMessage()
             reconnectAttempts = 0
-            #if DEBUG
-            print("GeminiRealtimeSTT: Reconnected successfully")
-            #endif
+            dprint("GeminiRealtimeSTT: Reconnected successfully")
+
         } catch {
-            #if DEBUG
-            print("GeminiRealtimeSTT: Reconnect failed: \(error)")
-            #endif
+            dprint("GeminiRealtimeSTT: Reconnect failed: \(error)")
+
             await handleUnexpectedDisconnection()
         }
     }
@@ -352,23 +336,21 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private func parseMessage(_ jsonString: String) {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            #if DEBUG
-            print("GeminiRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
-            #endif
+            dprint("GeminiRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+
             return
         }
 
         #if DEBUG
         // Log full message for debugging
-        print("GeminiRealtimeSTT: Received message: \(jsonString.prefix(500))")
+        dprint("GeminiRealtimeSTT: Received message: \(jsonString.prefix(500))")
         #endif
 
         // Check for setup complete
         if json["setupComplete"] != nil {
             isSetupComplete = true
-            #if DEBUG
-            print("GeminiRealtimeSTT: Setup complete")
-            #endif
+            dprint("GeminiRealtimeSTT: Setup complete")
+
             return
         }
 
@@ -376,34 +358,30 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         if let inputTranscription = json["inputTranscription"] as? [String: Any],
            let text = inputTranscription["text"] as? String, !text.isEmpty {
             appendTranscriptionText(text)
-            #if DEBUG
-            print("GeminiRealtimeSTT: Transcription (top-level): '\(text)' -> accumulated: '\(accumulatedText.suffix(100))'")
-            #endif
+            dprint("GeminiRealtimeSTT: Transcription (top-level): '\(text)' -> accumulated: '\(accumulatedText.suffix(100))'")
+
             delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
             return
         }
 
         // Check for server content (transcription may be nested here)
         if let serverContent = json["serverContent"] as? [String: Any] {
-            #if DEBUG
-            print("GeminiRealtimeSTT: serverContent keys: \(serverContent.keys)")
-            #endif
+            dprint("GeminiRealtimeSTT: serverContent keys: \(serverContent.keys)")
+
 
             // Check for inputTranscription in serverContent
             if let inputTranscription = serverContent["inputTranscription"] as? [String: Any],
                let text = inputTranscription["text"] as? String, !text.isEmpty {
                 appendTranscriptionText(text)
-                #if DEBUG
-                print("GeminiRealtimeSTT: Transcription (serverContent): '\(text)'")
-                #endif
+                dprint("GeminiRealtimeSTT: Transcription (serverContent): '\(text)'")
+
                 delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
             }
 
             // Check for turnComplete to send final result
             if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
-                #if DEBUG
-                print("GeminiRealtimeSTT: Turn complete")
-                #endif
+                dprint("GeminiRealtimeSTT: Turn complete")
+
             }
             return
         }
@@ -411,9 +389,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         // Check for errors
         if let error = json["error"] as? [String: Any] {
             let message = error["message"] as? String ?? "Unknown error"
-            #if DEBUG
-            print("GeminiRealtimeSTT: Error: \(message)")
-            #endif
+            dprint("GeminiRealtimeSTT: Error: \(message)")
+
             delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.apiError(message))
         }
     }
@@ -507,9 +484,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         let status = converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
 
         if status == .error || error != nil {
-            #if DEBUG
-            print("GeminiRealtimeSTT: Audio conversion error: \(error?.localizedDescription ?? "unknown")")
-            #endif
+            dprint("GeminiRealtimeSTT: Audio conversion error: \(error?.localizedDescription ?? "unknown")")
+
             return Data()
         }
 
@@ -608,10 +584,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         preBuffer.removeAll()
         isPreBuffering = false
         preBufferLock.unlock()
+        dprint("GeminiRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
 
-        #if DEBUG
-        print("GeminiRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
-        #endif
 
         for data in buffersToFlush {
             sendAudioData(data)
@@ -639,17 +613,15 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
-            #if DEBUG
-            print("GeminiRealtimeSTT: Failed to serialize audio buffer message")
-            #endif
+            dprint("GeminiRealtimeSTT: Failed to serialize audio buffer message")
+
             return
         }
 
         webSocketTask.send(.string(jsonString)) { error in
             if let error = error {
-                #if DEBUG
-                print("GeminiRealtimeSTT: Send error: \(error)")
-                #endif
+                dprint("GeminiRealtimeSTT: Send error: \(error)")
+
             }
         }
     }
@@ -660,9 +632,9 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
         #if DEBUG
         let debugText = newText.replacingOccurrences(of: " ", with: "␣")
-        print("GeminiRealtimeSTT: appendTranscriptionText")
-        print("  - newText (raw): '\(debugText)'")
-        print("  - accumulatedText before: '\(accumulatedText.suffix(80))'")
+        dprint("GeminiRealtimeSTT: appendTranscriptionText")
+        dprint("  - newText (raw): '\(debugText)'")
+        dprint("  - accumulatedText before: '\(accumulatedText.suffix(80))'")
         #endif
 
         var processedText = newText
@@ -684,11 +656,9 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         guard !processedText.isEmpty else { return }
 
         accumulatedText += processedText
+        dprint("  - processedText: '\(processedText)'")
+        dprint("  - accumulatedText after: '\(accumulatedText.suffix(80))'")
 
-        #if DEBUG
-        print("  - processedText: '\(processedText)'")
-        print("  - accumulatedText after: '\(accumulatedText.suffix(80))'")
-        #endif
     }
 
     /// Check if a single character is CJK
@@ -756,9 +726,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
 extension GeminiRealtimeSTT: URLSessionWebSocketDelegate {
     nonisolated func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        #if DEBUG
-        print("GeminiRealtimeSTT: WebSocket didOpen")
-        #endif
+        dprint("GeminiRealtimeSTT: WebSocket didOpen")
+
 
         // Delegate is called on main queue (OperationQueue.main)
         MainActor.assumeIsolated {
@@ -768,9 +737,8 @@ extension GeminiRealtimeSTT: URLSessionWebSocketDelegate {
 
     nonisolated func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "unknown"
-        #if DEBUG
-        print("GeminiRealtimeSTT: WebSocket didClose with code: \(closeCode.rawValue), reason: \(reasonString)")
-        #endif
+        dprint("GeminiRealtimeSTT: WebSocket didClose with code: \(closeCode.rawValue), reason: \(reasonString)")
+
 
         MainActor.assumeIsolated {
             self.isWebSocketConnected = false
@@ -779,9 +747,8 @@ extension GeminiRealtimeSTT: URLSessionWebSocketDelegate {
 
     nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
-            #if DEBUG
-            print("GeminiRealtimeSTT: URLSession task completed with error: \(error)")
-            #endif
+            dprint("GeminiRealtimeSTT: URLSession task completed with error: \(error)")
+
         }
     }
 }

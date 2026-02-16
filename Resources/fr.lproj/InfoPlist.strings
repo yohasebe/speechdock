@@ -1,0 +1,7 @@
+/* Info.plist localization - French */
+
+"NSMicrophoneUsageDescription" = "SpeechDock a besoin de l'accès au microphone pour enregistrer votre voix en vue de la transcription.";
+"NSSpeechRecognitionUsageDescription" = "SpeechDock utilise la reconnaissance vocale pour la transcription en temps réel.";
+"NSScreenCaptureUsageDescription" = "SpeechDock a besoin de l'accès à l'enregistrement d'écran pour afficher les vignettes des fenêtres lors de la sélection d'une cible de collage.";
+"NSAppleEventsUsageDescription" = "SpeechDock a besoin de l'accès à l'automatisation pour copier le texte sélectionné depuis d'autres applications pour la synthèse vocale.";
+"NSHumanReadableCopyright" = "Copyright \U00A9 2026 Yoichiro Hasebe. All rights reserved.";

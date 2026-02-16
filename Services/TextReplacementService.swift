@@ -273,9 +273,8 @@ final class TextReplacementService: ObservableObject {
         do {
             rules = try JSONDecoder().decode([TextReplacementRule].self, from: data)
         } catch {
-            #if DEBUG
-            print("TextReplacementService: Failed to load rules: \(error)")
-            #endif
+            dprint("TextReplacementService: Failed to load rules: \(error)")
+
             rules = []
         }
     }
@@ -285,9 +284,8 @@ final class TextReplacementService: ObservableObject {
             let data = try JSONEncoder().encode(rules)
             UserDefaults.standard.set(data, forKey: storageKey)
         } catch {
-            #if DEBUG
-            print("TextReplacementService: Failed to save rules: \(error)")
-            #endif
+            dprint("TextReplacementService: Failed to save rules: \(error)")
+
         }
     }
 
@@ -307,9 +305,8 @@ final class TextReplacementService: ObservableObject {
                 }
             }
         } catch {
-            #if DEBUG
-            print("TextReplacementService: Failed to load built-in settings: \(error)")
-            #endif
+            dprint("TextReplacementService: Failed to load built-in settings: \(error)")
+
             builtInSettings = [:]
         }
     }
@@ -323,9 +320,8 @@ final class TextReplacementService: ObservableObject {
             let data = try JSONEncoder().encode(encoded)
             UserDefaults.standard.set(data, forKey: builtInStorageKey)
         } catch {
-            #if DEBUG
-            print("TextReplacementService: Failed to save built-in settings: \(error)")
-            #endif
+            dprint("TextReplacementService: Failed to save built-in settings: \(error)")
+
         }
     }
 
@@ -352,14 +348,11 @@ final class TextReplacementService: ObservableObject {
                 encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
                 let data = try encoder.encode(exportData)
                 try data.write(to: url)
+                dprint("TextReplacementService: Exported \(self.rules.count) rules and \(self.builtInSettings.count) built-in settings to \(url.path)")
 
-                #if DEBUG
-                print("TextReplacementService: Exported \(self.rules.count) rules and \(self.builtInSettings.count) built-in settings to \(url.path)")
-                #endif
             } catch {
-                #if DEBUG
-                print("TextReplacementService: Failed to export rules: \(error)")
-                #endif
+                dprint("TextReplacementService: Failed to export rules: \(error)")
+
             }
         }
     }
@@ -389,9 +382,8 @@ final class TextReplacementService: ObservableObject {
                 self.importCustomRules(importedRules, merge: merge)
 
             } catch {
-                #if DEBUG
-                print("TextReplacementService: Failed to import rules: \(error)")
-                #endif
+                dprint("TextReplacementService: Failed to import rules: \(error)")
+
             }
         }
     }
@@ -408,10 +400,8 @@ final class TextReplacementService: ObservableObject {
             }
         }
         saveBuiltInSettings()
+        dprint("TextReplacementService: Imported \(exportData.customRules.count) rules and \(exportData.builtInPatterns.count) built-in settings")
 
-        #if DEBUG
-        print("TextReplacementService: Imported \(exportData.customRules.count) rules and \(exportData.builtInPatterns.count) built-in settings")
-        #endif
     }
 
     /// Import custom rules only
@@ -435,10 +425,8 @@ final class TextReplacementService: ObservableObject {
         }
 
         self.saveRules()
+        dprint("TextReplacementService: Imported \(importedRules.count) custom rules")
 
-        #if DEBUG
-        print("TextReplacementService: Imported \(importedRules.count) custom rules")
-        #endif
     }
 
     /// Clear all rules

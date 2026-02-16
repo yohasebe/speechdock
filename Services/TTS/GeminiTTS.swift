@@ -81,9 +81,8 @@ final class GeminiTTS: NSObject, TTSService {
     private func setupStreamingPlayer() {
         streamingPlayer.onPlaybackStarted = { [weak self] in
             guard let self = self else { return }
-            #if DEBUG
-            print("Gemini TTS: Streaming playback started")
-            #endif
+            dprint("Gemini TTS: Streaming playback started")
+
             self.delegate?.ttsDidStartSpeaking(self)
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
@@ -144,10 +143,8 @@ final class GeminiTTS: NSObject, TTSService {
         let wsTask = session.webSocketTask(with: url)
         webSocketTask = wsTask
         wsTask.resume()
+        dprint("Gemini TTS: WebSocket connection started")
 
-        #if DEBUG
-        print("Gemini TTS: WebSocket connection started")
-        #endif
 
         // Send setup message
         // Use gemini-2.5-flash-native-audio for Live API with audio output
@@ -194,10 +191,8 @@ final class GeminiTTS: NSObject, TTSService {
         @unknown default:
             throw TTSError.apiError("Unknown response type during setup")
         }
+        dprint("Gemini TTS: Setup complete")
 
-        #if DEBUG
-        print("Gemini TTS: Setup complete")
-        #endif
 
         // Set initial playback rate from selectedSpeed
         streamingPlayer.setPlaybackRate(Float(selectedSpeed))
@@ -211,10 +206,8 @@ final class GeminiTTS: NSObject, TTSService {
         // Process each text chunk
         for (chunkIndex, chunk) in textChunks.enumerated() {
             guard isStreamingActive else { break }
+            dprint("Gemini TTS: Sending chunk \(chunkIndex + 1)/\(textChunks.count) (\(chunk.count) chars)")
 
-            #if DEBUG
-            print("Gemini TTS: Sending chunk \(chunkIndex + 1)/\(textChunks.count) (\(chunk.count) chars)")
-            #endif
 
             // Send text chunk with explicit verbatim instruction
             let textToSpeak = "READ VERBATIM (do not skip or summarize):\n\n\(chunk)"
@@ -291,9 +284,8 @@ final class GeminiTTS: NSObject, TTSService {
                     }
                 } catch {
                     if isStreamingActive {
-                        #if DEBUG
-                        print("Gemini TTS: WebSocket receive error: \(error.localizedDescription)")
-                        #endif
+                        dprint("Gemini TTS: WebSocket receive error: \(error.localizedDescription)")
+
                         // Mark streaming as inactive to stop processing
                         isStreamingActive = false
                         // Close WebSocket immediately on error
@@ -306,7 +298,7 @@ final class GeminiTTS: NSObject, TTSService {
 
             #if DEBUG
             if chunkAudioBytes == 0 {
-                print("Gemini TTS: WARNING - No audio received for chunk \(chunkIndex + 1)!")
+                dprint("Gemini TTS: WARNING - No audio received for chunk \(chunkIndex + 1)!")
             }
             #endif
 
@@ -331,10 +323,8 @@ final class GeminiTTS: NSObject, TTSService {
             webSocketTask = nil
         }
         isStreamingActive = false
+        dprint("Gemini TTS: All chunks complete. Total: \(totalChunkCount) audio chunks, \(totalAudioBytes) bytes")
 
-        #if DEBUG
-        print("Gemini TTS: All chunks complete. Total: \(totalChunkCount) audio chunks, \(totalAudioBytes) bytes")
-        #endif
 
         // Convert accumulated PCM to M4A for saving (await to ensure lastAudioData is ready for Save Audio)
         if !accumulatedPCMData.isEmpty {
@@ -348,16 +338,14 @@ final class GeminiTTS: NSObject, TTSService {
             if let m4aData = await AudioConverter.convertToAAC(inputData: wavData, inputExtension: "wav") {
                 lastAudioData = m4aData
                 _audioFileExtension = "m4a"
-                #if DEBUG
-                print("Gemini TTS: Converted to M4A, size: \(m4aData.count) bytes")
-                #endif
+                dprint("Gemini TTS: Converted to M4A, size: \(m4aData.count) bytes")
+
             } else {
                 // Fallback to WAV if M4A conversion fails
                 lastAudioData = wavData
                 _audioFileExtension = "wav"
-                #if DEBUG
-                print("Gemini TTS: M4A conversion failed, using WAV")
-                #endif
+                dprint("Gemini TTS: M4A conversion failed, using WAV")
+
             }
         }
     }

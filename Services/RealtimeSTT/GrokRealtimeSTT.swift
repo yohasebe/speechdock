@@ -195,10 +195,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
         guard let url = URL(string: "wss://api.x.ai/v1/realtime") else {
             throw RealtimeSTTError.apiError("Invalid WebSocket URL")
         }
+        dprint("GrokRealtimeSTT: Connecting to \(url.absoluteString)")
 
-        #if DEBUG
-        print("GrokRealtimeSTT: Connecting to \(url.absoluteString)")
-        #endif
 
         var request = URLRequest(url: url)
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -240,7 +238,7 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
 
         #if DEBUG
         let elapsed = Date().timeIntervalSince(startTime)
-        print("GrokRealtimeSTT: Session created after \(String(format: "%.2f", elapsed))s")
+        dprint("GrokRealtimeSTT: Session created after \(String(format: "%.2f", elapsed))s")
         #endif
     }
 
@@ -261,10 +259,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
             threshold = NSDecimalNumber(string: "0.25")
             silenceDurationMs = 250  // Shorter to finalize faster
             prefixPaddingMs = 200
+            dprint("GrokRealtimeSTT: External source VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms")
 
-            #if DEBUG
-            print("GrokRealtimeSTT: External source VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms")
-            #endif
         } else {
             // Microphone: Use adaptive VAD parameters based on detected noise floor
             let adaptiveThreshold = audioLevelMonitor.recommendedVADThreshold()
@@ -274,10 +270,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
             threshold = NSDecimalNumber(string: String(format: "%.2f", adaptiveThreshold))
             silenceDurationMs = adaptiveSilenceMs
             prefixPaddingMs = 300
+            dprint("GrokRealtimeSTT: Microphone VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms, noise floor: \(audioLevelMonitor.noiseFloor)")
 
-            #if DEBUG
-            print("GrokRealtimeSTT: Microphone VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms, noise floor: \(audioLevelMonitor.noiseFloor)")
-            #endif
         }
 
         let config: [String: Any] = [
@@ -308,10 +302,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
               let jsonString = String(data: jsonData, encoding: .utf8) else {
             throw RealtimeSTTError.apiError("Failed to serialize session config")
         }
+        dprint("GrokRealtimeSTT: Sending session config: \(jsonString)")
 
-        #if DEBUG
-        print("GrokRealtimeSTT: Sending session config: \(jsonString)")
-        #endif
 
         try await webSocketTask?.send(.string(jsonString))
     }
@@ -326,9 +318,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
                     }
                 } catch {
                     await MainActor.run {
-                        #if DEBUG
-                        print("GrokRealtimeSTT: WebSocket receive error: \(error)")
-                        #endif
+                        dprint("GrokRealtimeSTT: WebSocket receive error: \(error)")
+
                         if self.isListening && !self.isIntentionallyStopping {
                             Task {
                                 await self.handleUnexpectedDisconnection()
@@ -357,10 +348,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
         }
         reconnectAttempts += 1
         let delay = pow(2.0, Double(reconnectAttempts - 1))  // 1s, 2s, 4s
+        dprint("GrokRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
 
-        #if DEBUG
-        print("GrokRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
-        #endif
 
         delegate?.realtimeSTT(self, didReceivePartialResult: "[Reconnecting...]")
 
@@ -380,13 +369,11 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
             try await connectWebSocket(apiKey: apiKey)
             try await configureSession()
             reconnectAttempts = 0
-            #if DEBUG
-            print("GrokRealtimeSTT: Reconnected successfully")
-            #endif
+            dprint("GrokRealtimeSTT: Reconnected successfully")
+
         } catch {
-            #if DEBUG
-            print("GrokRealtimeSTT: Reconnect failed: \(error)")
-            #endif
+            dprint("GrokRealtimeSTT: Reconnect failed: \(error)")
+
             await handleUnexpectedDisconnection()
         }
     }
@@ -408,30 +395,27 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let eventType = json["type"] as? String else {
-            #if DEBUG
-            print("GrokRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
-            #endif
+            dprint("GrokRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+
             return
         }
 
         #if DEBUG
         if eventType != "input_audio_buffer.speech_started" &&
            eventType != "input_audio_buffer.speech_stopped" {
-            print("GrokRealtimeSTT: Received event: \(eventType)")
+            dprint("GrokRealtimeSTT: Received event: \(eventType)")
         }
         #endif
 
         switch eventType {
         case "session.created":
             sessionCreated = true
-            #if DEBUG
-            print("GrokRealtimeSTT: Session created")
-            #endif
+            dprint("GrokRealtimeSTT: Session created")
+
 
         case "session.updated":
-            #if DEBUG
-            print("GrokRealtimeSTT: Session updated")
-            #endif
+            dprint("GrokRealtimeSTT: Session updated")
+
 
         case "response.output_item.added":
             // This indicates the next conversation.item.added is a response item, not user input
@@ -477,21 +461,19 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
             break
 
         case "input_audio_buffer.committed":
-            #if DEBUG
-            print("GrokRealtimeSTT: Audio buffer committed")
-            #endif
+            dprint("GrokRealtimeSTT: Audio buffer committed")
+
 
         case "error":
             let errorMessage = (json["error"] as? [String: Any])?["message"] as? String ?? "Unknown error"
-            #if DEBUG
-            print("GrokRealtimeSTT: Error: \(errorMessage)")
-            #endif
+            dprint("GrokRealtimeSTT: Error: \(errorMessage)")
+
             delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.apiError(errorMessage))
 
         default:
             #if DEBUG
             if !eventType.starts(with: "rate_limits") && !eventType.starts(with: "response.") {
-                print("GrokRealtimeSTT: Unhandled event type: \(eventType)")
+                dprint("GrokRealtimeSTT: Unhandled event type: \(eventType)")
             }
             #endif
         }
@@ -616,10 +598,8 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
         preBuffer.removeAll()
         isPreBuffering = false
         preBufferLock.unlock()
+        dprint("GrokRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
 
-        #if DEBUG
-        print("GrokRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
-        #endif
 
         for data in buffersToFlush {
             sendAudioData(data)
@@ -641,17 +621,15 @@ final class GrokRealtimeSTT: NSObject, RealtimeSTTService {
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
-            #if DEBUG
-            print("GrokRealtimeSTT: Failed to serialize audio buffer message")
-            #endif
+            dprint("GrokRealtimeSTT: Failed to serialize audio buffer message")
+
             return
         }
 
         webSocketTask.send(.string(jsonString)) { error in
             if let error = error {
-                #if DEBUG
-                print("GrokRealtimeSTT: Send error: \(error)")
-                #endif
+                dprint("GrokRealtimeSTT: Send error: \(error)")
+
             }
         }
     }

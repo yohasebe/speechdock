@@ -26,7 +26,7 @@ final class LaunchAtLoginService {
                         try SMAppService.mainApp.unregister()
                     }
                 } catch {
-                    print("Failed to update launch at login: \(error)")
+                    dprint("Failed to update launch at login: \(error)")
                 }
             }
         }

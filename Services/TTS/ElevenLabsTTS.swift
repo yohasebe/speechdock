@@ -68,9 +68,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
     private func setupStreamingPlayer() {
         streamingPlayer.onPlaybackStarted = { [weak self] in
             guard let self = self else { return }
-            #if DEBUG
-            print("ElevenLabs TTS: Streaming playback started")
-            #endif
+            dprint("ElevenLabs TTS: Streaming playback started")
+
             self.delegate?.ttsDidStartSpeaking(self)
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
@@ -149,10 +148,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
         // Start streaming player
         try streamingPlayer.startStreaming()
+        dprint("ElevenLabs TTS: Starting streaming request")
 
-        #if DEBUG
-        print("ElevenLabs TTS: Starting streaming request")
-        #endif
 
         // Stream response using URLSession.bytes
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
@@ -198,18 +195,15 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
         // Signal end of stream
         streamingPlayer.finishStream()
+        dprint("ElevenLabs TTS: Streaming complete, total bytes: \(accumulatedPCMData.count)")
 
-        #if DEBUG
-        print("ElevenLabs TTS: Streaming complete, total bytes: \(accumulatedPCMData.count)")
-        #endif
 
         // Convert accumulated PCM to M4A for saving (await to ensure lastAudioData is ready for Save Audio)
         if !accumulatedPCMData.isEmpty {
             if let m4aData = await convertPCMToM4A(accumulatedPCMData) {
                 lastAudioData = m4aData
-                #if DEBUG
-                print("ElevenLabs TTS: Converted to M4A, size: \(m4aData.count) bytes")
-                #endif
+                dprint("ElevenLabs TTS: Converted to M4A, size: \(m4aData.count) bytes")
+
             }
             // Clear accumulated PCM data to free memory (M4A is now stored in lastAudioData)
             accumulatedPCMData = Data()
@@ -359,16 +353,14 @@ final class ElevenLabsTTS: NSObject, TTSService {
     /// Fetch voices from ElevenLabs API and update cache
     static func fetchAndCacheVoices() async {
         guard let apiKey = APIKeyManager.shared.getAPIKey(for: .elevenLabs) else {
-            #if DEBUG
-            print("ElevenLabs: No API key for voice fetching")
-            #endif
+            dprint("ElevenLabs: No API key for voice fetching")
+
             return
         }
 
         guard let url = URL(string: "https://api.elevenlabs.io/v1/voices") else {
-            #if DEBUG
-            print("ElevenLabs: Invalid voices endpoint URL")
-            #endif
+            dprint("ElevenLabs: Invalid voices endpoint URL")
+
             return
         }
         var request = URLRequest(url: url)
@@ -380,17 +372,15 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                #if DEBUG
-                print("ElevenLabs: Failed to fetch voices")
-                #endif
+                dprint("ElevenLabs: Failed to fetch voices")
+
                 return
             }
 
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let voicesArray = json["voices"] as? [[String: Any]] else {
-                #if DEBUG
-                print("ElevenLabs: Invalid voices response format")
-                #endif
+                dprint("ElevenLabs: Invalid voices response format")
+
                 return
             }
 
@@ -423,14 +413,12 @@ final class ElevenLabsTTS: NSObject, TTSService {
                 await MainActor.run {
                     TTSVoiceCache.shared.cacheVoices(voices, for: .elevenLabs)
                 }
-                #if DEBUG
-                print("ElevenLabs: Cached \(voices.count) voices")
-                #endif
+                dprint("ElevenLabs: Cached \(voices.count) voices")
+
             }
         } catch {
-            #if DEBUG
-            print("ElevenLabs: Error fetching voices: \(error)")
-            #endif
+            dprint("ElevenLabs: Error fetching voices: \(error)")
+
         }
     }
 

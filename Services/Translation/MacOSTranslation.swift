@@ -41,9 +41,8 @@ final class MacOSTranslation: TranslationServiceProtocol {
         } else {
             // Auto-detect source language using NLLanguageRecognizer
             let detectedLanguage = detectLanguage(text)
-            #if DEBUG
-            print("MacOSTranslation: Detected source language = \(detectedLanguage?.rawValue ?? "unknown")")
-            #endif
+            dprint("MacOSTranslation: Detected source language = \(detectedLanguage?.rawValue ?? "unknown")")
+
 
             if let detected = detectedLanguage,
                let detectedLocale = nlLanguageToLocale(detected) {
@@ -60,31 +59,25 @@ final class MacOSTranslation: TranslationServiceProtocol {
                 sourceLocale = Locale.Language(identifier: "en")
             }
         }
+        dprint("MacOSTranslation: Source = \(sourceLocale), Target = \(targetLocale)")
 
-        #if DEBUG
-        print("MacOSTranslation: Source = \(sourceLocale), Target = \(targetLocale)")
-        #endif
 
         // Check availability for the actual language pair
         let status = await languageAvailability.status(
             from: sourceLocale,
             to: targetLocale
         )
+        dprint("MacOSTranslation: Language availability status = \(status)")
 
-        #if DEBUG
-        print("MacOSTranslation: Language availability status = \(status)")
-        #endif
 
         switch status {
         case .installed:
-            #if DEBUG
-            print("MacOSTranslation: Language pack is installed")
-            #endif
+            dprint("MacOSTranslation: Language pack is installed")
+
         case .supported:
             // Language is supported but needs download
-            #if DEBUG
-            print("MacOSTranslation: Language pack needs to be downloaded")
-            #endif
+            dprint("MacOSTranslation: Language pack needs to be downloaded")
+
             throw TranslationError.translationUnavailable(
                 "Language pack not installed. Please go to System Settings > General > Language & Region > Translation Languages to download the required language pack."
             )
@@ -102,17 +95,13 @@ final class MacOSTranslation: TranslationServiceProtocol {
             guard self != nil else {
                 throw TranslationError.cancelled
             }
+            dprint("MacOSTranslation: Creating TranslationSession...")
 
-            #if DEBUG
-            print("MacOSTranslation: Creating TranslationSession...")
-            #endif
 
             // Use installedSource since we've verified the language is installed
             let session = TranslationSession(installedSource: sourceLocale, target: targetLocale)
+            dprint("MacOSTranslation: Translating text of length \(text.count)...")
 
-            #if DEBUG
-            print("MacOSTranslation: Translating text of length \(text.count)...")
-            #endif
 
             do {
                 let response = try await session.translate(text)
@@ -120,10 +109,8 @@ final class MacOSTranslation: TranslationServiceProtocol {
                 if Task.isCancelled {
                     throw TranslationError.cancelled
                 }
+                dprint("MacOSTranslation: Translation complete, result length = \(response.targetText.count)")
 
-                #if DEBUG
-                print("MacOSTranslation: Translation complete, result length = \(response.targetText.count)")
-                #endif
 
                 return TranslationResult(
                     originalText: text,
@@ -137,10 +124,8 @@ final class MacOSTranslation: TranslationServiceProtocol {
             } catch {
                 // Handle Translation framework specific errors
                 let errorDescription = error.localizedDescription
+                dprint("MacOSTranslation: Translation error = \(error)")
 
-                #if DEBUG
-                print("MacOSTranslation: Translation error = \(error)")
-                #endif
 
                 // Check for language pack errors
                 let errorString = String(describing: error)

@@ -74,9 +74,8 @@ final class OpenAITTS: NSObject, TTSService {
     private func setupStreamingPlayer() {
         streamingPlayer.onPlaybackStarted = { [weak self] in
             guard let self = self else { return }
-            #if DEBUG
-            print("OpenAI TTS: Streaming playback started")
-            #endif
+            dprint("OpenAI TTS: Streaming playback started")
+
             self.delegate?.ttsDidStartSpeaking(self)
         }
         streamingPlayer.onPlaybackFinished = { [weak self] success in
@@ -142,10 +141,8 @@ final class OpenAITTS: NSObject, TTSService {
 
         // Start streaming player
         try streamingPlayer.startStreaming()
+        dprint("OpenAI TTS: Starting streaming request")
 
-        #if DEBUG
-        print("OpenAI TTS: Starting streaming request")
-        #endif
 
         // Stream response using URLSession.bytes
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
@@ -191,18 +188,15 @@ final class OpenAITTS: NSObject, TTSService {
 
         // Signal end of stream
         streamingPlayer.finishStream()
+        dprint("OpenAI TTS: Streaming complete, total bytes: \(accumulatedPCMData.count)")
 
-        #if DEBUG
-        print("OpenAI TTS: Streaming complete, total bytes: \(accumulatedPCMData.count)")
-        #endif
 
         // Convert accumulated PCM to M4A for saving (await to ensure lastAudioData is ready for Save Audio)
         if !accumulatedPCMData.isEmpty {
             if let m4aData = await convertPCMToM4A(accumulatedPCMData) {
                 lastAudioData = m4aData
-                #if DEBUG
-                print("OpenAI TTS: Converted to M4A, size: \(m4aData.count) bytes")
-                #endif
+                dprint("OpenAI TTS: Converted to M4A, size: \(m4aData.count) bytes")
+
             }
             // Clear accumulated PCM data to free memory (M4A is now stored in lastAudioData)
             accumulatedPCMData = Data()

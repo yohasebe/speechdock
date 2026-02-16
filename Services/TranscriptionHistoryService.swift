@@ -99,13 +99,11 @@ final class TranscriptionHistoryService {
         do {
             let data = try Data(contentsOf: url)
             entries = try JSONDecoder().decode([TranscriptionHistoryEntry].self, from: data)
-            #if DEBUG
-            print("TranscriptionHistoryService: Loaded \(entries.count) entries")
-            #endif
+            dprint("TranscriptionHistoryService: Loaded \(entries.count) entries")
+
         } catch {
-            #if DEBUG
-            print("TranscriptionHistoryService: Failed to load history: \(error)")
-            #endif
+            dprint("TranscriptionHistoryService: Failed to load history: \(error)")
+
         }
     }
 
@@ -116,9 +114,8 @@ final class TranscriptionHistoryService {
             let data = try JSONEncoder().encode(entries)
             try data.write(to: url, options: .atomic)
         } catch {
-            #if DEBUG
-            print("TranscriptionHistoryService: Failed to save history: \(error)")
-            #endif
+            dprint("TranscriptionHistoryService: Failed to save history: \(error)")
+
         }
     }
 }

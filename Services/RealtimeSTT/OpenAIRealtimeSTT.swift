@@ -189,10 +189,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         guard let url = URL(string: "wss://api.openai.com/v1/realtime?intent=transcription") else {
             throw RealtimeSTTError.apiError("Invalid WebSocket URL")
         }
+        dprint("OpenAIRealtimeSTT: Connecting to \(url.absoluteString)")
 
-        #if DEBUG
-        print("OpenAIRealtimeSTT: Connecting to \(url.absoluteString)")
-        #endif
 
         var request = URLRequest(url: url)
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -235,7 +233,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
         #if DEBUG
         let elapsed = Date().timeIntervalSince(startTime)
-        print("OpenAIRealtimeSTT: Session created after \(String(format: "%.2f", elapsed))s")
+        dprint("OpenAIRealtimeSTT: Session created after \(String(format: "%.2f", elapsed))s")
         #endif
     }
 
@@ -256,10 +254,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
             threshold = NSDecimalNumber(string: "0.25")
             silenceDurationMs = 250  // Shorter to finalize faster
             prefixPaddingMs = 200
+            dprint("OpenAIRealtimeSTT: External source VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms")
 
-            #if DEBUG
-            print("OpenAIRealtimeSTT: External source VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms")
-            #endif
         } else {
             // Microphone: Use adaptive VAD parameters based on detected noise floor
             let adaptiveThreshold = audioLevelMonitor.recommendedVADThreshold()
@@ -269,10 +265,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
             threshold = NSDecimalNumber(string: String(format: "%.2f", adaptiveThreshold))
             silenceDurationMs = adaptiveSilenceMs
             prefixPaddingMs = 300
+            dprint("OpenAIRealtimeSTT: Microphone VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms, noise floor: \(audioLevelMonitor.noiseFloor)")
 
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Microphone VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms, noise floor: \(audioLevelMonitor.noiseFloor)")
-            #endif
         }
 
         var config: [String: Any] = [
@@ -305,10 +299,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
               let jsonString = String(data: jsonData, encoding: .utf8) else {
             throw RealtimeSTTError.apiError("Failed to serialize session config")
         }
+        dprint("OpenAIRealtimeSTT: Sending session config: \(jsonString)")
 
-        #if DEBUG
-        print("OpenAIRealtimeSTT: Sending session config: \(jsonString)")
-        #endif
 
         try await webSocketTask?.send(.string(jsonString))
     }
@@ -323,9 +315,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
                     }
                 } catch {
                     await MainActor.run {
-                        #if DEBUG
-                        print("OpenAIRealtimeSTT: WebSocket receive error: \(error)")
-                        #endif
+                        dprint("OpenAIRealtimeSTT: WebSocket receive error: \(error)")
+
                         if self.isListening && !self.isIntentionallyStopping {
                             Task {
                                 await self.handleUnexpectedDisconnection()
@@ -354,10 +345,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         }
         reconnectAttempts += 1
         let delay = pow(2.0, Double(reconnectAttempts - 1))  // 1s, 2s, 4s
+        dprint("OpenAIRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
 
-        #if DEBUG
-        print("OpenAIRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
-        #endif
 
         delegate?.realtimeSTT(self, didReceivePartialResult: "[Reconnecting...]")
 
@@ -378,13 +367,11 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
             try await connectWebSocket(apiKey: apiKey)
             try await configureSession()
             reconnectAttempts = 0  // Reset on successful reconnect
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Reconnected successfully")
-            #endif
+            dprint("OpenAIRealtimeSTT: Reconnected successfully")
+
         } catch {
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Reconnect failed: \(error)")
-            #endif
+            dprint("OpenAIRealtimeSTT: Reconnect failed: \(error)")
+
             await handleUnexpectedDisconnection()
         }
     }
@@ -409,7 +396,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
             }
             #if DEBUG
             if !decoded {
-                print("OpenAIRealtimeSTT: Failed to decode WebSocket data as string")
+                dprint("OpenAIRealtimeSTT: Failed to decode WebSocket data as string")
             }
             #endif
         @unknown default:
@@ -421,30 +408,27 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let eventType = json["type"] as? String else {
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
-            #endif
+            dprint("OpenAIRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+
             return
         }
 
         #if DEBUG
         if eventType != "input_audio_buffer.speech_started" &&
            eventType != "input_audio_buffer.speech_stopped" {
-            print("OpenAIRealtimeSTT: Received event: \(eventType)")
+            dprint("OpenAIRealtimeSTT: Received event: \(eventType)")
         }
         #endif
 
         switch eventType {
         case "session.created", "transcription_session.created":
             sessionCreated = true
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Session created")
-            #endif
+            dprint("OpenAIRealtimeSTT: Session created")
+
 
         case "session.updated", "transcription_session.updated":
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Session updated")
-            #endif
+            dprint("OpenAIRealtimeSTT: Session updated")
+
 
         case "conversation.item.input_audio_transcription.delta",
              "transcription.delta":
@@ -457,9 +441,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
                 currentPartialText += delta
                 let fullText = accumulatedText.isEmpty ? currentPartialText : accumulatedText + " " + currentPartialText
                 delegate?.realtimeSTT(self, didReceivePartialResult: fullText)
-                #if DEBUG
-                print("OpenAIRealtimeSTT: Delta text: '\(delta)'")
-                #endif
+                dprint("OpenAIRealtimeSTT: Delta text: '\(delta)'")
+
             }
 
         case "conversation.item.input_audio_transcription.completed",
@@ -477,38 +460,32 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
                 }
                 currentPartialText = ""
                 delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
+                dprint("OpenAIRealtimeSTT: Transcription completed: '\(transcript.prefix(50))...'")
 
-                #if DEBUG
-                print("OpenAIRealtimeSTT: Transcription completed: '\(transcript.prefix(50))...'")
-                #endif
             }
 
         case "input_audio_buffer.speech_started":
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Speech started")
-            #endif
+            dprint("OpenAIRealtimeSTT: Speech started")
+
 
         case "input_audio_buffer.speech_stopped":
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Speech stopped")
-            #endif
+            dprint("OpenAIRealtimeSTT: Speech stopped")
+
 
         case "input_audio_buffer.committed":
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Audio buffer committed")
-            #endif
+            dprint("OpenAIRealtimeSTT: Audio buffer committed")
+
 
         case "error":
             let errorMessage = (json["error"] as? [String: Any])?["message"] as? String ?? "Unknown error"
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Error: \(errorMessage)")
-            #endif
+            dprint("OpenAIRealtimeSTT: Error: \(errorMessage)")
+
             delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.apiError(errorMessage))
 
         default:
             #if DEBUG
             if !eventType.starts(with: "rate_limits") {
-                print("OpenAIRealtimeSTT: Unhandled event type: \(eventType)")
+                dprint("OpenAIRealtimeSTT: Unhandled event type: \(eventType)")
             }
             #endif
         }
@@ -633,10 +610,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         preBuffer.removeAll()
         isPreBuffering = false
         preBufferLock.unlock()
+        dprint("OpenAIRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
 
-        #if DEBUG
-        print("OpenAIRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
-        #endif
 
         for data in buffersToFlush {
             sendAudioData(data)
@@ -658,17 +633,15 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: message),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
-            #if DEBUG
-            print("OpenAIRealtimeSTT: Failed to serialize audio buffer message")
-            #endif
+            dprint("OpenAIRealtimeSTT: Failed to serialize audio buffer message")
+
             return
         }
 
         webSocketTask.send(.string(jsonString)) { error in
             if let error = error {
-                #if DEBUG
-                print("OpenAIRealtimeSTT: Send error: \(error)")
-                #endif
+                dprint("OpenAIRealtimeSTT: Send error: \(error)")
+
             }
         }
     }

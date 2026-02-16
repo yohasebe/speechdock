@@ -139,11 +139,9 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         guard let url = urlComponents.url else {
             throw RealtimeSTTError.apiError("Invalid WebSocket URL")
         }
+        dprint("ElevenLabsRealtimeSTT: Connecting to \(url.absoluteString)")
+        dprint("ElevenLabsRealtimeSTT: Language code = '\(selectedLanguage)' (empty = auto-detect)")
 
-        #if DEBUG
-        print("ElevenLabsRealtimeSTT: Connecting to \(url.absoluteString)")
-        print("ElevenLabsRealtimeSTT: Language code = '\(selectedLanguage)' (empty = auto-detect)")
-        #endif
 
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
@@ -185,7 +183,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         #if DEBUG
         let elapsed = Date().timeIntervalSince(startTime)
-        print("ElevenLabsRealtimeSTT: Session started after \(String(format: "%.2f", elapsed))s")
+        dprint("ElevenLabsRealtimeSTT: Session started after \(String(format: "%.2f", elapsed))s")
         #endif
     }
 
@@ -229,10 +227,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         }
         reconnectAttempts += 1
         let delay = pow(2.0, Double(reconnectAttempts - 1))  // 1s, 2s, 4s
+        dprint("ElevenLabsRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
 
-        #if DEBUG
-        print("ElevenLabsRealtimeSTT: Reconnecting attempt \(reconnectAttempts)/\(maxReconnectAttempts) in \(delay)s")
-        #endif
 
         delegate?.realtimeSTT(self, didReceivePartialResult: "[Reconnecting...]")
 
@@ -251,13 +247,11 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             }
             try await connectWebSocket(apiKey: apiKey)
             reconnectAttempts = 0
-            #if DEBUG
-            print("ElevenLabsRealtimeSTT: Reconnected successfully")
-            #endif
+            dprint("ElevenLabsRealtimeSTT: Reconnected successfully")
+
         } catch {
-            #if DEBUG
-            print("ElevenLabsRealtimeSTT: Reconnect failed: \(error)")
-            #endif
+            dprint("ElevenLabsRealtimeSTT: Reconnect failed: \(error)")
+
             await handleUnexpectedDisconnection()
         }
     }
@@ -279,18 +273,16 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let messageType = json["message_type"] as? String else {
-            #if DEBUG
-            print("ElevenLabsRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
-            #endif
+            dprint("ElevenLabsRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
+
             return
         }
 
         switch messageType {
         case "session_started":
             sessionStarted = true
-            #if DEBUG
-            print("ElevenLabsRealtimeSTT: Session started")
-            #endif
+            dprint("ElevenLabsRealtimeSTT: Session started")
+
 
         case "partial_transcript":
             if let text = json["text"] as? String, !text.isEmpty {
@@ -312,10 +304,10 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                 #if DEBUG
                 // Log detected language for debugging
                 if let detectedLang = json["language_code"] as? String {
-                    print("ElevenLabsRealtimeSTT: Detected language = '\(detectedLang)', text = '\(text.prefix(50))...'")
+                    dprint("ElevenLabsRealtimeSTT: Detected language = '\(detectedLang)', text = '\(text.prefix(50))...'")
                 }
-                print("ElevenLabsRealtimeSTT: Committed text received: '\(text.prefix(100))...'")
-                print("ElevenLabsRealtimeSTT: Current committedText: '\(committedText.suffix(100))...'")
+                dprint("ElevenLabsRealtimeSTT: Committed text received: '\(text.prefix(100))...'")
+                dprint("ElevenLabsRealtimeSTT: Current committedText: '\(committedText.suffix(100))...'")
                 #endif
 
                 // Deduplicate: check if this text is already part of our committed text
@@ -326,9 +318,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                     // Only append if this text is genuinely new
                     committedText += " " + text
                 } else {
-                    #if DEBUG
-                    print("ElevenLabsRealtimeSTT: Skipped duplicate committed text")
-                    #endif
+                    dprint("ElevenLabsRealtimeSTT: Skipped duplicate committed text")
+
                 }
 
                 // Clear partial text since it's now committed
@@ -402,9 +393,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             let outputFrameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
 
             guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outputFrameCapacity) else {
-                #if DEBUG
-                print("ElevenLabsRealtimeSTT: Failed to create output buffer (capacity: \(outputFrameCapacity))")
-                #endif
+                dprint("ElevenLabsRealtimeSTT: Failed to create output buffer (capacity: \(outputFrameCapacity))")
+
                 return
             }
 
@@ -415,9 +405,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             }
 
             if status == .error || error != nil {
-                #if DEBUG
-                print("ElevenLabsRealtimeSTT: Audio conversion failed - status: \(status.rawValue), error: \(error?.localizedDescription ?? "none")")
-                #endif
+                dprint("ElevenLabsRealtimeSTT: Audio conversion failed - status: \(status.rawValue), error: \(error?.localizedDescription ?? "none")")
+
                 return
             }
 
@@ -431,9 +420,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         }
 
         if pcmData.isEmpty {
-            #if DEBUG
-            print("ElevenLabsRealtimeSTT: Empty PCM data after conversion")
-            #endif
+            dprint("ElevenLabsRealtimeSTT: Empty PCM data after conversion")
+
             return
         }
 
@@ -448,9 +436,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
            let jsonString = String(data: jsonData, encoding: .utf8) {
             webSocketTask.send(.string(jsonString)) { _ in }
         } else {
-            #if DEBUG
-            print("ElevenLabsRealtimeSTT: Failed to serialize audio buffer message")
-            #endif
+            dprint("ElevenLabsRealtimeSTT: Failed to serialize audio buffer message")
+
         }
     }
 

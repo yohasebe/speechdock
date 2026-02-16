@@ -234,9 +234,8 @@ enum TTSAPIHelper {
                         // Exponential backoff: 1s, 2s, 4s
                         let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
                         try await Task.sleep(nanoseconds: delay)
-                        #if DEBUG
-                        print("\(providerName) TTS: Retry \(attempt + 1)/\(maxRetries) after HTTP \(httpResponse.statusCode)")
-                        #endif
+                        dprint("\(providerName) TTS: Retry \(attempt + 1)/\(maxRetries) after HTTP \(httpResponse.statusCode)")
+
                         continue
                     }
                 }
@@ -254,9 +253,8 @@ enum TTSAPIHelper {
                 if attempt < maxRetries - 1 {
                     let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
                     try await Task.sleep(nanoseconds: delay)
-                    #if DEBUG
-                    print("\(providerName) TTS: Retry \(attempt + 1)/\(maxRetries) after error: \(error.localizedDescription)")
-                    #endif
+                    dprint("\(providerName) TTS: Retry \(attempt + 1)/\(maxRetries) after error: \(error.localizedDescription)")
+
                     continue
                 }
             }

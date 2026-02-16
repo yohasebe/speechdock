@@ -241,7 +241,11 @@ final class AppleScriptTests: XCTestCase {
         XCTAssertTrue(RealtimeSTTProvider.elevenLabs.supportsFileTranscription)
 
         // Providers that do NOT support file transcription
-        XCTAssertFalse(RealtimeSTTProvider.macOS.supportsFileTranscription)
+        if #available(macOS 26, *) {
+            XCTAssertTrue(RealtimeSTTProvider.macOS.supportsFileTranscription)
+        } else {
+            XCTAssertFalse(RealtimeSTTProvider.macOS.supportsFileTranscription)
+        }
         XCTAssertFalse(RealtimeSTTProvider.grok.supportsFileTranscription)
     }
 

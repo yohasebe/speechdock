@@ -10,21 +10,17 @@ class PanelTextViewHolder {
     private init() {}
 
     func triggerSpellCheck() {
-        #if DEBUG
-        print("PanelTextViewHolder.triggerSpellCheck called, textView = \(String(describing: textView))")
-        #endif
+        dprint("PanelTextViewHolder.triggerSpellCheck called, textView = \(String(describing: textView))")
+
 
         guard let textView = textView else {
-            #if DEBUG
-            print("PanelTextViewHolder: No text view reference")
-            #endif
+            dprint("PanelTextViewHolder: No text view reference")
+
             return
         }
+        dprint("PanelTextViewHolder: textView.string = '\(textView.string.prefix(50))...'")
+        dprint("PanelTextViewHolder: textView.window = \(String(describing: textView.window))")
 
-        #if DEBUG
-        print("PanelTextViewHolder: textView.string = '\(textView.string.prefix(50))...'")
-        print("PanelTextViewHolder: textView.window = \(String(describing: textView.window))")
-        #endif
 
         // Make the text view first responder
         textView.window?.makeFirstResponder(textView)
@@ -37,13 +33,11 @@ class PanelTextViewHolder {
 /// Brief toast notification for spell check result
 class SpellCheckToast {
     static func showNoErrors(in window: NSWindow?) {
-        #if DEBUG
-        print("SpellCheckToast: window = \(String(describing: window))")
-        #endif
+        dprint("SpellCheckToast: window = \(String(describing: window))")
+
         guard let window = window else {
-            #if DEBUG
-            print("SpellCheckToast: window is nil, cannot show toast")
-            #endif
+            dprint("SpellCheckToast: window is nil, cannot show toast")
+
             return
         }
 
@@ -121,9 +115,8 @@ class FocusableTextView: NSTextView {
                 let ext = url.pathExtension.lowercased()
                 if audioExtensions.contains(ext) {
                     // It's an audio file - post notification and handle the drop
-                    #if DEBUG
-                    print("FocusableTextView: Audio file dropped: \(url.path)")
-                    #endif
+                    dprint("FocusableTextView: Audio file dropped: \(url.path)")
+
                     NotificationCenter.default.post(
                         name: .audioFileDropped,
                         object: url
@@ -149,10 +142,8 @@ class FocusableTextView: NSTextView {
             if misspelledRange.location == NSNotFound {
                 // No more spelling errors - close the panel
                 spellingPanel.orderOut(nil)
+                dprint("FocusableTextView: No more spelling errors, closed panel automatically")
 
-                #if DEBUG
-                print("FocusableTextView: No more spelling errors, closed panel automatically")
-                #endif
             }
         }
     }
@@ -165,10 +156,8 @@ class FocusableTextView: NSTextView {
         // Use NSSpellChecker to find the first misspelled word
         let spellChecker = NSSpellChecker.shared
         let misspelledRange = spellChecker.checkSpelling(of: string, startingAt: 0)
+        dprint("SpellCheck: text length = \(string.count), misspelledRange = \(misspelledRange)")
 
-        #if DEBUG
-        print("SpellCheck: text length = \(string.count), misspelledRange = \(misspelledRange)")
-        #endif
 
         if misspelledRange.location != NSNotFound {
             // Select the misspelled word
@@ -178,17 +167,14 @@ class FocusableTextView: NSTextView {
             // Show the spelling panel
             showGuessPanel(nil)
         } else {
-            #if DEBUG
-            print("SpellCheck: No errors found, closing panel and showing toast")
-            #endif
+            dprint("SpellCheck: No errors found, closing panel and showing toast")
+
 
             // No spelling errors found - close the spelling panel if open
             let spellingPanel = NSSpellChecker.shared.spellingPanel
             spellingPanel.orderOut(nil)
+            dprint("SpellCheck: Spelling panel closed, isVisible = \(spellingPanel.isVisible)")
 
-            #if DEBUG
-            print("SpellCheck: Spelling panel closed, isVisible = \(spellingPanel.isVisible)")
-            #endif
 
             // Show a brief alert instead of toast (for better visibility)
             let alert = NSAlert()
@@ -560,20 +546,17 @@ struct TTSFloatingView: View {
         .background(panelBackground)
         .cornerRadius(panelCornerRadius)
         .onAppear {
-            #if DEBUG
-            print("TTSFloatingView: onAppear - setting editableText from ttsText, length: \(appState.ttsText.count)")
-            #endif
+            dprint("TTSFloatingView: onAppear - setting editableText from ttsText, length: \(appState.ttsText.count)")
+
             editableText = appState.ttsText
         }
         .onChange(of: appState.ttsText) { _, newValue in
             // Sync when appState.ttsText changes externally
-            #if DEBUG
-            print("TTSFloatingView: onChange(ttsText) - current editableText length: \(editableText.count), new value length: \(newValue.count)")
-            #endif
+            dprint("TTSFloatingView: onChange(ttsText) - current editableText length: \(editableText.count), new value length: \(newValue.count)")
+
             if editableText != newValue {
-                #if DEBUG
-                print("TTSFloatingView: Updating editableText to new value")
-                #endif
+                dprint("TTSFloatingView: Updating editableText to new value")
+
                 // Force text update to override focus-based protection
                 forceTextUpdate = true
                 // Resign first responder to allow text update through ScrollableTextView
@@ -598,23 +581,20 @@ struct TTSFloatingView: View {
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 // Show translated text
                 editableText = translatedText
-                #if DEBUG
-                print("TTSFloatingView: Translation complete, editableText updated to length \(translatedText.count)")
-                #endif
+                dprint("TTSFloatingView: Translation complete, editableText updated to length \(translatedText.count)")
+
             case .idle:
                 // When reverting to original, restore original text
                 if oldState.isTranslated && !appState.originalTextBeforeTranslation.isEmpty {
                     // Resign first responder to allow text update
                     NSApp.keyWindow?.makeFirstResponder(nil)
                     editableText = appState.originalTextBeforeTranslation
-                    #if DEBUG
-                    print("TTSFloatingView: Reverted to original text")
-                    #endif
+                    dprint("TTSFloatingView: Reverted to original text")
+
                 }
             case .error(let message):
-                #if DEBUG
-                print("TTSFloatingView: Translation error: \(message)")
-                #endif
+                dprint("TTSFloatingView: Translation error: \(message)")
+
             case .translating:
                 break
             }

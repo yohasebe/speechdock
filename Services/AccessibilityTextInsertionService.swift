@@ -177,9 +177,8 @@ final class AccessibilityTextInsertionService {
         guard appResult == .success,
               let appRef = focusedApp,
               CFGetTypeID(appRef) == AXUIElementGetTypeID() else {
-            #if DEBUG
-            print("AccessibilityService: Failed to get focused app, result=\(appResult.rawValue)")
-            #endif
+            dprint("AccessibilityService: Failed to get focused app, result=\(appResult.rawValue)")
+
             return nil
         }
 
@@ -188,9 +187,8 @@ final class AccessibilityTextInsertionService {
         // Get app name for debugging
         var appTitle: AnyObject?
         AXUIElementCopyAttributeValue(appElement, kAXTitleAttribute as CFString, &appTitle)
-        #if DEBUG
-        print("AccessibilityService: Focused app = \(appTitle as? String ?? "unknown")")
-        #endif
+        dprint("AccessibilityService: Focused app = \(appTitle as? String ?? "unknown")")
+
 
         var focusedElement: AnyObject?
         let elementResult = AXUIElementCopyAttributeValue(
@@ -202,9 +200,8 @@ final class AccessibilityTextInsertionService {
         guard elementResult == .success,
               let elementRef = focusedElement,
               CFGetTypeID(elementRef) == AXUIElementGetTypeID() else {
-            #if DEBUG
-            print("AccessibilityService: Failed to get focused element, result=\(elementResult.rawValue)")
-            #endif
+            dprint("AccessibilityService: Failed to get focused element, result=\(elementResult.rawValue)")
+
             return nil
         }
 
@@ -217,10 +214,8 @@ final class AccessibilityTextInsertionService {
             kAXRoleAttribute as CFString,
             &role
         )
+        dprint("AccessibilityService: Focused element role = \(role as? String ?? "nil")")
 
-        #if DEBUG
-        print("AccessibilityService: Focused element role = \(role as? String ?? "nil")")
-        #endif
 
         let textRoles: Set<String> = [
             kAXTextFieldRole as String,  // AXTextField
@@ -233,9 +228,8 @@ final class AccessibilityTextInsertionService {
         ]
 
         guard let roleString = role as? String else {
-            #if DEBUG
-            print("AccessibilityService: No role string")
-            #endif
+            dprint("AccessibilityService: No role string")
+
             return nil
         }
 
@@ -247,19 +241,15 @@ final class AccessibilityTextInsertionService {
             kAXValueAttribute as CFString,
             &settable
         )
+        dprint("AccessibilityService: Value settable = \(settable.boolValue), result = \(settableResult.rawValue)")
 
-        #if DEBUG
-        print("AccessibilityService: Value settable = \(settable.boolValue), result = \(settableResult.rawValue)")
-        #endif
 
         // Accept if role is in textRoles OR if value is settable
         if textRoles.contains(roleString) || (settableResult == .success && settable.boolValue) {
             return element
         }
+        dprint("AccessibilityService: Role '\(roleString)' not accepted and value not settable")
 
-        #if DEBUG
-        print("AccessibilityService: Role '\(roleString)' not accepted and value not settable")
-        #endif
         return nil
     }
 

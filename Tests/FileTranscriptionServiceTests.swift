@@ -46,7 +46,7 @@ final class FileTranscriptionServiceTests: XCTestCase {
     func testMaxFileSizeMB_UnsupportedProviders() {
         XCTAssertEqual(RealtimeSTTProvider.grok.maxFileSizeMB, 0)
         if #available(macOS 26, *) {
-            XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 500)
+            XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 100)
         } else {
             XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 0)
         }
@@ -91,7 +91,7 @@ final class FileTranscriptionServiceTests: XCTestCase {
         let desc = RealtimeSTTProvider.macOS.fileTranscriptionDescription
         if #available(macOS 26, *) {
             XCTAssertTrue(desc.contains("Apple Speech"))
-            XCTAssertTrue(desc.contains("500MB"))
+            XCTAssertTrue(desc.contains("100MB"))
         } else {
             XCTAssertEqual(desc, "Realtime only")
         }

@@ -20,9 +20,8 @@ final class LLMTranslation: TranslationServiceProtocol {
         to targetLanguage: LanguageCode,
         from sourceLanguage: LanguageCode?
     ) async throws -> TranslationResult {
-        #if DEBUG
-        print("LLMTranslation.translate: provider=\(provider.displayName), target=\(targetLanguage.displayName)")
-        #endif
+        dprint("LLMTranslation.translate: provider=\(provider.displayName), target=\(targetLanguage.displayName)")
+
 
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw TranslationError.noTextProvided
@@ -32,15 +31,12 @@ final class LLMTranslation: TranslationServiceProtocol {
         guard let envKey = provider.envKeyName,
               let apiKey = APIKeyManager.shared.getAPIKey(for: envKey),
               !apiKey.isEmpty else {
-            #if DEBUG
-            print("LLMTranslation: No API key for \(provider.displayName)")
-            #endif
+            dprint("LLMTranslation: No API key for \(provider.displayName)")
+
             throw TranslationError.apiError("API key not configured for \(provider.displayName)")
         }
+        dprint("LLMTranslation: API key found, length=\(apiKey.count)")
 
-        #if DEBUG
-        print("LLMTranslation: API key found, length=\(apiKey.count)")
-        #endif
 
         // Detect source language to check for same-language translation
         if sourceLanguage == nil || sourceLanguage == .auto {
@@ -171,16 +167,12 @@ final class LLMTranslation: TranslationServiceProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         request.timeoutInterval = 60
+        dprint("OpenAI Translation: Sending request with model=\(self.model)...")
 
-        #if DEBUG
-        print("OpenAI Translation: Sending request with model=\(self.model)...")
-        #endif
 
         let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "OpenAI")
+        dprint("OpenAI Translation: Response status = \(httpResponse.statusCode)")
 
-        #if DEBUG
-        print("OpenAI Translation: Response status = \(httpResponse.statusCode)")
-        #endif
 
         guard httpResponse.statusCode == 200 else {
             let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
@@ -193,16 +185,13 @@ final class LLMTranslation: TranslationServiceProtocol {
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
-            #if DEBUG
-            print("OpenAI Translation: Invalid response format")
-            print("OpenAI Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
-            #endif
+            dprint("OpenAI Translation: Invalid response format")
+            dprint("OpenAI Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
+
             throw TranslationError.apiError("Invalid response format from OpenAI")
         }
+        dprint("OpenAI Translation: Success, content length = \(content.count)")
 
-        #if DEBUG
-        print("OpenAI Translation: Success, content length = \(content.count)")
-        #endif
 
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -243,16 +232,12 @@ final class LLMTranslation: TranslationServiceProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         request.timeoutInterval = 60
+        dprint("Gemini Translation: Sending request with model=\(self.model)...")
 
-        #if DEBUG
-        print("Gemini Translation: Sending request with model=\(self.model)...")
-        #endif
 
         let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "Gemini")
+        dprint("Gemini Translation: Response status = \(httpResponse.statusCode)")
 
-        #if DEBUG
-        print("Gemini Translation: Response status = \(httpResponse.statusCode)")
-        #endif
 
         guard httpResponse.statusCode == 200 else {
             let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
@@ -265,16 +250,13 @@ final class LLMTranslation: TranslationServiceProtocol {
               let content = candidates.first?["content"] as? [String: Any],
               let parts = content["parts"] as? [[String: Any]],
               let resultText = parts.first?["text"] as? String else {
-            #if DEBUG
-            print("Gemini Translation: Invalid response format")
-            print("Gemini Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
-            #endif
+            dprint("Gemini Translation: Invalid response format")
+            dprint("Gemini Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
+
             throw TranslationError.apiError("Invalid response format from Gemini")
         }
+        dprint("Gemini Translation: Success, content length = \(resultText.count)")
 
-        #if DEBUG
-        print("Gemini Translation: Success, content length = \(resultText.count)")
-        #endif
 
         return resultText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -310,16 +292,12 @@ final class LLMTranslation: TranslationServiceProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         request.timeoutInterval = 60
+        dprint("Grok Translation: Sending request with model=\(self.model)...")
 
-        #if DEBUG
-        print("Grok Translation: Sending request with model=\(self.model)...")
-        #endif
 
         let (data, httpResponse) = try await TranslationAPIHelper.performRequest(request, providerName: "Grok")
+        dprint("Grok Translation: Response status = \(httpResponse.statusCode)")
 
-        #if DEBUG
-        print("Grok Translation: Response status = \(httpResponse.statusCode)")
-        #endif
 
         guard httpResponse.statusCode == 200 else {
             let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
@@ -332,16 +310,13 @@ final class LLMTranslation: TranslationServiceProtocol {
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
-            #if DEBUG
-            print("Grok Translation: Invalid response format")
-            print("Grok Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
-            #endif
+            dprint("Grok Translation: Invalid response format")
+            dprint("Grok Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
+
             throw TranslationError.apiError("Invalid response format from Grok")
         }
+        dprint("Grok Translation: Success, content length = \(content.count)")
 
-        #if DEBUG
-        print("Grok Translation: Success, content length = \(content.count)")
-        #endif
 
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }

@@ -155,9 +155,8 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
                 _audioFileExtension = "aiff"
             }
         } catch {
-            #if DEBUG
-            print("MacOSTTS: Failed to read audio file for conversion: \(error.localizedDescription)")
-            #endif
+            dprint("MacOSTTS: Failed to read audio file for conversion: \(error.localizedDescription)")
+
         }
 
         // Set initial playback rate from selectedSpeed

@@ -384,12 +384,10 @@ struct TranslationControls: View {
     /// Execute translation to the currently selected language
     private func executeTranslation() {
         guard hasEnoughText else { return }
+        dprint("TranslationControls: executeTranslation called")
+        dprint("TranslationControls: language = \(appState.translationTargetLanguage.displayName)")
+        dprint("TranslationControls: text length = \(text.count)")
 
-        #if DEBUG
-        print("TranslationControls: executeTranslation called")
-        print("TranslationControls: language = \(appState.translationTargetLanguage.displayName)")
-        print("TranslationControls: text length = \(text.count)")
-        #endif
 
         appState.translateText(text, to: appState.translationTargetLanguage)
     }

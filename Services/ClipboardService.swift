@@ -42,9 +42,8 @@ final class ClipboardService {
 
                 // Verify clipboard was updated
                 guard pasteboard.changeCount != previousChangeCount else {
-                    #if DEBUG
-                    print("ClipboardService: Failed to update clipboard (attempt \(attempt))")
-                    #endif
+                    dprint("ClipboardService: Failed to update clipboard (attempt \(attempt))")
+
                     continue
                 }
 
@@ -52,18 +51,16 @@ final class ClipboardService {
                 if pasteboard.string(forType: .string) == text {
                     return true
                 } else {
-                    #if DEBUG
-                    print("ClipboardService: Clipboard content changed unexpectedly (attempt \(attempt))")
-                    #endif
+                    dprint("ClipboardService: Clipboard content changed unexpectedly (attempt \(attempt))")
+
                 }
             }
             return false
         }
 
         guard success else {
-            #if DEBUG
-            print("ClipboardService: Failed to set clipboard after 3 attempts")
-            #endif
+            dprint("ClipboardService: Failed to set clipboard after 3 attempts")
+
             return false
         }
 
@@ -86,18 +83,16 @@ final class ClipboardService {
 
         // Create key down event with Command modifier
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCodeV, keyDown: true) else {
-            #if DEBUG
-            print("ClipboardService: Failed to create key down event")
-            #endif
+            dprint("ClipboardService: Failed to create key down event")
+
             return
         }
         keyDown.flags = .maskCommand
 
         // Create key up event with Command modifier
         guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCodeV, keyDown: false) else {
-            #if DEBUG
-            print("ClipboardService: Failed to create key up event")
-            #endif
+            dprint("ClipboardService: Failed to create key up event")
+
             return
         }
         keyUp.flags = .maskCommand
@@ -105,10 +100,8 @@ final class ClipboardService {
         // Post events to the HID system
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
+        dprint("ClipboardService: Sent Cmd+V via CGEvent")
 
-        #if DEBUG
-        print("ClipboardService: Sent Cmd+V via CGEvent")
-        #endif
     }
 
     // MARK: - Clipboard State Preservation
@@ -154,9 +147,8 @@ final class ClipboardService {
         let changesSinceOurOperation = pasteboard.changeCount - state.changeCount
         if changesSinceOurOperation > 2 {
             // Another app modified the clipboard, don't overwrite their content
-            #if DEBUG
-            print("ClipboardService: Skipping restore - clipboard modified by another app (changes: \(changesSinceOurOperation))")
-            #endif
+            dprint("ClipboardService: Skipping restore - clipboard modified by another app (changes: \(changesSinceOurOperation))")
+
             return false
         }
 

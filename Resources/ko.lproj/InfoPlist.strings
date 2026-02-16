@@ -1,0 +1,7 @@
+/* Info.plist localization - Korean */
+
+"NSMicrophoneUsageDescription" = "SpeechDock은 음성 전사를 위해 마이크 접근 권한이 필요합니다.";
+"NSSpeechRecognitionUsageDescription" = "SpeechDock은 실시간 전사를 위해 음성 인식을 사용합니다.";
+"NSScreenCaptureUsageDescription" = "SpeechDock은 붙여넣기 대상 선택 시 창 미리보기를 표시하기 위해 화면 녹화 접근 권한이 필요합니다.";
+"NSAppleEventsUsageDescription" = "SpeechDock은 음성 합성을 위해 다른 응용 프로그램에서 선택한 텍스트를 복사하기 위한 자동화 접근 권한이 필요합니다.";
+"NSHumanReadableCopyright" = "Copyright \U00A9 2026 Yoichiro Hasebe. All rights reserved.";
