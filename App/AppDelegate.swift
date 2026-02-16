@@ -5,8 +5,6 @@ import ScreenCaptureKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var hotKeyService: HotKeyService?
-    /// Flag to allow termination during permission checks (for macOS "Quit and Reopen")
-    private var isCheckingPermissions = false
     /// Flag set by explicit "Quit SpeechDock" menu action to bypass panel-close-first behavior
     var isExplicitQuit = false
 
@@ -90,11 +88,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Handle termination request - for menubar apps, ⌘Q should close panels, not quit
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // Allow termination during permission checks (macOS "Quit and Reopen" from System Settings)
-        if isCheckingPermissions {
-            return .terminateNow
-        }
-
         // Detect ⌘Q keyboard shortcut — close panels instead of quitting (menu bar app behavior)
         if !isExplicitQuit,
            let event = NSApp.currentEvent,
@@ -116,6 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 appState.floatingWindowManager.hideFloatingWindow()
                 SubtitleOverlayManager.shared.hide()
                 WindowManager.shared.closeSettingsWindow()
+                PermissionSetupController.shared.dismiss()
                 StatusBarManager.shared.closePanel()
 
                 return .terminateCancel
@@ -197,137 +191,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                    let creationDate = attrs.creationDate,
                    creationDate < oneHourAgo {
                     try? fileManager.removeItem(at: fileURL)
-                    #if DEBUG
-                    print("Cleaned up stale temp file: \(filename)")
-                    #endif
+                    dprint("Cleaned up stale temp file: \(filename)")
+
                 }
             }
         } catch {
-            #if DEBUG
-            print("Failed to clean up temp files: \(error)")
-            #endif
+            dprint("Failed to clean up temp files: \(error)")
+
         }
     }
 
-    /// Check all required permissions at startup
+    /// Check permissions at startup and show setup window if any are missing.
+    /// Uses PermissionService for reactive monitoring — no app restart needed.
     private func checkRequiredPermissions() {
-        isCheckingPermissions = true
-        defer { isCheckingPermissions = false }
-
         let microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-        let accessibilityGranted = AXIsProcessTrusted()
-        let screenRecordingGranted = CGPreflightScreenCaptureAccess()
-
-        #if DEBUG
-        print("Permission check: Microphone=\(microphoneStatus.rawValue), Accessibility=\(accessibilityGranted), ScreenRecording=\(screenRecordingGranted)")
-        #endif
 
         // Handle first-time microphone prompt (system dialog)
         if microphoneStatus == .notDetermined {
-            AVCaptureDevice.requestAccess(for: .audio) { _ in }
-            // Don't show our dialog yet - let the system prompt finish first.
-            // Remaining permissions will be checked on next launch.
+            Task { @MainActor in
+                let permissionService = PermissionService.shared
+                await permissionService.requestMicrophone()
+                // After system dialog, check remaining permissions
+                permissionService.refreshAllPermissions()
+                if permissionService.hasAnyMissing {
+                    PermissionSetupController.shared.show()
+                }
+            }
             return
         }
 
-        // Collect missing permissions
-        var neededPermissions: [(name: String, description: String, url: String)] = []
+        // Show setup window if any permissions are missing
+        Task { @MainActor in
+            let permissionService = PermissionService.shared
+            dprint("Permission check: Microphone=\(microphoneStatus.rawValue), Accessibility=\(permissionService.accessibilityGranted), ScreenRecording=\(permissionService.screenRecordingGranted)")
 
-        if microphoneStatus != .authorized {
-            neededPermissions.append((
-                name: NSLocalizedString("Microphone", comment: "Permission name"),
-                description: NSLocalizedString("For speech recognition", comment: "Microphone permission description"),
-                url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
-            ))
-        }
-        if !accessibilityGranted {
-            neededPermissions.append((
-                name: NSLocalizedString("Accessibility", comment: "Permission name"),
-                description: NSLocalizedString("For global keyboard shortcuts and text insertion", comment: "Accessibility permission description"),
-                url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-            ))
-        }
-        if !screenRecordingGranted {
-            neededPermissions.append((
-                name: NSLocalizedString("Screen Recording", comment: "Permission name"),
-                description: NSLocalizedString("For window thumbnails in target selection", comment: "Screen recording permission description"),
-                url: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
-            ))
-        }
-
-        guard !neededPermissions.isEmpty else { return }
-
-        showPermissionAlert(neededPermissions: neededPermissions)
-    }
-
-    /// Show a single permission alert listing all missing permissions.
-    /// "Open Settings & Quit" opens System Settings and quits the app so macOS
-    /// won't show its own "Quit and Reopen" dialog when the user toggles permissions.
-    private func showPermissionAlert(neededPermissions: [(name: String, description: String, url: String)]) {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-
-        let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Permissions Required", comment: "Permission alert title")
-
-        // Use accessory view for rich text with bold permission names
-        let normalFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-        let boldFont = NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)
-        let textColor = NSColor.labelColor
-
-        let body = NSMutableAttributedString()
-        let normalAttrs: [NSAttributedString.Key: Any] = [.font: normalFont, .foregroundColor: textColor]
-        let boldAttrs: [NSAttributedString.Key: Any] = [.font: boldFont, .foregroundColor: textColor]
-
-        body.append(NSAttributedString(string: NSLocalizedString("SpeechDock needs the following permissions to work properly:", comment: "Permission alert body intro") + "\n\n", attributes: normalAttrs))
-
-        for perm in neededPermissions {
-            body.append(NSAttributedString(string: "• ", attributes: normalAttrs))
-            body.append(NSAttributedString(string: perm.name, attributes: boldAttrs))
-            body.append(NSAttributedString(string: ": \(perm.description)\n", attributes: normalAttrs))
-        }
-
-        body.append(NSAttributedString(string: "\n" + NSLocalizedString("Click \"Open Settings & Quit\" to open System Settings. SpeechDock will quit so you can grant permissions without interruption. After granting them, relaunch SpeechDock.", comment: "Permission alert instructions"), attributes: normalAttrs))
-
-        let textField = NSTextField(wrappingLabelWithString: "")
-        textField.attributedStringValue = body
-        textField.isEditable = false
-        textField.isSelectable = false
-        textField.isBordered = false
-        textField.drawsBackground = false
-        textField.translatesAutoresizingMaskIntoConstraints = false
-
-        // Container view with fixed width to prevent alert from stretching
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 340, height: 0))
-        container.addSubview(textField)
-        NSLayoutConstraint.activate([
-            textField.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            textField.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            textField.topAnchor.constraint(equalTo: container.topAnchor),
-            textField.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            textField.widthAnchor.constraint(equalToConstant: 340)
-        ])
-        container.layoutSubtreeIfNeeded()
-        container.frame.size.height = textField.fittingSize.height
-
-        alert.accessoryView = container
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: NSLocalizedString("Open Settings & Quit", comment: "Permission alert button"))
-        alert.addButton(withTitle: NSLocalizedString("Later", comment: "Permission alert button"))
-
-        let response = alert.runModal()
-
-        if response == .alertFirstButtonReturn {
-            // Open the first missing permission's settings page
-            if let url = URL(string: neededPermissions[0].url) {
-                NSWorkspace.shared.open(url)
+            if permissionService.hasAnyMissing {
+                PermissionSetupController.shared.show()
             }
-            // Small delay to ensure System Settings opens before we quit
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.5))
-            NSApp.terminate(nil)
-        } else {
-            // Hide from Dock
-            NSApp.setActivationPolicy(.accessory)
         }
     }
 }

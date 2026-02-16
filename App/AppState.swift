@@ -546,19 +546,23 @@ final class AppState {
     /// Current state of subtitle translation
     var subtitleTranslationState: SubtitleTranslationState = .idle
 
-    // MARK: - Permission Status
-    var hasMicrophonePermission: Bool = false
-    var hasAccessibilityPermission: Bool = false
+    // MARK: - Permission Status (delegated to PermissionService)
 
-    /// Update permission status (call periodically or after permission changes)
-    func updatePermissionStatus() {
-        hasMicrophonePermission = checkMicrophonePermission()
-        hasAccessibilityPermission = AXIsProcessTrusted()
+    var hasMicrophonePermission: Bool {
+        PermissionService.shared.microphoneGranted
     }
 
-    private func checkMicrophonePermission() -> Bool {
-        let status = AVCaptureDevice.authorizationStatus(for: .audio)
-        return status == .authorized
+    var hasAccessibilityPermission: Bool {
+        PermissionService.shared.accessibilityGranted
+    }
+
+    var hasScreenRecordingPermission: Bool {
+        PermissionService.shared.screenRecordingGranted
+    }
+
+    /// Update permission status — refreshes PermissionService state
+    func updatePermissionStatus() {
+        PermissionService.shared.refreshAllPermissions()
     }
 
     // MARK: - Common State
@@ -606,9 +610,8 @@ final class AppState {
         ocrCoordinator.onError = { [weak self] error in
             guard let self = self else { return }
             if let error = error {
-                #if DEBUG
-                print("OCR Error: \(error.localizedDescription)")
-                #endif
+                dprint("OCR Error: \(error.localizedDescription)")
+
                 self.errorMessage = error.localizedDescription
             }
             // nil error indicates cancellation - no action needed
@@ -856,7 +859,18 @@ final class AppState {
         }
 
         // Configure audio source based on settings
-        switch selectedAudioInputSourceType {
+        // Fall back to microphone if system/app audio is selected but Screen Recording permission is missing
+        let effectiveSourceType: AudioInputSourceType
+        if (selectedAudioInputSourceType == .systemAudio || selectedAudioInputSourceType == .applicationAudio)
+            && !hasScreenRecordingPermission {
+            effectiveSourceType = .microphone
+            dprint("AppState: Screen Recording permission missing, falling back to microphone input")
+
+        } else {
+            effectiveSourceType = selectedAudioInputSourceType
+        }
+
+        switch effectiveSourceType {
         case .microphone:
             realtimeSTTService?.audioSource = .microphone
             realtimeSTTService?.audioInputDeviceUID = selectedAudioInputDeviceUID
@@ -873,9 +887,9 @@ final class AppState {
             try await realtimeSTTService?.startListening()
 
             // Start system audio capture if needed
-            if selectedAudioInputSourceType == .systemAudio {
+            if effectiveSourceType == .systemAudio {
                 try await systemAudioCaptureService.startCapturingSystemAudio()
-            } else if selectedAudioInputSourceType == .applicationAudio, !selectedAudioAppBundleID.isEmpty {
+            } else if effectiveSourceType == .applicationAudio, !selectedAudioAppBundleID.isEmpty {
                 try await systemAudioCaptureService.startCapturingAppAudio(bundleID: selectedAudioAppBundleID)
             }
         } catch {
@@ -1105,9 +1119,8 @@ final class AppState {
     }
 
     func startTTS(frontmostApp: NSRunningApplication? = nil, precopiedText: String? = nil) {
-        #if DEBUG
-        print("TTS: startTTS called, frontmostApp: \(frontmostApp?.localizedName ?? "nil"), precopiedText: \(precopiedText != nil)")
-        #endif
+        dprint("TTS: startTTS called, frontmostApp: \(frontmostApp?.localizedName ?? "nil"), precopiedText: \(precopiedText != nil)")
+
 
         // Mutual exclusivity: close STT panel and cancel recording if active
         if showFloatingWindow || isRecording {
@@ -1125,14 +1138,12 @@ final class AppState {
             }
 
             if let selectedText = selectedText, !selectedText.isEmpty {
-                #if DEBUG
-                print("TTS: Got selected text, length: \(selectedText.count), content: '\(selectedText.prefix(200))'")
-                #endif
+                dprint("TTS: Got selected text, length: \(selectedText.count), content: '\(selectedText.prefix(200))'")
+
                 startTTSWithText(selectedText)
             } else {
-                #if DEBUG
-                print("TTS: No selected text, showing manual input window")
-                #endif
+                dprint("TTS: No selected text, showing manual input window")
+
                 // Show TTS window for manual input
                 ttsText = ""
                 ttsState = .idle
@@ -1157,10 +1168,8 @@ final class AppState {
     /// Show TTS panel with text without speaking (user can click Speak button)
     func showTTSPanelWithText(_ text: String) {
         guard !text.isEmpty else { return }
+        dprint("TTS: showTTSPanelWithText, text length: \(text.count)")
 
-        #if DEBUG
-        print("TTS: showTTSPanelWithText, text length: \(text.count)")
-        #endif
 
         // Mutual exclusivity: close STT panel and cancel recording if active
         if showFloatingWindow || isRecording {
@@ -1184,10 +1193,8 @@ final class AppState {
     /// Speak the current ttsText (can be called from panel button)
     func speakCurrentText() {
         guard !ttsText.isEmpty else { return }
+        dprint("TTS: speakCurrentText, text length: \(ttsText.count), provider: \(selectedTTSProvider.rawValue)")
 
-        #if DEBUG
-        print("TTS: speakCurrentText, text length: \(ttsText.count), provider: \(selectedTTSProvider.rawValue)")
-        #endif
 
         ttsState = .loading
 
@@ -1216,9 +1223,8 @@ final class AppState {
                 // and delegate.tts(didFinishSpeaking:) when it completes
                 try await ttsService?.speak(text: processedText)
             } catch {
-                #if DEBUG
-                print("TTS: Error occurred: \(error)")
-                #endif
+                dprint("TTS: Error occurred: \(error)")
+
                 ttsState = .error(error.localizedDescription)
             }
         }
@@ -1385,13 +1391,11 @@ final class AppState {
                 if response == .OK, let url = savePanel.url {
                     do {
                         try audioData.write(to: url)
-                        #if DEBUG
-                        print("Audio saved to: \(url.path)")
-                        #endif
+                        dprint("Audio saved to: \(url.path)")
+
                     } catch {
-                        #if DEBUG
-                        print("Failed to save audio: \(error)")
-                        #endif
+                        dprint("Failed to save audio: \(error)")
+
                     }
                 }
             }
@@ -1520,9 +1524,8 @@ final class AppState {
             subtitleTranslationLanguage = translationTargetLanguage
         }
         // Note: Subtitle mode uses provider.defaultModelId (not selectedTranslationModel) to avoid model mismatch
-        #if DEBUG
-        print("Subtitle: Synced settings from panel - provider: \(translationProvider.displayName), language: \(translationTargetLanguage.displayName)")
-        #endif
+        dprint("Subtitle: Synced settings from panel - provider: \(translationProvider.displayName), language: \(translationTargetLanguage.displayName)")
+
     }
 
     // MARK: - Translation Methods
@@ -1534,15 +1537,13 @@ final class AppState {
     ///   - sourceLanguage: Source language (nil for auto-detect)
     func translateText(_ text: String, to targetLanguage: LanguageCode, from sourceLanguage: LanguageCode? = nil) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            #if DEBUG
-            print("Translation: Empty text, skipping")
-            #endif
+            dprint("Translation: Empty text, skipping")
+
             return
         }
         guard translationState != .translating else {
-            #if DEBUG
-            print("Translation: Already translating, skipping")
-            #endif
+            dprint("Translation: Already translating, skipping")
+
             return
         }
 
@@ -1551,11 +1552,9 @@ final class AppState {
         translationTask = nil
         translationService?.cancel()
         translationService = nil
+        dprint("Translation: Starting translation to \(targetLanguage.displayName)")
+        dprint("Translation: Text length = \(text.count)")
 
-        #if DEBUG
-        print("Translation: Starting translation to \(targetLanguage.displayName)")
-        print("Translation: Text length = \(text.count)")
-        #endif
 
         // Save original text and TTS language for reverting
         originalTextBeforeTranslation = text
@@ -1566,19 +1565,16 @@ final class AppState {
             for: targetLanguage,
             preferredProvider: translationProvider
         )
+        dprint("Translation: Using provider = \(provider.displayName)")
 
-        #if DEBUG
-        print("Translation: Using provider = \(provider.displayName)")
-        #endif
 
         translationState = .translating
         translationService = TranslationFactory.makeService(for: provider, model: selectedTranslationModel)
 
         translationTask = Task { @MainActor in
             do {
-                #if DEBUG
-                print("Translation: Calling translate API...")
-                #endif
+                dprint("Translation: Calling translate API...")
+
 
                 let result = try await translationService?.translate(
                     text: text,
@@ -1587,33 +1583,29 @@ final class AppState {
                 )
 
                 if Task.isCancelled {
-                    #if DEBUG
-                    print("Translation: Task was cancelled")
-                    #endif
+                    dprint("Translation: Task was cancelled")
+
                     translationState = .idle
                     return
                 }
 
                 if let result = result {
-                    #if DEBUG
-                    print("Translation: Success! Result length = \(result.translatedText.count)")
-                    print("Translation: Result = \(result.translatedText.prefix(100))...")
-                    #endif
+                    dprint("Translation: Success! Result length = \(result.translatedText.count)")
+                    dprint("Translation: Result = \(result.translatedText.prefix(100))...")
+
                     translationState = .translated(result.translatedText)
                     translationTargetLanguage = targetLanguage
 
                     // Update TTS language to match translation target for seamless TTS
                     selectedTTSLanguage = targetLanguage.rawValue
                 } else {
-                    #if DEBUG
-                    print("Translation: No result returned")
-                    #endif
+                    dprint("Translation: No result returned")
+
                     translationState = .error("Translation returned no result")
                 }
             } catch {
-                #if DEBUG
-                print("Translation: Error = \(error.localizedDescription)")
-                #endif
+                dprint("Translation: Error = \(error.localizedDescription)")
+
                 if !Task.isCancelled {
                     translationState = .error(error.localizedDescription)
                 }
@@ -1706,9 +1698,9 @@ final class AppState {
             isCheckingLanguageAvailability = false
 
             #if DEBUG
-            print("AppState: macOS Translation language availability cached")
+            dprint("AppState: macOS Translation language availability cached")
             for (lang, status) in macOSTranslationLanguageCache.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
-                print("  \(lang.displayName): \(status == 2 ? "installed" : status == 1 ? "needs download" : "unsupported")")
+                dprint("  \(lang.displayName): \(status == 2 ? "installed" : status == 1 ? "needs download" : "unsupported")")
             }
             #endif
         }
@@ -2231,10 +2223,8 @@ extension AppState: HotKeyServiceDelegate {
 
         // Skip if SpeechDock itself is frontmost (no text to copy from ourselves)
         let isSpeechDockFrontmost = frontmostApp?.bundleIdentifier == "com.speechdock.app"
+        dprint("TTS HotKey: Captured frontmost app: \(frontmostApp?.localizedName ?? "none") (bundle: \(frontmostApp?.bundleIdentifier ?? "none")), isSpeechDock: \(isSpeechDockFrontmost)")
 
-        #if DEBUG
-        print("TTS HotKey: Captured frontmost app: \(frontmostApp?.localizedName ?? "none") (bundle: \(frontmostApp?.bundleIdentifier ?? "none")), isSpeechDock: \(isSpeechDockFrontmost)")
-        #endif
 
         var copiedText: String? = nil
 
@@ -2258,17 +2248,14 @@ extension AppState: HotKeyServiceDelegate {
             if newChangeCount != clipboardChangeCount {
                 copiedText = NSPasteboard.general.string(forType: .string)
             }
+            dprint("TTS HotKey: Clipboard changed: \(newChangeCount != clipboardChangeCount), text length: \(copiedText?.count ?? 0)")
 
-            #if DEBUG
-            print("TTS HotKey: Clipboard changed: \(newChangeCount != clipboardChangeCount), text length: \(copiedText?.count ?? 0)")
-            #endif
 
             // Restore original clipboard content after capturing text
             if copiedText != nil {
                 ClipboardService.shared.restoreClipboardState(savedClipboardState)
-                #if DEBUG
-                print("TTS HotKey: Restored original clipboard content")
-                #endif
+                dprint("TTS HotKey: Restored original clipboard content")
+
             }
         }
 
@@ -2292,10 +2279,8 @@ extension AppState: HotKeyServiceDelegate {
 
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
+        dprint("TTS HotKey: Sent Cmd+C immediately")
 
-        #if DEBUG
-        print("TTS HotKey: Sent Cmd+C immediately")
-        #endif
     }
 
     nonisolated func ocrHotKeyPressed() {

@@ -757,9 +757,8 @@ struct TranscriptionFloatingView: View {
             if provider.hasItemConformingToTypeIdentifier("public.file-url") {
                 provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
                     if let error = error {
-                        #if DEBUG
-                        print("Drop error: \(error)")
-                        #endif
+                        dprint("Drop error: \(error)")
+
                         return
                     }
 
@@ -1085,9 +1084,8 @@ struct TranscriptionFloatingView: View {
                 forceTextUpdate = true
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 editedText = translatedText
-                #if DEBUG
-                print("TranscriptionFloatingView: Translation complete, editedText updated to length \(translatedText.count)")
-                #endif
+                dprint("TranscriptionFloatingView: Translation complete, editedText updated to length \(translatedText.count)")
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     forceTextUpdate = false
                 }
@@ -1097,17 +1095,15 @@ struct TranscriptionFloatingView: View {
                     forceTextUpdate = true
                     NSApp.keyWindow?.makeFirstResponder(nil)
                     editedText = appState.originalTextBeforeTranslation
-                    #if DEBUG
-                    print("TranscriptionFloatingView: Reverted to original text")
-                    #endif
+                    dprint("TranscriptionFloatingView: Reverted to original text")
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         forceTextUpdate = false
                     }
                 }
             case .error(let message):
-                #if DEBUG
-                print("TranscriptionFloatingView: Translation error: \(message)")
-                #endif
+                dprint("TranscriptionFloatingView: Translation error: \(message)")
+
             case .translating:
                 break
             }
@@ -1411,9 +1407,8 @@ struct TranscriptionFloatingView: View {
                 do {
                     try editedText.write(to: url, atomically: true, encoding: .utf8)
                 } catch {
-                    #if DEBUG
-                    print("Failed to save transcription: \(error)")
-                    #endif
+                    dprint("Failed to save transcription: \(error)")
+
                 }
             }
         }
@@ -1512,7 +1507,7 @@ struct AudioInputSourceSelector: View {
                 }
             }
 
-            // System Audio option
+            // System Audio option (requires Screen Recording permission)
             Button(action: {
                 appState.selectedAudioInputSourceType = .systemAudio
             }) {
@@ -1521,46 +1516,57 @@ struct AudioInputSourceSelector: View {
                     Image(systemName: "checkmark")
                 }
             }
+            .disabled(!appState.hasScreenRecordingPermission)
 
             Divider()
 
-            // App Audio submenu
-            Menu {
-                if availableApps.isEmpty {
-                    Text("No apps detected")
-                        .foregroundColor(.secondary)
-                } else {
-                    // Show recently used apps first with a section header if there are any
-                    let recentApps = availableApps.filter { $0.isRecentlyUsed }
-                    let otherApps = availableApps.filter { !$0.isRecentlyUsed }
+            // App Audio submenu (requires Screen Recording permission)
+            if appState.hasScreenRecordingPermission {
+                Menu {
+                    if availableApps.isEmpty {
+                        Text("No apps detected")
+                            .foregroundColor(.secondary)
+                    } else {
+                        // Show recently used apps first with a section header if there are any
+                        let recentApps = availableApps.filter { $0.isRecentlyUsed }
+                        let otherApps = availableApps.filter { !$0.isRecentlyUsed }
 
-                    if !recentApps.isEmpty {
-                        Section("Recent") {
-                            ForEach(recentApps) { app in
-                                appAudioButton(for: app)
+                        if !recentApps.isEmpty {
+                            Section("Recent") {
+                                ForEach(recentApps) { app in
+                                    appAudioButton(for: app)
+                                }
+                            }
+
+                            if !otherApps.isEmpty {
+                                Divider()
                             }
                         }
 
-                        if !otherApps.isEmpty {
-                            Divider()
+                        ForEach(otherApps) { app in
+                            appAudioButton(for: app)
                         }
                     }
 
-                    ForEach(otherApps) { app in
-                        appAudioButton(for: app)
-                    }
-                }
+                    Divider()
 
-                Divider()
-
-                Button("Refresh Apps") {
-                    Task {
-                        await appState.systemAudioCaptureService.refreshAvailableApps()
-                        availableApps = appState.systemAudioCaptureService.availableApps
+                    Button("Refresh Apps") {
+                        Task {
+                            await appState.systemAudioCaptureService.refreshAvailableApps()
+                            availableApps = appState.systemAudioCaptureService.availableApps
+                        }
                     }
+                } label: {
+                    Label("App Audio", systemImage: AudioInputSourceType.applicationAudio.icon)
                 }
-            } label: {
+            } else {
+                // Show disabled App Audio label when Screen Recording permission is missing
                 Label("App Audio", systemImage: AudioInputSourceType.applicationAudio.icon)
+                    .foregroundColor(.secondary)
+
+                Text("Screen Recording permission required")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
         } label: {
             HStack(spacing: 4) {

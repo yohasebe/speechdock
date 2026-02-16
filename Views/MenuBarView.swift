@@ -99,10 +99,11 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(appState.hasMicrophonePermission ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("Subtitle Mode")
                         .font(.callout)
+                        .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     if appState.subtitleModeEnabled {
                         Text("On")
@@ -118,6 +119,7 @@ struct MenuBarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(MenuBarActionButtonStyle())
+            .disabled(!appState.hasMicrophonePermission)
 
             // Floating mic button toggle
             Button(action: {
@@ -125,10 +127,11 @@ struct MenuBarView: View {
             }) {
                 HStack {
                     Image(systemName: appState.showFloatingMicButton ? "mic.circle.fill" : "mic.circle")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(appState.hasMicrophonePermission ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("Floating Mic Button")
                         .font(.callout)
+                        .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     if appState.showFloatingMicButton {
                         Text("On")
@@ -144,6 +147,7 @@ struct MenuBarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(MenuBarActionButtonStyle())
+            .disabled(!appState.hasMicrophonePermission)
 
             // Transcribe Audio File button
             Button(action: {
@@ -194,6 +198,15 @@ struct MenuBarView: View {
                 )
             }
 
+            // Screen Recording permission warning
+            if !appState.hasScreenRecordingPermission {
+                permissionWarning(
+                    icon: "rectangle.dashed.badge.record",
+                    text: "Screen Recording access recommended",
+                    action: openScreenRecordingSettings
+                )
+            }
+
             // TTS Action button with shortcut
             Button(action: {
                 StatusBarManager.shared.closePanel()
@@ -219,19 +232,21 @@ struct MenuBarView: View {
                 StatusBarManager.shared.closePanel()
                 appState.startOCR()
             }) {
+                let ocrEnabled = appState.hasScreenRecordingPermission
                 HStack {
                     Image(systemName: "text.viewfinder")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(ocrEnabled ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("OCR Region to TTS")
                         .font(.callout)
+                        .foregroundColor(ocrEnabled ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.ocrKeyCombo.displayString ?? "\u{2303}\u{2325}\u{21E7}O")
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(MenuBarActionButtonStyle())
-            .disabled(appState.ocrCoordinator.isSelecting || appState.ocrCoordinator.isProcessing)
+            .disabled(appState.ocrCoordinator.isSelecting || appState.ocrCoordinator.isProcessing || !appState.hasScreenRecordingPermission)
 
             Divider()
                 .padding(.vertical, 4)
@@ -338,16 +353,17 @@ struct MenuBarView: View {
 
     private func openMicrophoneSettings() {
         StatusBarManager.shared.closePopover()
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-            NSWorkspace.shared.open(url)
-        }
+        PermissionService.shared.openMicrophoneSettings()
     }
 
     private func openAccessibilitySettings() {
         StatusBarManager.shared.closePopover()
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
+        PermissionService.shared.openAccessibilitySettings()
+    }
+
+    private func openScreenRecordingSettings() {
+        StatusBarManager.shared.closePopover()
+        PermissionService.shared.openScreenRecordingSettings()
     }
 
     private func openAbout() {
