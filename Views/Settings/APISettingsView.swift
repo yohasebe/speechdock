@@ -3,6 +3,13 @@ import SwiftUI
 struct APISettingsView: View {
     var body: some View {
         Form {
+            Section {
+                Text("SpeechDock works without API keys using macOS built-in STT/TTS. Cloud providers below are optional and offer additional voices, models, and languages.")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("About API Keys")
+            }
             ForEach(STTProvider.allCases) { provider in
                 APIKeySection(provider: provider)
             }
@@ -79,6 +86,10 @@ struct APIKeySection: View {
             }
         } header: {
             Text(provider.rawValue)
+        } footer: {
+            Text(provider.footerDescription)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .onAppear {
             loadAPIKey()

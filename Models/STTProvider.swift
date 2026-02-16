@@ -38,6 +38,19 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         }
         return model
     }
+
+    var footerDescription: String {
+        switch self {
+        case .openAI:
+            return "Enables STT (GPT-4o Transcribe, Whisper), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
+        case .gemini:
+            return "Enables STT (Gemini 2.5 Flash), TTS (Gemini 2.5 Flash/Pro), and translation. Optional — macOS built-in works without this."
+        case .elevenLabs:
+            return "Enables STT (Scribe v2) and TTS (Eleven v3, Flash v2.5, Multilingual v2). Optional — macOS built-in works without this."
+        case .grok:
+            return "Enables STT (Grok 2), TTS (Grok Voice), and translation. Optional — macOS built-in works without this."
+        }
+    }
 }
 
 enum STTModel: String, CaseIterable, Identifiable, Codable {
