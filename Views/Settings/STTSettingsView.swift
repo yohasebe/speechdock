@@ -46,6 +46,7 @@ struct STTSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollIndicators(.visible)
     }
 
     private var availableSTTProviders: [RealtimeSTTProvider] {

@@ -106,7 +106,26 @@ a.btn-primary:hover,
 .mr-2 {
   margin-right: 0.5rem;
 }
+
 </style>
+
+{% if page.lang == 'ja' %}
+<style>
+/* Hide search on Japanese pages */
+#search-input,
+.search-input-wrap,
+.search-input,
+.search,
+.main-header .search,
+input[placeholder*="Search"] {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+</style>
+{% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

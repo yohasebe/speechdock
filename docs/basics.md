@@ -164,7 +164,7 @@ Translation settings are synced from the STT panel when subtitle mode starts. Yo
 
 <figure>
   <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
-  <figcaption>Quick Transcription — Floating mic button with real-time HUD</figcaption>
+  <figcaption>Quick Transcription — Clicking the button stops recording and pastes the transcribed text at the cursor</figcaption>
 </figure>
 
 A floating microphone button for instant voice input without opening the STT panel. Perfect for quick dictation into any application.
@@ -274,7 +274,7 @@ Only one panel (STT or TTS) can be open at a time. Opening one closes the other.
 ## Menu Bar
 
 <figure>
-  <img src="images/menu-bar.png" alt="Menu Bar" style="max-width: 280px;">
+  <img src="images/menu-bar.png" alt="Menu Bar" style="max-width: 350px;">
   <figcaption>Menu Bar — Quick access to all features</figcaption>
 </figure>
 
@@ -292,17 +292,42 @@ Click the SpeechDock icon in the menu bar for quick access to:
 
 Open Settings with `Cmd + ,` or from the menu bar. The unified settings window uses a sidebar with the following categories:
 
-| Category | Options |
-|----------|---------|
-| **Speech-to-Text** | Provider, model, language, audio input, auto-stop, panel behavior |
-| **Text-to-Speech** | Provider, model, voice, speed, audio output, panel behavior |
-| **Translation** | Panel translation provider/model, subtitle translation settings |
-| **Subtitle** | On/off, position, font size, text/background opacity, max lines |
-| **Shortcuts** | Global hotkeys and panel shortcuts |
-| **Text Replacement** | Built-in patterns and custom rules |
-| **Appearance** | Text font size, panel style, launch at login |
-| **API Keys** | Cloud provider API keys (optional) |
-| **About** | Version info, links, check for updates, support |
+<figure>
+  <img src="images/settings-stt.png" alt="Speech-to-Text Settings" style="max-width: 600px;">
+  <figcaption>Speech-to-Text — Provider, model, language, audio input, auto-stop, panel behavior</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-tts.png" alt="Text-to-Speech Settings" style="max-width: 600px;">
+  <figcaption>Text-to-Speech — Provider, model, voice, speed, audio output, panel behavior</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-translation.png" alt="Translation Settings" style="max-width: 600px;">
+  <figcaption>Translation — Panel translation provider/model, subtitle translation settings</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-subtitle.png" alt="Subtitle Settings" style="max-width: 600px;">
+  <figcaption>Subtitle — On/off, position, font size, text/background opacity, max lines</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-shortcuts.png" alt="Shortcuts Settings" style="max-width: 600px;">
+  <figcaption>Shortcuts — Global hotkeys and panel shortcuts</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-text-replacement.png" alt="Text Replacement Settings" style="max-width: 600px;">
+  <figcaption>Text Replacement — Built-in patterns and custom rules</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-appearance.png" alt="Appearance Settings" style="max-width: 600px;">
+  <figcaption>Appearance — Text font size, panel style, launch at login</figcaption>
+</figure>
+
+For API key settings, see [Advanced Features](advanced.html).
 
 ## Privacy & Security
 

@@ -44,6 +44,7 @@ struct TranslationSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollIndicators(.visible)
     }
 
     private var availableProviders: [TranslationProvider] {

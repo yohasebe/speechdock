@@ -17,6 +17,7 @@ struct TextReplacementSettingsView: View {
             }
             .padding()
         }
+        .scrollIndicators(.visible)
     }
 
     // MARK: - Built-in Patterns Section

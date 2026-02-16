@@ -109,6 +109,7 @@ struct ShortcutSettingsView: View {
             }
             .formStyle(.grouped)
         }
+        .scrollIndicators(.visible)
         .onAppear {
             if let service = appState.hotKeyService {
                 sttKeyCombo = service.sttKeyCombo

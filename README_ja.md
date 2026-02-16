@@ -10,6 +10,12 @@
 
 [English](README.md) | 日本語
 
+## アーキテクチャ
+
+<p align="center">
+  <img src="docs/images/architecture.png" alt="SpeechDock アーキテクチャ" width="720">
+</p>
+
 ## ドキュメント
 
 | | |

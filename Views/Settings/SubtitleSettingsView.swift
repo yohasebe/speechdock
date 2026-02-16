@@ -128,5 +128,6 @@ struct SubtitleSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollIndicators(.visible)
     }
 }

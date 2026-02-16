@@ -5,7 +5,7 @@ struct SettingsWindow: View {
 
     var body: some View {
         UnifiedSettingsView(navigation: navigation)
-            .frame(width: 700, height: 500)
+            .frame(minWidth: 700, maxWidth: 700, minHeight: 450, idealHeight: 500, maxHeight: .infinity)
             .focusEffectDisabled()
     }
 }

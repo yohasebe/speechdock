@@ -51,6 +51,7 @@ struct TTSSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollIndicators(.visible)
     }
 
     private var availableTTSProviders: [TTSProvider] {

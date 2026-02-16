@@ -8,6 +8,7 @@ struct APISettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollIndicators(.visible)
         .padding()
     }
 }

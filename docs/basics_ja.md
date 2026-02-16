@@ -2,6 +2,7 @@
 layout: default
 title: 基本機能
 nav_exclude: true
+search_exclude: true
 lang: ja
 ---
 
@@ -165,7 +166,7 @@ TTSパネルのスライダーで再生速度を0.5倍から2.0倍に調整で�
 
 <figure>
   <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
-  <figcaption>クイック入力 — リアルタイムHUD付きのフローティングマイクボタン</figcaption>
+  <figcaption>クイック入力 — ボタンをクリックすると録音が停止し、文字起こしテキストがカーソル位置にペーストされます</figcaption>
 </figure>
 
 STTパネルを開かずに音声入力を行うフローティングマイクボタン。任意のアプリケーションへの素早い音声入力に最適です。
@@ -275,7 +276,7 @@ TTSパネルでは、マッチしたテキストがオレンジ色の下線と�
 ## メニューバー
 
 <figure>
-  <img src="images/menu-bar.png" alt="Menu Bar" style="max-width: 280px;">
+  <img src="images/menu-bar.png" alt="Menu Bar" style="max-width: 350px;">
   <figcaption>メニューバー — すべての機能へのクイックアクセス</figcaption>
 </figure>
 
@@ -293,17 +294,42 @@ TTSパネルでは、マッチしたテキストがオレンジ色の下線と�
 
 `Cmd + ,` またはメニューバーから設定を開きます。統合設定ウィンドウはサイドバーで以下のカテゴリに分かれています：
 
-| カテゴリ | オプション |
-|----------|----------|
-| **音声認識** | プロバイダ、モデル、言語、音声入力、自動停止、パネル動作 |
-| **音声合成** | プロバイダ、モデル、音声、速度、音声出力、パネル動作 |
-| **翻訳** | パネル翻訳プロバイダ/モデル、字幕翻訳設定 |
-| **字幕** | オン/オフ、位置、フォントサイズ、テキスト/背景の不透明度、最大行数 |
-| **ショートカット** | グローバルホットキーとパネルショートカット |
-| **テキスト置換** | 組み込みパターンとカスタムルール |
-| **外観** | テキストフォントサイズ、パネルスタイル、ログイン時に起動 |
-| **APIキー** | クラウドプロバイダのAPIキー（オプション） |
-| **About** | バージョン情報、リンク、アップデートの確認、サポート |
+<figure>
+  <img src="images/settings-stt.png" alt="Speech-to-Text Settings" style="max-width: 600px;">
+  <figcaption>音声認識 — プロバイダ、モデル、言語、音声入力、自動停止、パネル動作</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-tts.png" alt="Text-to-Speech Settings" style="max-width: 600px;">
+  <figcaption>音声合成 — プロバイダ、モデル、音声、速度、音声出力、パネル動作</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-translation.png" alt="Translation Settings" style="max-width: 600px;">
+  <figcaption>翻訳 — パネル翻訳プロバイダ/モデル、字幕翻訳設定</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-subtitle.png" alt="Subtitle Settings" style="max-width: 600px;">
+  <figcaption>字幕 — オン/オフ、位置、フォントサイズ、テキスト/背景の不透明度、最大行数</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-shortcuts.png" alt="Shortcuts Settings" style="max-width: 600px;">
+  <figcaption>ショートカット — グローバルホットキーとパネルショートカット</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-text-replacement.png" alt="Text Replacement Settings" style="max-width: 600px;">
+  <figcaption>テキスト置換 — 組み込みパターンとカスタムルール</figcaption>
+</figure>
+
+<figure>
+  <img src="images/settings-appearance.png" alt="Appearance Settings" style="max-width: 600px;">
+  <figcaption>外観 — テキストフォントサイズ、パネルスタイル、ログイン時に起動</figcaption>
+</figure>
+
+APIキーの設定については[高度な機能](advanced_ja.html)を参照してください。
 
 ## プライバシーとセキュリティ
 

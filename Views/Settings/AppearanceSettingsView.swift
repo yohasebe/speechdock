@@ -71,6 +71,7 @@ struct AppearanceSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollIndicators(.visible)
     }
 }
 

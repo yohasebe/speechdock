@@ -2,6 +2,7 @@
 layout: default
 title: ホーム
 nav_exclude: true
+search_exclude: true
 lang: ja
 ---
 
@@ -14,7 +15,7 @@ lang: ja
 # SpeechDock
 {: .text-center }
 
-**あらゆる音声をテキストに。あらゆるテキストを音声に。メニューバーから。**
+**Speak and listen, from anywhere on your Mac.**
 {: .text-center .fs-6 }
 
 [ダウンロード](https://github.com/yohasebe/SpeechDock/releases){: .btn .btn-primary .mr-2 }
@@ -30,6 +31,14 @@ lang: ja
 **Macのあらゆる音声をテキストに** — マイクからの声、システム全体の音声、特定アプリの音声。Macが聞ける音なら、SpeechDockがリアルタイムで文字起こしします。
 
 メニューバーに常駐し、グローバルホットキーでどこからでもアクセス可能。インストール後すぐに使え、APIキーや追加ダウンロードは不要です。
+
+---
+
+## アーキテクチャ
+
+<p align="center">
+  <img src="images/architecture.png" alt="SpeechDock アーキテクチャ" style="max-width: 720px;">
+</p>
 
 ---
 
@@ -91,7 +100,7 @@ lang: ja
 
 <figure>
   <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
-  <figcaption>クイック入力 — フローティングマイクボタンとリアルタイムHUD</figcaption>
+  <figcaption>クイック入力 — ボタンをクリックすると録音が停止し、文字起こしテキストがカーソル位置にペーストされます</figcaption>
 </figure>
 
 <figure>

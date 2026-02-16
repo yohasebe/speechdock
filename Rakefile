@@ -398,7 +398,7 @@ namespace :release do
       puts "     export APPLE_ID='your-apple-id@example.com'"
       puts "     export APP_PASSWORD='xxxx-xxxx-xxxx-xxxx'  # App-specific password"
       puts "     export TEAM_ID='XXXXXXXXXX'"
-      puts "     rake release:full"
+      puts "     rake release:local"
       puts ""
       puts "  2. Use GitHub Actions (recommended):"
       puts "     rake prepare:release"
@@ -412,8 +412,8 @@ namespace :release do
     sh "chmod +x scripts/notarize.sh && ./scripts/notarize.sh"
   end
 
-  desc "Full release process (build, DMG, notarize, install)"
-  task :full => :notarize do
+  desc "Local release (requires APPLE_ID, APP_PASSWORD, TEAM_ID env vars). Prefer release:github"
+  task :local => :notarize do
     # Install to /Applications after successful notarization
     app_path = find_built_app("Release")
     if app_path
@@ -523,9 +523,8 @@ namespace :prepare do
       puts "=" * 60
       puts "✓ Version #{new_version} committed and pushed"
       puts ""
-      puts "Next steps:"
-      puts "  1. Create release: rake release:github"
-      puts "  2. Or locally:     rake release:full"
+      puts "Next step:"
+      puts "  rake release:github   # Create release via GitHub Actions (recommended)"
       puts "=" * 60
     else
       puts ""
@@ -687,9 +686,9 @@ task :help do
   puts "  rake prepare:quick           # Quick patch release prep"
   puts ""
   puts "Release:"
-  puts "  rake release:github   # Create release via GitHub Actions"
-  puts "  rake release:full     # Full local release (notarize required)"
-  puts "  rake release:dmg      # Create DMG only"
+  puts "  rake release:github   # Create release via GitHub Actions (recommended)"
+  puts "  rake release:local    # Local release (requires APPLE_ID/APP_PASSWORD/TEAM_ID env vars)"
+  puts "  rake release:dmg      # Create DMG only (no notarization)"
   puts ""
   puts "Development:"
   puts "  rake xcode        # Open in Xcode"

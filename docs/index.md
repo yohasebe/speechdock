@@ -13,7 +13,7 @@ nav_order: 1
 # SpeechDock
 {: .text-center }
 
-**Any sound to text. Any text to speech. From your menu bar.**
+**Speak and listen, from anywhere on your Mac.**
 {: .text-center .fs-6 }
 
 [Download](https://github.com/yohasebe/SpeechDock/releases){: .btn .btn-primary .mr-2 }
@@ -29,6 +29,14 @@ nav_order: 1
 **Transcribe any audio on your Mac** — Your voice through the microphone, system-wide audio, or sound from a specific app. If your Mac can hear it, SpeechDock can turn it into text in real time.
 
 A menu bar app that makes STT and TTS accessible from anywhere on your Mac with global hotkeys. Works immediately after installation — no API keys or additional downloads required.
+
+---
+
+## Architecture
+
+<p align="center">
+  <img src="images/architecture.png" alt="SpeechDock Architecture" style="max-width: 720px;">
+</p>
 
 ---
 
@@ -90,7 +98,7 @@ A menu bar app that makes STT and TTS accessible from anywhere on your Mac with 
 
 <figure>
   <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
-  <figcaption>Quick Transcription — Floating mic button with real-time HUD</figcaption>
+  <figcaption>Quick Transcription — Clicking the button stops recording and pastes the transcribed text at the cursor</figcaption>
 </figure>
 
 <figure>

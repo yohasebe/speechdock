@@ -2,6 +2,7 @@
 layout: default
 title: 高度な機能
 nav_exclude: true
+search_exclude: true
 lang: ja
 ---
 
