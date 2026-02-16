@@ -2,13 +2,15 @@ import SwiftUI
 
 struct TranslationSettingsView: View {
     @Environment(AppState.self) var appState
+    @State private var availableLanguages: [LanguageCode] = []
+    @State private var isLoadingLanguages = true
 
     var body: some View {
         @Bindable var appState = appState
 
         Form {
             Section {
-                Text("Translation provider and model used by the Translate button in the STT and TTS panels.")
+                Text("Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation.")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -29,8 +31,31 @@ struct TranslationSettingsView: View {
                         }
                     }
                 }
+
+                HStack {
+                    Text("Target Language")
+                    Spacer()
+                    if isLoadingLanguages {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    } else {
+                        Picker("", selection: $appState.translationTargetLanguage) {
+                            ForEach(availableLanguages) { language in
+                                Text(language.displayName).tag(language)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 150)
+                    }
+                }
+
+                if appState.translationProvider == .macOS {
+                    Text("Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             } header: {
-                Text("Panel Translation")
+                Text("Translation")
             }
 
             Section {
@@ -45,6 +70,14 @@ struct TranslationSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollIndicators(.visible)
+        .task {
+            await loadAvailableLanguages()
+        }
+        .onChange(of: appState.translationProvider) { _, _ in
+            Task {
+                await loadAvailableLanguages()
+            }
+        }
     }
 
     private var availableProviders: [TranslationProvider] {
@@ -55,15 +88,30 @@ struct TranslationSettingsView: View {
             return apiKey != nil && !apiKey!.isEmpty
         }
     }
+
+    private func loadAvailableLanguages() async {
+        isLoadingLanguages = true
+
+        if appState.translationProvider == .macOS {
+            availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
+
+            if !availableLanguages.contains(appState.translationTargetLanguage),
+               let first = availableLanguages.first {
+                appState.translationTargetLanguage = first
+            }
+        } else {
+            availableLanguages = LanguageCode.allCases.filter { $0 != .auto }
+        }
+
+        isLoadingLanguages = false
+    }
 }
 
 // MARK: - Subtitle Translation Settings
 
-/// Subtitle Translation settings
+/// Subtitle Translation settings (provider & language are now in main Translation section)
 struct SubtitleTranslationSettings: View {
     @Bindable var appState: AppState
-    @State private var availableLanguages: [LanguageCode] = []
-    @State private var isLoadingLanguages = true
 
     private var availableProviders: [TranslationProvider] {
         TranslationProvider.allCases.filter { provider in
@@ -109,29 +157,6 @@ struct SubtitleTranslationSettings: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
 
-            HStack {
-                Text("Target Language")
-                Spacer()
-                if isLoadingLanguages {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                } else {
-                    Picker("", selection: $appState.subtitleTranslationLanguage) {
-                        ForEach(availableLanguages) { language in
-                            Text(language.displayName).tag(language)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(width: 150)
-                }
-            }
-
-            if appState.subtitleTranslationProvider == .macOS {
-                Text("Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-
             Toggle(isOn: $appState.subtitleShowOriginal) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Show Original Text")
@@ -141,31 +166,6 @@ struct SubtitleTranslationSettings: View {
                 }
             }
         }
-        .task {
-            await loadAvailableLanguages()
-        }
-        .onChange(of: appState.subtitleTranslationProvider) { _, _ in
-            Task {
-                await loadAvailableLanguages()
-            }
-        }
-    }
-
-    private func loadAvailableLanguages() async {
-        isLoadingLanguages = true
-
-        if appState.subtitleTranslationProvider == .macOS {
-            availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
-
-            if !availableLanguages.contains(appState.subtitleTranslationLanguage),
-               let first = availableLanguages.first {
-                appState.subtitleTranslationLanguage = first
-            }
-        } else {
-            availableLanguages = LanguageCode.allCases.filter { $0 != .auto }
-        }
-
-        isLoadingLanguages = false
     }
 
     private var providerDescription: String {

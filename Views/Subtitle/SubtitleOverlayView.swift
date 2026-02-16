@@ -58,6 +58,18 @@ struct SubtitleOverlayView: View {
         lineHeight * CGFloat(appState.subtitleMaxLines)
     }
 
+    /// Whether the top fade mask should be applied (only when text exceeds max lines)
+    private func needsTopFade(_ text: String) -> Bool {
+        let lineCount = text.components(separatedBy: .newlines)
+            .map { line in
+                let charWidth: CGFloat = appState.subtitleFontSize * 0.55
+                let availableWidth: CGFloat = max(NSScreen.main?.frame.width ?? 800, 400) - 88
+                return max(1, Int(ceil(CGFloat(line.count) * charWidth / availableWidth)))
+            }
+            .reduce(0, +)
+        return lineCount > appState.subtitleMaxLines
+    }
+
     /// Text to display in the subtitle
     private var displayText: String {
         if appState.subtitleTranslationEnabled && !appState.subtitleTranslatedText.isEmpty {
@@ -125,10 +137,10 @@ struct SubtitleOverlayView: View {
                         }
                         .frame(maxHeight: maxTextHeight)
                         .mask(
-                            // Fade out at the top when scrolled
+                            // Fade out at the top only when text exceeds max lines (scrollable)
                             LinearGradient(
                                 gradient: Gradient(stops: [
-                                    .init(color: .clear, location: 0),
+                                    .init(color: needsTopFade(text) ? .clear : .black, location: 0),
                                     .init(color: .black, location: 0.1),
                                     .init(color: .black, location: 1.0)
                                 ]),
@@ -242,7 +254,10 @@ struct SubtitleOverlayView: View {
                     .foregroundColor(appState.subtitleTranslationEnabled ? .blue : .white.opacity(0.5))
             }
             .buttonStyle(.plain)
-            .help(appState.subtitleTranslationEnabled ? "Disable translation" : "Enable translation")
+            .disabled(appState.isSTTLanguageSameAsTranslationTarget)
+            .help(appState.isSTTLanguageSameAsTranslationTarget
+                  ? "STT language is the same as translation target"
+                  : appState.subtitleTranslationEnabled ? "Disable translation" : "Enable translation")
 
             // Provider and language selector (only when translation is enabled)
             if appState.subtitleTranslationEnabled {
@@ -355,11 +370,11 @@ struct SubtitleLanguageMenu: View {
             } else {
                 ForEach(availableLanguages) { language in
                     Button {
-                        appState.subtitleTranslationLanguage = language
+                        appState.translationTargetLanguage = language
                     } label: {
                         HStack {
                             Text(language.displayName)
-                            if language == appState.subtitleTranslationLanguage {
+                            if language == appState.translationTargetLanguage {
                                 Spacer()
                                 Image(systemName: "checkmark")
                             }
@@ -369,7 +384,7 @@ struct SubtitleLanguageMenu: View {
             }
         } label: {
             HStack(spacing: 2) {
-                Text(appState.subtitleTranslationLanguage.displayName)
+                Text(appState.translationTargetLanguage.displayName)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
                 Image(systemName: "chevron.down")
@@ -397,9 +412,9 @@ struct SubtitleLanguageMenu: View {
             availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
 
             // If current selection is not available, switch to first available
-            if !availableLanguages.contains(appState.subtitleTranslationLanguage),
+            if !availableLanguages.contains(appState.translationTargetLanguage),
                let first = availableLanguages.first {
-                appState.subtitleTranslationLanguage = first
+                appState.translationTargetLanguage = first
             }
         } else {
             // LLM providers support all languages

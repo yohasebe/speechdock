@@ -61,7 +61,7 @@ struct TranslationControls: View {
 
     /// Whether translation can be executed
     private var canTranslate: Bool {
-        hasEnoughText && isTargetLanguageAvailable
+        hasEnoughText && isTargetLanguageAvailable && !appState.isSTTLanguageSameAsTranslationTarget
     }
 
     /// Whether settings can be changed (disabled during translation)
@@ -93,7 +93,7 @@ struct TranslationControls: View {
         }
         .padding(.horizontal, 4)
         .frame(height: 28)
-        .background(Color(.windowBackgroundColor).opacity(0.9))
+        .background(Color(.windowBackgroundColor))
         .cornerRadius(6)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         .fixedSize(horizontal: true, vertical: false)
@@ -134,6 +134,9 @@ struct TranslationControls: View {
     private var translateButtonHelpText: String {
         if !hasEnoughText {
             return "Enter text to enable translation"
+        }
+        if appState.isSTTLanguageSameAsTranslationTarget {
+            return "STT language is the same as translation target"
         }
         if !isTargetLanguageAvailable {
             return "Select a target language"
@@ -384,6 +387,7 @@ struct TranslationControls: View {
     /// Execute translation to the currently selected language
     private func executeTranslation() {
         guard hasEnoughText else { return }
+        guard !appState.isSTTLanguageSameAsTranslationTarget else { return }
         dprint("TranslationControls: executeTranslation called")
         dprint("TranslationControls: language = \(appState.translationTargetLanguage.displayName)")
         dprint("TranslationControls: text length = \(text.count)")

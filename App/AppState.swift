@@ -215,8 +215,24 @@ final class AppState {
     var translationTargetLanguage: LanguageCode = .japanese {
         didSet {
             guard !isLoadingPreferences else { return }
+            // Clear subtitle translation cache and reset error state when language changes
+            SubtitleTranslationService.shared.clearCache()
+            if case .error = subtitleTranslationState {
+                subtitleTranslationState = .idle
+            }
+            // Disable subtitle translation if STT language matches translation target
+            if subtitleTranslationEnabled && isSTTLanguageSameAsTranslationTarget {
+                subtitleTranslationEnabled = false
+            }
             savePreferences()
         }
+    }
+
+    /// Whether the STT language is the same as the translation target language.
+    /// Returns false when STT language is Auto (unknown at config time).
+    var isSTTLanguageSameAsTranslationTarget: Bool {
+        guard !selectedSTTLanguage.isEmpty else { return false }  // Auto
+        return selectedSTTLanguage == translationTargetLanguage.rawValue
     }
     /// Original text before translation (for reverting)
     var originalTextBeforeTranslation: String = ""
@@ -234,6 +250,10 @@ final class AppState {
     var selectedSTTLanguage: String = "" {  // "" = Auto
         didSet {
             guard !isLoadingPreferences else { return }
+            // Disable subtitle translation if STT language now matches translation target
+            if subtitleTranslationEnabled && isSTTLanguageSameAsTranslationTarget {
+                subtitleTranslationEnabled = false
+            }
             savePreferences()
         }
     }
@@ -500,18 +520,10 @@ final class AppState {
     var subtitleTranslationEnabled: Bool = false {
         didSet {
             guard !isLoadingPreferences else { return }
-            savePreferences()
-        }
-    }
-
-    /// Target language for subtitle translation
-    var subtitleTranslationLanguage: LanguageCode = .japanese {
-        didSet {
-            guard !isLoadingPreferences else { return }
-            // Clear cache and reset error state when language changes
-            SubtitleTranslationService.shared.clearCache()
-            if case .error = subtitleTranslationState {
-                subtitleTranslationState = .idle
+            // Prevent enabling when STT language matches translation target
+            if subtitleTranslationEnabled && isSTTLanguageSameAsTranslationTarget {
+                subtitleTranslationEnabled = false
+                return
             }
             savePreferences()
         }
@@ -1515,13 +1527,9 @@ final class AppState {
     /// Sync subtitle translation settings from STT panel settings
     /// Called when subtitle mode is enabled to use the same provider/language as panel
     private func syncSubtitleTranslationSettingsFromPanel() {
-        // Sync provider
+        // Sync provider (language is already unified via translationTargetLanguage)
         if subtitleTranslationProvider != translationProvider {
             subtitleTranslationProvider = translationProvider
-        }
-        // Sync language
-        if subtitleTranslationLanguage != translationTargetLanguage {
-            subtitleTranslationLanguage = translationTargetLanguage
         }
         // Note: Subtitle mode uses provider.defaultModelId (not selectedTranslationModel) to avoid model mismatch
         dprint("Subtitle: Synced settings from panel - provider: \(translationProvider.displayName), language: \(translationTargetLanguage.displayName)")
@@ -1976,10 +1984,6 @@ final class AppState {
         if UserDefaults.standard.object(forKey: "subtitleTranslationEnabled") != nil {
             subtitleTranslationEnabled = UserDefaults.standard.bool(forKey: "subtitleTranslationEnabled")
         }
-        if let subtitleTranslationLangRaw = UserDefaults.standard.string(forKey: "subtitleTranslationLanguage"),
-           let language = LanguageCode(rawValue: subtitleTranslationLangRaw) {
-            subtitleTranslationLanguage = language
-        }
         if let subtitleTranslationProviderRaw = UserDefaults.standard.string(forKey: "subtitleTranslationProvider"),
            let provider = TranslationProvider(rawValue: subtitleTranslationProviderRaw) {
             subtitleTranslationProvider = provider
@@ -2138,7 +2142,6 @@ final class AppState {
 
         // Subtitle translation settings
         UserDefaults.standard.set(subtitleTranslationEnabled, forKey: "subtitleTranslationEnabled")
-        UserDefaults.standard.set(subtitleTranslationLanguage.rawValue, forKey: "subtitleTranslationLanguage")
         UserDefaults.standard.set(subtitleTranslationProvider.rawValue, forKey: "subtitleTranslationProvider")
         UserDefaults.standard.set(subtitleShowOriginal, forKey: "subtitleShowOriginal")
 

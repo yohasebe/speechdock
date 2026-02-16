@@ -877,7 +877,7 @@ struct TranscriptionFloatingView: View {
             }
             .padding(.horizontal, 8)
             .frame(height: 28)
-            .background(Color(.windowBackgroundColor).opacity(0.9))
+            .background(Color(.windowBackgroundColor))
             .cornerRadius(6)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             .padding(8)

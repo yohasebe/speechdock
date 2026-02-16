@@ -162,7 +162,7 @@ final class SubtitleTranslationService {
     /// Ensure translator is set up for current provider
     private func ensureTranslator(for appState: AppState) async {
         let provider = appState.subtitleTranslationProvider
-        let targetLang = appState.subtitleTranslationLanguage
+        let targetLang = appState.translationTargetLanguage
 
         // Check if we need to create/recreate translator
         if translator == nil ||
@@ -236,7 +236,7 @@ final class SubtitleTranslationService {
         }
 
         // Check cache first
-        let cacheKey = makeCacheKey(text: text, language: appState.subtitleTranslationLanguage)
+        let cacheKey = makeCacheKey(text: text, language: appState.translationTargetLanguage)
         if let cached = translationCache[cacheKey] {
             appState.subtitleTranslatedText = cached
             dprint("SubtitleTranslation: Cache hit for '\(text.prefix(20))...'")
@@ -250,13 +250,13 @@ final class SubtitleTranslationService {
             guard let translator = translator else {
                 throw TranslationError.translationUnavailable("Translator not available")
             }
-            dprint("SubtitleTranslation: Translating '\(text.prefix(40))...' to \(appState.subtitleTranslationLanguage.displayName)")
+            dprint("SubtitleTranslation: Translating '\(text.prefix(40))...' to \(appState.translationTargetLanguage.displayName)")
 
 
             let translated = try await translator.translate(
                 text: text,
                 context: contextSegments.suffix(maxContextSegments).map { $0 },
-                to: appState.subtitleTranslationLanguage
+                to: appState.translationTargetLanguage
             )
 
             // Validate translation result - don't cache empty results
