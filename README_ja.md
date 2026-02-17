@@ -28,9 +28,12 @@
 
 ## ドキュメント
 
-- **[基本機能](docs/index_ja.md)** — はじめに、macOSネイティブSTT/TTS、OCR、字幕、ショートカット
-- **[高度な機能](docs/advanced_ja.md)** — クラウドプロバイダ、APIキー、ファイル文字起こし、翻訳
-- **[AppleScript自動化](docs/applescript_ja.md)** — スクリプトコマンド、プロパティ、例、エラーコード
+| ページ | 内容 |
+|--------|------|
+| **[ホーム](https://yohasebe.github.io/speechdock/index_ja.html)** | 概要とはじめに |
+| **[基本機能](https://yohasebe.github.io/speechdock/basics_ja.html)** | macOSネイティブSTT/TTS、OCR、字幕、ショートカット |
+| **[高度な機能](https://yohasebe.github.io/speechdock/advanced_ja.html)** | クラウドプロバイダ、APIキー、ファイル文字起こし、翻訳 |
+| **[AppleScript](https://yohasebe.github.io/speechdock/applescript_ja.html)** | スクリプトコマンド、プロパティ、例、エラーコード |
 
 ## 機能
 

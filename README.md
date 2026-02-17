@@ -28,9 +28,12 @@ English | [日本語](README_ja.md)
 
 ## Documentation
 
-- **[Basic Features](docs/index.md)** — Getting started, macOS native STT/TTS, OCR, subtitles, shortcuts
-- **[Advanced Features](docs/advanced.md)** — Cloud providers, API keys, file transcription, translation
-- **[AppleScript Automation](docs/applescript.md)** — Scripting commands, properties, examples, error codes
+| Page | Description |
+|------|-------------|
+| **[Home](https://yohasebe.github.io/speechdock/)** | Overview and getting started |
+| **[Basic Features](https://yohasebe.github.io/speechdock/basics.html)** | macOS native STT/TTS, OCR, subtitles, shortcuts |
+| **[Advanced Features](https://yohasebe.github.io/speechdock/advanced.html)** | Cloud providers, API keys, file transcription, translation |
+| **[AppleScript](https://yohasebe.github.io/speechdock/applescript.html)** | Scripting commands, properties, examples, error codes |
 
 ## Features
 
