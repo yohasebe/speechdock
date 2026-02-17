@@ -59,15 +59,17 @@ struct SubtitleOverlayView: View {
     }
 
     /// Whether the top fade mask should be applied (only when text exceeds max lines)
-    private func needsTopFade(_ text: String) -> Bool {
+    private func needsTopFade(_ text: String, fontSize: CGFloat = 0, maxLines: Int = 0) -> Bool {
+        let effectiveFontSize: CGFloat = fontSize > 0 ? fontSize : appState.subtitleFontSize
+        let effectiveMaxLines: Int = maxLines > 0 ? maxLines : appState.subtitleMaxLines
         let lineCount = text.components(separatedBy: .newlines)
             .map { line in
-                let charWidth: CGFloat = appState.subtitleFontSize * 0.55
+                let charWidth: CGFloat = effectiveFontSize * 0.55
                 let availableWidth: CGFloat = max(NSScreen.main?.frame.width ?? 800, 400) - 88
                 return max(1, Int(ceil(CGFloat(line.count) * charWidth / availableWidth)))
             }
             .reduce(0, +)
-        return lineCount > appState.subtitleMaxLines
+        return lineCount > effectiveMaxLines
     }
 
     /// Text to display in the subtitle
@@ -116,12 +118,36 @@ struct SubtitleOverlayView: View {
 
                 // Original text (shown when dual display is enabled)
                 if appState.subtitleShowOriginal && appState.subtitleTranslationEnabled && !original.isEmpty && text != original {
-                    Text(original)
-                        .font(.system(size: appState.subtitleFontSize * 0.7, weight: .regular))
-                        .foregroundColor(.white.opacity(appState.subtitleOpacity * 0.6))
-                        .multilineTextAlignment(textAlignment)
-                        .frame(maxWidth: .infinity, alignment: frameAlignment)
-                        .lineLimit(2)
+                    ScrollViewReader { proxy in
+                        ScrollView(.vertical, showsIndicators: false) {
+                            Text(original)
+                                .font(.system(size: appState.subtitleFontSize * 0.7, weight: .regular))
+                                .foregroundColor(.white.opacity(appState.subtitleOpacity * 0.6))
+                                .multilineTextAlignment(textAlignment)
+                                .frame(maxWidth: .infinity, alignment: frameAlignment)
+                                .id("originalText")
+                        }
+                        .frame(maxHeight: appState.subtitleFontSize * 0.7 * 1.4 * 2)
+                        .mask(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: needsTopFade(original, fontSize: appState.subtitleFontSize * 0.7, maxLines: 2) ? .clear : .black, location: 0),
+                                    .init(color: .black, location: 0.15),
+                                    .init(color: .black, location: 1.0)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .onChange(of: original) { _, _ in
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                proxy.scrollTo("originalText", anchor: .bottom)
+                            }
+                        }
+                        .onAppear {
+                            proxy.scrollTo("originalText", anchor: .bottom)
+                        }
+                    }
                 }
 
                 // Scrollable transcription text area
