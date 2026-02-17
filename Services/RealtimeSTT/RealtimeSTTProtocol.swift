@@ -45,6 +45,17 @@ struct RealtimeSTTModelInfo: Identifiable, Hashable {
     }
 }
 
+// MARK: - Default Model ID
+
+extension RealtimeSTTService {
+    /// Returns the default model ID from availableModels() (single source of truth)
+    var defaultModelId: String {
+        availableModels().first(where: { $0.isDefault })?.id
+            ?? availableModels().first?.id
+            ?? ""
+    }
+}
+
 /// Delegate for receiving realtime transcription updates
 @MainActor
 protocol RealtimeSTTDelegate: AnyObject {

@@ -212,7 +212,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     private func sendSetupMessage() async throws {
-        let model = selectedModel.isEmpty ? "gemini-2.5-flash-native-audio-preview-12-2025" : selectedModel
+        let model = selectedModel.isEmpty ? defaultModelId : selectedModel
 
         // System instruction for proper transcription formatting
         // Japanese/Chinese/Korean don't use inter-word spacing

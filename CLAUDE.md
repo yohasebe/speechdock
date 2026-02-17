@@ -295,17 +295,7 @@ private func waitForSessionCreated(timeout: TimeInterval) async throws {
 
 ### 字幕リアルタイム翻訳のモデル不一致 (2026-01-27)
 **問題**: 字幕翻訳で別プロバイダのモデルIDが使用され、APIエラーが発生
-**原因**: `appState.selectedTranslationModel`はパネル翻訳と共有されており、異なるプロバイダのモデルが設定されている可能性があった
-**解決**: 字幕翻訳では`provider.defaultModelId`を使用するよう変更
-```swift
-// SubtitleTranslationService.swift
-private func ensureTranslator(for appState: AppState) async {
-    let provider = appState.subtitleTranslationProvider
-    // Use provider's default model for subtitle translation
-    let modelToUse = provider.defaultModelId
-    translator = ContextualTranslatorFactory.makeTranslator(for: provider, model: modelToUse)
-}
-```
+**解決**: 字幕翻訳では`provider.defaultModelId`を使用するよう変更。翻訳プロバイダ・言語はパネルと字幕で`translationProvider`/`translationTargetLanguage`に統一済み。
 
 ### 字幕パネルの言語重複表示 (2026-01-27)
 **問題**: 字幕オーバーレイで翻訳言語が2箇所に表示されていた（録音インジケータと翻訳トグル）
@@ -313,32 +303,9 @@ private func ensureTranslator(for appState: AppState) async {
 
 ## 設計パターン・規約
 
-### 字幕翻訳設定の同期 (2026-01-27)
-字幕モード開始時にSTTパネルの翻訳設定を字幕設定に同期：
-
-```swift
-// AppState.swift
-var subtitleModeEnabled: Bool = false {
-    didSet {
-        guard !isLoadingPreferences else { return }
-        if subtitleModeEnabled && !oldValue {
-            syncSubtitleTranslationSettingsFromPanel()
-        }
-        updateSubtitleOverlay()
-        savePreferences()
-    }
-}
-
-private func syncSubtitleTranslationSettingsFromPanel() {
-    if subtitleTranslationProvider != translationProvider {
-        subtitleTranslationProvider = translationProvider
-    }
-    if subtitleTranslationLanguage != translationTargetLanguage {
-        subtitleTranslationLanguage = translationTargetLanguage
-    }
-    // Note: Subtitle mode uses provider.defaultModelId (not selectedTranslationModel)
-}
-```
+### 翻訳設定の統一 (2026-02-17)
+翻訳プロバイダ（`translationProvider`）と翻訳先言語（`translationTargetLanguage`）はパネル翻訳と字幕翻訳で共有。
+字幕翻訳はモデルのみ`provider.defaultModelId`を使用（パネルの`selectedTranslationModel`とは独立）。
 
 ### サービス作成前のクリーンアップ (2026-01-26)
 STT/TTS/翻訳サービスを新規作成する前に、既存のサービスを明示的に停止・nilする防御的パターン：
@@ -645,6 +612,41 @@ print("WS received: \(String(data: data, encoding: .utf8) ?? "nil")")
 // macOS 26+専用API
 ```
 
+## 外部APIモデル一覧
+
+モデル更新時の参照用。各プロバイダの `availableModels()` メソッドが SSOT。
+
+### STT (Realtime)
+| プロバイダ | デフォルト | その他 | 定義ファイル |
+|-----------|-----------|--------|------------|
+| OpenAI | `gpt-4o-transcribe` | `gpt-4o-mini-transcribe`, `whisper-1` | `Services/RealtimeSTT/OpenAIRealtimeSTT.swift` |
+| Gemini | `gemini-2.5-flash-native-audio-preview-12-2025` | `gemini-2.0-flash-live-001` | `Services/RealtimeSTT/GeminiRealtimeSTT.swift` |
+| ElevenLabs | `scribe_v2_realtime` | — | `Services/RealtimeSTT/ElevenLabsRealtimeSTT.swift` |
+| Grok | `grok-2-public` | — | `Services/RealtimeSTT/GrokRealtimeSTT.swift` |
+
+### STT (Batch/File Transcription)
+| プロバイダ | デフォルト | その他 | 定義ファイル |
+|-----------|-----------|--------|------------|
+| OpenAI | `gpt-4o-mini-transcribe-2025-12-15` | `gpt-4o-transcribe`, `whisper-1` | `Models/STTProvider.swift` |
+| Gemini | `gemini-2.5-flash` | — | `Models/STTProvider.swift` |
+| ElevenLabs | `scribe_v2` | — | `Models/STTProvider.swift` |
+
+### TTS
+| プロバイダ | デフォルト | その他 | 定義ファイル |
+|-----------|-----------|--------|------------|
+| OpenAI | `gpt-4o-mini-tts-2025-12-15` | `gpt-4o-mini-tts`, `tts-1`, `tts-1-hd` | `Services/TTS/OpenAITTS.swift` |
+| Gemini | `gemini-2.5-flash-preview-tts` | `gemini-2.5-pro-preview-tts` | `Services/TTS/GeminiTTS.swift` |
+| ElevenLabs | `eleven_v3` | `eleven_flash_v2_5`, `eleven_multilingual_v2`, `eleven_turbo_v2_5`, `eleven_monolingual_v1` | `Services/TTS/ElevenLabsTTS.swift` |
+| Grok | `grok-2-public` | — | `Services/TTS/GrokTTS.swift` |
+
+### 翻訳
+| プロバイダ | デフォルト | その他 | 定義ファイル |
+|-----------|-----------|--------|------------|
+| macOS | `system` | — | `Models/TranslationProvider.swift` |
+| OpenAI | `gpt-5-nano` | `gpt-5-mini`, `gpt-5.2` | `Models/TranslationProvider.swift` |
+| Gemini | `gemini-3-flash-preview` | `gemini-3-pro-preview` | `Models/TranslationProvider.swift` |
+| Grok | `grok-3-fast` | `grok-3-mini-fast` | `Models/TranslationProvider.swift` |
+
 ## 今後の検討事項・課題
 
 ### TTS速度制御の設計決定 (2026-01-21)
@@ -826,16 +828,15 @@ end tell
 **状態管理** (`AppState`):
 ```swift
 var subtitleTranslationEnabled: Bool      // 翻訳有効/無効
-var subtitleTranslationLanguage: LanguageCode  // 翻訳先言語
-var subtitleTranslationProvider: TranslationProvider  // 翻訳プロバイダ
 var subtitleTranslationState: SubtitleTranslationState  // idle/translating/error
 var subtitleTranslatedText: String        // 翻訳結果テキスト
 var subtitleShowOriginal: Bool            // 原文も表示するか
+// translationProvider / translationTargetLanguage はパネル翻訳と共有
 ```
 
-**設定の同期**:
-- 字幕モード開始時にSTTパネルの翻訳設定（プロバイダ、言語）を自動同期
-- 字幕オーバーレイ上でプロバイダ・言語を個別に変更可能
+**設定の共有**:
+- 翻訳プロバイダ・言語はパネル翻訳と字幕翻訳で統一（`translationProvider`/`translationTargetLanguage`）
+- 字幕オーバーレイ上でもプロバイダ・言語を変更可能（パネル設定にも反映）
 - 設定はUserDefaultsに永続化
 
 **プロバイダごとのモデル**:

@@ -123,7 +123,7 @@ final class OpenAITTS: NSObject, TTSService {
         request.timeoutInterval = 120
 
         let validVoice = Self.validVoiceIds.contains(selectedVoice) ? selectedVoice : "alloy"
-        let model = selectedModel.isEmpty ? "gpt-4o-mini-tts" : selectedModel
+        let model = selectedModel.isEmpty ? defaultModelId : selectedModel
 
         // Use PCM format for lowest latency streaming
         // Note: Speed is controlled locally via AVAudioUnitTimePitch, not via API
@@ -220,7 +220,7 @@ final class OpenAITTS: NSObject, TTSService {
 
         // Validate voice - use default if invalid
         let validVoice = Self.validVoiceIds.contains(selectedVoice) ? selectedVoice : "alloy"
-        let model = selectedModel.isEmpty ? "gpt-4o-mini-tts" : selectedModel
+        let model = selectedModel.isEmpty ? defaultModelId : selectedModel
 
         // Build request body
         // For non-streaming (Save Audio), include speed parameter if supported and not 1.0

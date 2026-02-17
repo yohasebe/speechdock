@@ -107,7 +107,7 @@ final class SubtitleTranslationService {
 
         // Update last known text
         lastSTTText = trimmedText
-        dprint("SubtitleTranslation: text='\(trimmedText.prefix(40))...', isFinal=\(isFinal), provider=\(appState.subtitleTranslationProvider.displayName)")
+        dprint("SubtitleTranslation: text='\(trimmedText.prefix(40))...', isFinal=\(isFinal), provider=\(appState.translationProvider.displayName)")
 
 
         if isFinal {
@@ -121,7 +121,7 @@ final class SubtitleTranslationService {
             await translateFullText(trimmedText, appState: appState)
         } else {
             // Partial result - schedule debounced translation
-            dprint("SubtitleTranslation: isFinal=false, scheduling debounced translation (interval: \(debounceIntervals[appState.subtitleTranslationProvider] ?? defaultDebounceInterval)ns)")
+            dprint("SubtitleTranslation: isFinal=false, scheduling debounced translation (interval: \(debounceIntervals[appState.translationProvider] ?? defaultDebounceInterval)ns)")
 
             await scheduleTranslation(fullText: trimmedText, appState: appState)
             // Start pause check for auto-confirm
@@ -161,7 +161,7 @@ final class SubtitleTranslationService {
 
     /// Ensure translator is set up for current provider
     private func ensureTranslator(for appState: AppState) async {
-        let provider = appState.subtitleTranslationProvider
+        let provider = appState.translationProvider
         let targetLang = appState.translationTargetLanguage
 
         // Check if we need to create/recreate translator
@@ -201,7 +201,7 @@ final class SubtitleTranslationService {
     private func scheduleTranslation(fullText: String, appState: AppState) async {
         debounceTask?.cancel()
 
-        let interval = debounceIntervals[appState.subtitleTranslationProvider] ?? defaultDebounceInterval
+        let interval = debounceIntervals[appState.translationProvider] ?? defaultDebounceInterval
         let textToTranslate = fullText
 
         debounceTask = Task { [weak self, weak appState] in

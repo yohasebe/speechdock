@@ -88,16 +88,16 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .macOS:
             if #available(macOS 26.0, *) {
-                return NSLocalizedString("On-device, no API key", comment: "Translation provider description")
+                return NSLocalizedString("On-device, ~18 languages", comment: "Translation provider description")
             } else {
                 return NSLocalizedString("Requires macOS 26+", comment: "Translation provider description")
             }
         case .openAI:
-            return NSLocalizedString("GPT-5 Nano (default), high quality", comment: "Translation provider description")
+            return NSLocalizedString("100+ languages, high quality", comment: "Translation provider description")
         case .gemini:
-            return NSLocalizedString("Gemini 3 Flash (default), high quality", comment: "Translation provider description")
+            return NSLocalizedString("100+ languages, high quality", comment: "Translation provider description")
         case .grok:
-            return NSLocalizedString("Grok 3 Fast, high quality", comment: "Translation provider description")
+            return NSLocalizedString("100+ languages, high quality", comment: "Translation provider description")
         }
     }
 
@@ -154,6 +154,14 @@ extension TranslationProvider {
         .dutch, .polish, .turkish,
         .indonesian, .vietnamese, .thai
     ]
+
+    /// Get available translation languages for this provider (async, checks installed packs for macOS)
+    func availableTranslationLanguages() async -> [LanguageCode] {
+        if self == .macOS {
+            return await MacOSTranslationAvailability.shared.getAvailableLanguages()
+        }
+        return LanguageCode.allCases.filter { $0 != .auto }
+    }
 
     /// Get supported target languages for this provider
     func supportedTargetLanguages() -> [LanguageCode] {

@@ -423,7 +423,7 @@ final class GeminiTTS: NSObject, TTSService {
         playbackController.prepareText(text)
 
         // Build API request
-        let modelId = selectedModel.isEmpty ? "gemini-2.5-flash-preview-tts" : selectedModel
+        let modelId = selectedModel.isEmpty ? defaultModelId : selectedModel
         let urlString = "\(baseURL)/\(modelId):generateContent?key=\(apiKey)"
         guard let url = URL(string: urlString) else {
             throw TTSError.apiError("Invalid API endpoint URL")

@@ -119,7 +119,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 120
 
-        let modelId = selectedModel.isEmpty ? "eleven_v3" : selectedModel
+        let modelId = selectedModel.isEmpty ? defaultModelId : selectedModel
 
         // Note: Speed is controlled locally via AVAudioUnitTimePitch, not via API
         var body: [String: Any] = [
@@ -227,7 +227,7 @@ final class ElevenLabsTTS: NSObject, TTSService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 60
 
-        let modelId = selectedModel.isEmpty ? "eleven_v3" : selectedModel
+        let modelId = selectedModel.isEmpty ? defaultModelId : selectedModel
 
         // Build voice_settings - add speed only when != 1.0 for Save Audio
         // ElevenLabs speed range is 0.7-1.2 (limited)

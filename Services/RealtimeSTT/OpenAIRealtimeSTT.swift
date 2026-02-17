@@ -239,7 +239,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
     private func configureSession() async throws {
         // Configure the transcription session
-        let model = selectedModel.isEmpty ? "gpt-4o-transcribe" : selectedModel
+        let model = selectedModel.isEmpty ? defaultModelId : selectedModel
 
         // VAD parameters differ based on audio source
         let threshold: NSDecimalNumber

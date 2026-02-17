@@ -397,7 +397,7 @@ struct SubtitleLanguageMenu: View {
         .task {
             await loadAvailableLanguages()
         }
-        .onChange(of: appState.subtitleTranslationProvider) { _, _ in
+        .onChange(of: appState.translationProvider) { _, _ in
             Task {
                 await loadAvailableLanguages()
             }
@@ -406,19 +406,12 @@ struct SubtitleLanguageMenu: View {
 
     private func loadAvailableLanguages() async {
         isLoading = true
+        availableLanguages = await appState.translationProvider.availableTranslationLanguages()
 
-        if appState.subtitleTranslationProvider == .macOS {
-            // Only show installed languages for macOS
-            availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
-
-            // If current selection is not available, switch to first available
-            if !availableLanguages.contains(appState.translationTargetLanguage),
-               let first = availableLanguages.first {
-                appState.translationTargetLanguage = first
-            }
-        } else {
-            // LLM providers support all languages
-            availableLanguages = LanguageCode.allCases.filter { $0 != .auto }
+        // If current selection is not available, switch to first available
+        if !availableLanguages.contains(appState.translationTargetLanguage),
+           let first = availableLanguages.first {
+            appState.translationTargetLanguage = first
         }
 
         isLoading = false
@@ -455,11 +448,11 @@ struct SubtitleProviderMenu: View {
         Menu {
             ForEach(availableProviders) { provider in
                 Button {
-                    appState.subtitleTranslationProvider = provider
+                    appState.translationProvider = provider
                 } label: {
                     HStack {
                         Text(provider.displayName)
-                        if provider == appState.subtitleTranslationProvider {
+                        if provider == appState.translationProvider {
                             Spacer()
                             Image(systemName: "checkmark")
                         }
@@ -468,7 +461,7 @@ struct SubtitleProviderMenu: View {
                 .disabled(!hasAPIKey(for: provider) && provider.requiresAPIKey)
             }
         } label: {
-            Text(appState.subtitleTranslationProvider.displayName)
+            Text(appState.translationProvider.displayName)
                 .font(.system(size: 9))
                 .foregroundColor(.white.opacity(0.4))
         }

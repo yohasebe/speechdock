@@ -966,6 +966,7 @@ struct TTSFloatingView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .cornerRadius(6)
+                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             }
             .buttonStyle(.plain)
             .help("Capture text with OCR (⌃⌥⇧O)")

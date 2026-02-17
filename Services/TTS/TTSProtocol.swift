@@ -76,6 +76,17 @@ struct TTSModelInfo: Identifiable, Hashable {
     }
 }
 
+// MARK: - Default Model ID
+
+extension TTSService {
+    /// Returns the default model ID from availableModels() (single source of truth)
+    var defaultModelId: String {
+        availableModels().first(where: { $0.isDefault })?.id
+            ?? availableModels().first?.id
+            ?? ""
+    }
+}
+
 /// Voice quality tier for TTS voices (primarily for macOS system voices)
 enum VoiceQuality: Int, Comparable, Hashable {
     case standard = 0

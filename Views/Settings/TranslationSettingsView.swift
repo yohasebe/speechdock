@@ -91,16 +91,11 @@ struct TranslationSettingsView: View {
 
     private func loadAvailableLanguages() async {
         isLoadingLanguages = true
+        availableLanguages = await appState.translationProvider.availableTranslationLanguages()
 
-        if appState.translationProvider == .macOS {
-            availableLanguages = await MacOSTranslationAvailability.shared.getAvailableLanguages()
-
-            if !availableLanguages.contains(appState.translationTargetLanguage),
-               let first = availableLanguages.first {
-                appState.translationTargetLanguage = first
-            }
-        } else {
-            availableLanguages = LanguageCode.allCases.filter { $0 != .auto }
+        if !availableLanguages.contains(appState.translationTargetLanguage),
+           let first = availableLanguages.first {
+            appState.translationTargetLanguage = first
         }
 
         isLoadingLanguages = false
@@ -109,22 +104,9 @@ struct TranslationSettingsView: View {
 
 // MARK: - Subtitle Translation Settings
 
-/// Subtitle Translation settings (provider & language are now in main Translation section)
+/// Subtitle Translation settings (provider & language are shared from main Translation section)
 struct SubtitleTranslationSettings: View {
     @Bindable var appState: AppState
-
-    private var availableProviders: [TranslationProvider] {
-        TranslationProvider.allCases.filter { provider in
-            if !provider.requiresAPIKey { return provider.isAvailable }
-            guard let envKey = provider.envKeyName else { return false }
-            let apiKey = APIKeyManager.shared.getAPIKey(for: envKey)
-            return apiKey != nil && !apiKey!.isEmpty
-        }
-    }
-
-    private var isMacOSTranslationAvailable: Bool {
-        TranslationFactory.isMacOSTranslationAvailable
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -137,26 +119,6 @@ struct SubtitleTranslationSettings: View {
                 }
             }
 
-            if !isMacOSTranslationAvailable && availableProviders.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(.orange)
-                    Text("Requires macOS 26+ for on-device translation, or set up API keys.")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-            }
-
-            Picker("Provider", selection: $appState.subtitleTranslationProvider) {
-                ForEach(availableProviders) { provider in
-                    Text(provider.displayName).tag(provider)
-                }
-            }
-
-            Text(providerDescription)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-
             Toggle(isOn: $appState.subtitleShowOriginal) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Show Original Text")
@@ -165,19 +127,6 @@ struct SubtitleTranslationSettings: View {
                         .foregroundColor(.secondary)
                 }
             }
-        }
-    }
-
-    private var providerDescription: String {
-        switch appState.subtitleTranslationProvider {
-        case .macOS:
-            return NSLocalizedString("Fast on-device translation. Requires macOS 26+.", comment: "Subtitle translation provider")
-        case .openAI:
-            return NSLocalizedString("OpenAI translation (100+ languages). Higher latency.", comment: "Subtitle translation provider")
-        case .gemini:
-            return NSLocalizedString("Gemini translation (100+ languages). Higher latency.", comment: "Subtitle translation provider")
-        case .grok:
-            return NSLocalizedString("Grok translation (100+ languages). Higher latency.", comment: "Subtitle translation provider")
         }
     }
 }

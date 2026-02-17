@@ -203,6 +203,11 @@ final class AppState {
             if !availableIds.contains(selectedTranslationModel) {
                 selectedTranslationModel = translationProvider.defaultModelId
             }
+            // Clear subtitle translation cache and reset error state
+            SubtitleTranslationService.shared.clearCache()
+            if case .error = subtitleTranslationState {
+                subtitleTranslationState = .idle
+            }
             savePreferences()
         }
     }
@@ -408,10 +413,7 @@ final class AppState {
     var subtitleModeEnabled: Bool = false {
         didSet {
             guard !isLoadingPreferences else { return }
-            if subtitleModeEnabled && !oldValue {
-                // Sync translation settings from STT panel when subtitle mode is enabled
-                syncSubtitleTranslationSettingsFromPanel()
-            } else if !subtitleModeEnabled && oldValue {
+            if !subtitleModeEnabled && oldValue {
                 // Clean up translation service when subtitle mode is disabled
                 SubtitleTranslationService.shared.reset()
             }
@@ -524,19 +526,6 @@ final class AppState {
             if subtitleTranslationEnabled && isSTTLanguageSameAsTranslationTarget {
                 subtitleTranslationEnabled = false
                 return
-            }
-            savePreferences()
-        }
-    }
-
-    /// Translation provider for subtitles
-    var subtitleTranslationProvider: TranslationProvider = .macOS {
-        didSet {
-            guard !isLoadingPreferences else { return }
-            // Clear cache and reset error state when provider changes
-            SubtitleTranslationService.shared.clearCache()
-            if case .error = subtitleTranslationState {
-                subtitleTranslationState = .idle
             }
             savePreferences()
         }
@@ -1524,18 +1513,6 @@ final class AppState {
         }
     }
 
-    /// Sync subtitle translation settings from STT panel settings
-    /// Called when subtitle mode is enabled to use the same provider/language as panel
-    private func syncSubtitleTranslationSettingsFromPanel() {
-        // Sync provider (language is already unified via translationTargetLanguage)
-        if subtitleTranslationProvider != translationProvider {
-            subtitleTranslationProvider = translationProvider
-        }
-        // Note: Subtitle mode uses provider.defaultModelId (not selectedTranslationModel) to avoid model mismatch
-        dprint("Subtitle: Synced settings from panel - provider: \(translationProvider.displayName), language: \(translationTargetLanguage.displayName)")
-
-    }
-
     // MARK: - Translation Methods
 
     /// Translate text to target language
@@ -1984,10 +1961,6 @@ final class AppState {
         if UserDefaults.standard.object(forKey: "subtitleTranslationEnabled") != nil {
             subtitleTranslationEnabled = UserDefaults.standard.bool(forKey: "subtitleTranslationEnabled")
         }
-        if let subtitleTranslationProviderRaw = UserDefaults.standard.string(forKey: "subtitleTranslationProvider"),
-           let provider = TranslationProvider(rawValue: subtitleTranslationProviderRaw) {
-            subtitleTranslationProvider = provider
-        }
         if UserDefaults.standard.object(forKey: "subtitleShowOriginal") != nil {
             subtitleShowOriginal = UserDefaults.standard.bool(forKey: "subtitleShowOriginal")
         }
@@ -2142,7 +2115,6 @@ final class AppState {
 
         // Subtitle translation settings
         UserDefaults.standard.set(subtitleTranslationEnabled, forKey: "subtitleTranslationEnabled")
-        UserDefaults.standard.set(subtitleTranslationProvider.rawValue, forKey: "subtitleTranslationProvider")
         UserDefaults.standard.set(subtitleShowOriginal, forKey: "subtitleShowOriginal")
 
         // Translation settings

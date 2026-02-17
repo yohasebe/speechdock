@@ -118,7 +118,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
     private func connectWebSocket(apiKey: String) async throws {
         // Map old model IDs to realtime versions
-        var model = selectedModel.isEmpty ? "scribe_v2_realtime" : selectedModel
+        var model = selectedModel.isEmpty ? defaultModelId : selectedModel
         if model == "scribe_v2" || model == "scribe_v1" {
             model = "scribe_v2_realtime"
         }
