@@ -154,6 +154,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Update Homebrew Cask
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          DMG_FILE=$(ls SpeechDock-*.dmg)
+          VERSION=$(cat VERSION)
+          SHA256=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
+
+          # Clone homebrew-speechdock repo
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/yohasebe/homebrew-speechdock.git" /tmp/homebrew-speechdock
+          cd /tmp/homebrew-speechdock
+
+          # Update cask file
+          cat > Casks/speechdock.rb << CASKEOF
+          cask "speechdock" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
+
+            url "https://github.com/yohasebe/speechdock/releases/download/v#{version}/SpeechDock-#{version}.dmg"
+            name "SpeechDock"
+            desc "Menu bar STT/TTS app for macOS with multiple provider support"
+            homepage "https://github.com/yohasebe/speechdock"
+
+            depends_on macos: ">= :sonoma"
+
+            app "SpeechDock.app"
+
+            zap trash: [
+              "~/Library/Preferences/com.speechdock.app.plist",
+              "~/Library/Application Support/SpeechDock",
+            ]
+          end
+          CASKEOF
+
+          # Remove leading whitespace from heredoc
+          sed -i '' 's/^          //' Casks/speechdock.rb
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/speechdock.rb
+          git commit -m "Update SpeechDock to v${VERSION}"
+          git push
+
       - name: Cleanup keychain
         if: always()
         run: |
