@@ -353,9 +353,15 @@ xcodegen generate
 # ビルド
 xcodebuild -scheme SpeechDock -configuration Debug build
 
-# リリース
-rake release:full  # DMG作成 + 公証
+# リリース（必ずGitHub Actions経由）
+rake release:github  # v*タグpush → ビルド→DMG→公証→Sparkle署名→Release作成→appcast.xml更新→Homebrew Cask更新
 ```
+
+### Homebrew配布
+- **Tap**: `yohasebe/homebrew-speechdock`（パブリック）
+- `brew tap yohasebe/speechdock && brew install --cask speechdock`
+- リリース時にGitHub ActionsがCaskファイル（バージョン・SHA256）を自動更新
+- **要設定**: `HOMEBREW_TAP_TOKEN`（PATをActions Secretsに登録、`repo`スコープ必要）
 
 ## ファイル構成
 

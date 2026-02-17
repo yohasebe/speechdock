@@ -1068,6 +1068,10 @@ struct TranscriptionFloatingView: View {
         .onChange(of: appState.transcriptionState) { oldState, newState in
             // Handle result state (file transcription, history load, etc.)
             if case .result(let text) = newState {
+                // Skip when transitioning from recording — the onChange(of: isRecording)
+                // handler manages text state with baseText appending
+                if case .recording = oldState { return }
+                if case .preparing = oldState { return }
                 forceTextUpdate = true
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 editedText = text

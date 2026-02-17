@@ -124,6 +124,21 @@ The button can be dragged anywhere on screen, and its position is saved.
 
 ## Installation
 
+### Homebrew (Recommended)
+
+```bash
+brew tap yohasebe/speechdock
+brew install --cask speechdock
+```
+
+To update to the latest version:
+
+```bash
+brew upgrade --cask speechdock
+```
+
+### Manual Download
+
 1. Download the latest `.dmg` file from the [Releases](https://github.com/yohasebe/SpeechDock/releases) page
 2. Open the DMG file
 3. Drag SpeechDock to your Applications folder

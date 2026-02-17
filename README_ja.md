@@ -124,6 +124,21 @@ STTパネルを開かずに音声入力を行うフローティングマイク�
 
 ## インストール
 
+### Homebrew（推奨）
+
+```bash
+brew tap yohasebe/speechdock
+brew install --cask speechdock
+```
+
+最新バージョンへの更新：
+
+```bash
+brew upgrade --cask speechdock
+```
+
+### 手動ダウンロード
+
 1. [Releases](https://github.com/yohasebe/SpeechDock/releases)ページから最新の`.dmg`ファイルをダウンロード
 2. DMGファイルを開く
 3. SpeechDockをアプリケーションフォルダにドラッグ
