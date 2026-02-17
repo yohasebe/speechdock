@@ -51,7 +51,8 @@ struct MenuBarView: View {
                 }
             }
             .padding(.horizontal, 4)
-            .padding(.top, 2)
+            .padding(.top, 6)
+            .padding(.bottom, 4)
 
             Divider()
                 .padding(.vertical, 4)
