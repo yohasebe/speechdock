@@ -28,11 +28,9 @@ English | [日本語](README_ja.md)
 
 ## Documentation
 
-| | |
-|---|---|
-| **[Basic Features](docs/index.md)** | Getting started, macOS native STT/TTS, OCR, subtitles, shortcuts |
-| **[Advanced Features](docs/advanced.md)** | Cloud providers, API keys, file transcription, translation |
-| **[AppleScript Automation](docs/applescript.md)** | Scripting commands, properties, examples, error codes |
+- **[Basic Features](docs/index.md)** — Getting started, macOS native STT/TTS, OCR, subtitles, shortcuts
+- **[Advanced Features](docs/advanced.md)** — Cloud providers, API keys, file transcription, translation
+- **[AppleScript Automation](docs/applescript.md)** — Scripting commands, properties, examples, error codes
 
 ## Features
 

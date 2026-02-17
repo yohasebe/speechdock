@@ -28,11 +28,9 @@
 
 ## ドキュメント
 
-| | |
-|---|---|
-| **[基本機能](docs/index_ja.md)** | はじめに、macOSネイティブSTT/TTS、OCR、字幕、ショートカット |
-| **[高度な機能](docs/advanced_ja.md)** | クラウドプロバイダ、APIキー、ファイル文字起こし、翻訳 |
-| **[AppleScript自動化](docs/applescript_ja.md)** | スクリプトコマンド、プロパティ、例、エラーコード |
+- **[基本機能](docs/index_ja.md)** — はじめに、macOSネイティブSTT/TTS、OCR、字幕、ショートカット
+- **[高度な機能](docs/advanced_ja.md)** — クラウドプロバイダ、APIキー、ファイル文字起こし、翻訳
+- **[AppleScript自動化](docs/applescript_ja.md)** — スクリプトコマンド、プロパティ、例、エラーコード
 
 ## 機能
 
