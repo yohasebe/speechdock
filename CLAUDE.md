@@ -353,9 +353,20 @@ xcodegen generate
 # ビルド
 xcodebuild -scheme SpeechDock -configuration Debug build
 
+# 開発版の起動（ビルド→旧Dev終了→起動）
+rake dev:run      # /Applications版とは別バンドルID (com.speechdock.app.dev) で共存可能
+rake dev:quit     # Dev版のみ終了（/Applications版はそのまま）
+rake dev:restart  # Dev版を再ビルド＆再起動
+
 # リリース（必ずGitHub Actions経由）
 rake release:github  # v*タグpush → ビルド→DMG→公証→Sparkle署名→Release作成→appcast.xml更新→Homebrew Cask更新
 ```
+
+### Debug/Release ビルド分離
+- **Debug**: バンドルID `com.speechdock.app.dev`、表示名「SpeechDock Dev」、メニューバーアイコンに緑ドットバッジ
+- **Release**: バンドルID `com.speechdock.app`、表示名「SpeechDock」、通常アイコン
+- UserDefaults・KeychainはバンドルIDで分離されるため、APIキー・権限は別途設定が必要
+- Info.plistは `$(SPEECHDOCK_DISPLAY_NAME)` と `$(PRODUCT_BUNDLE_IDENTIFIER)` で変数化
 
 ### Homebrew配布
 - **Tap**: `yohasebe/homebrew-speechdock`（パブリック）

@@ -552,6 +552,33 @@ end
 # ============================================================
 
 namespace :dev do
+  desc "Build, quit old dev instance, and launch Dev version"
+  task :run => "build:debug" do
+    app_path = find_built_app("Debug")
+    if app_path
+      # Kill only the dev instance (running from DerivedData), not /Applications
+      puts "Quitting SpeechDock Dev if running..."
+      system "pkill -f 'DerivedData.*SpeechDock.app'"
+      sleep 1
+
+      puts "Launching SpeechDock Dev..."
+      sh "open '#{app_path}'"
+    else
+      puts "Error: Could not find built app"
+      exit 1
+    end
+  end
+
+  desc "Quit only the Dev instance (keeps /Applications version running)"
+  task :quit do
+    puts "Quitting SpeechDock Dev..."
+    system "pkill -f 'DerivedData.*SpeechDock.app'"
+    puts "Done"
+  end
+
+  desc "Quit and relaunch Dev version"
+  task :restart => [:quit, :run]
+
   desc "Watch for changes and rebuild (requires fswatch)"
   task :watch do
     puts "Watching for changes... (Ctrl+C to stop)"
@@ -691,6 +718,9 @@ task :help do
   puts "  rake release:dmg      # Create DMG only (no notarization)"
   puts ""
   puts "Development:"
+  puts "  rake dev:run      # Build and launch Dev version (green badge)"
+  puts "  rake dev:quit     # Quit only Dev (keeps /Applications version)"
+  puts "  rake dev:restart  # Quit and relaunch Dev"
   puts "  rake xcode        # Open in Xcode"
   puts "  rake gen          # Regenerate project"
   puts "  rake dev:watch    # Watch and rebuild"

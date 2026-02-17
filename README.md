@@ -2,9 +2,19 @@
   <img src="assets/social-preview.png" alt="SpeechDock - Listen and speak, from anywhere on your Mac" width="640">
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/status-beta-orange" alt="Beta">
+  <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/yohasebe/speechdock" alt="License"></a>
+  <a href="https://github.com/yohasebe/speechdock/releases"><img src="https://img.shields.io/github/v/release/yohasebe/speechdock" alt="Release"></a>
+  <img src="https://img.shields.io/badge/homebrew-tap-brown" alt="Homebrew">
+</p>
+
+**Transcribe any audio on your Mac** — Not just your voice through the microphone, but also system-wide audio or sound from a specific app. If your Mac can hear it, SpeechDock can turn it into text in real time.
+
 **Hear any text on your screen** — Selected text, typed text, pasted content, or text captured via OCR from any screen region. If you can see it, SpeechDock can read it aloud.
 
-**Transcribe any audio on your Mac** — Your voice through the microphone, system-wide audio, or sound from a specific app. If your Mac can hear it, SpeechDock can turn it into text in real time.
+**Live subtitles and translation** — Display real-time transcription as on-screen subtitles, with optional translation into 100+ languages using on-device or cloud providers.
 
 **Always accessible from your menu bar** — Global hotkeys let you use STT and TTS from anywhere, without switching apps. Works immediately after installation with no API keys required. Cloud providers are optional enhancements.
 

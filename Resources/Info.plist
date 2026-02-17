@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>SpeechDock</string>
+    <string>$(SPEECHDOCK_DISPLAY_NAME)</string>
     <key>CFBundleDisplayName</key>
-    <string>SpeechDock</string>
+    <string>$(SPEECHDOCK_DISPLAY_NAME)</string>
     <key>CFBundleIdentifier</key>
-    <string>com.speechdock.app</string>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.26</string>
+    <string>0.1.27</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>

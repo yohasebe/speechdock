@@ -91,6 +91,7 @@ final class StatusBarManager: NSObject {
         observationTask?.cancel()
         observationTask = Task { [weak self] in
             var lastState = self?.getCurrentIconState(for: appState)
+            var lastAppearanceName: NSAppearance.Name?
 
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
@@ -98,7 +99,13 @@ final class StatusBarManager: NSObject {
                 guard let self = self else { break }
 
                 let newState = self.getCurrentIconState(for: appState)
-                if newState != lastState {
+
+                // Check for appearance change (light/dark mode) to update debug badge color
+                let currentAppearanceName = self.statusItem?.button?.effectiveAppearance.name
+                let appearanceChanged = currentAppearanceName != lastAppearanceName
+                lastAppearanceName = currentAppearanceName
+
+                if newState != lastState || (appearanceChanged && newState == 0) {
                     lastState = newState
 
                     // Start or stop animation based on state
@@ -177,13 +184,23 @@ final class StatusBarManager: NSObject {
         } else if appState.ttsState == .loading {
             color = NSColor.systemBlue.withAlphaComponent(0.6)
         } else {
+            #if DEBUG
+            // Tint icon to match menu bar appearance since isTemplate=false for badge
+            let isDark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let iconColor: NSColor = isDark ? .white : .black
+            button.image = addDebugBadge(to: tintImage(image, with: iconColor))
+            #else
             image.isTemplate = true
             button.image = image
+            #endif
             return
         }
 
-        let tintedImage = tintImage(image, with: color)
-        button.image = tintedImage
+        var resultImage = tintImage(image, with: color)
+        #if DEBUG
+        resultImage = addDebugBadge(to: resultImage)
+        #endif
+        button.image = resultImage
     }
 
     private func tintImage(_ image: NSImage, with color: NSColor) -> NSImage {
@@ -195,6 +212,29 @@ final class StatusBarManager: NSObject {
                        fraction: 1.0)
             color.set()
             rect.fill(using: .sourceAtop)
+            return true
+        }
+        newImage.isTemplate = false
+        return newImage
+    }
+
+    /// Add a small colored dot badge to the top-right corner of the image (for Debug builds)
+    private func addDebugBadge(to image: NSImage) -> NSImage {
+        let size = image.size
+        let newImage = NSImage(size: size, flipped: false) { rect in
+            image.draw(in: rect, from: rect, operation: .sourceOver, fraction: 1.0)
+
+            // Draw a green dot at top-right
+            let dotSize: CGFloat = 5.0
+            let dotRect = NSRect(
+                x: size.width - dotSize - 1,
+                y: size.height - dotSize - 1,
+                width: dotSize,
+                height: dotSize
+            )
+            NSColor.systemGreen.setFill()
+            NSBezierPath(ovalIn: dotRect).fill()
+
             return true
         }
         newImage.isTemplate = false

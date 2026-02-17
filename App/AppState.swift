@@ -2197,7 +2197,7 @@ extension AppState: HotKeyServiceDelegate {
         let frontmostApp = NSWorkspace.shared.frontmostApplication
 
         // Skip if SpeechDock itself is frontmost (no text to copy from ourselves)
-        let isSpeechDockFrontmost = frontmostApp?.bundleIdentifier == "com.speechdock.app"
+        let isSpeechDockFrontmost = frontmostApp?.bundleIdentifier == Bundle.main.bundleIdentifier
         dprint("TTS HotKey: Captured frontmost app: \(frontmostApp?.localizedName ?? "none") (bundle: \(frontmostApp?.bundleIdentifier ?? "none")), isSpeechDock: \(isSpeechDockFrontmost)")
 
 

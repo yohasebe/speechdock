@@ -2,9 +2,19 @@
   <img src="assets/social-preview.png" alt="SpeechDock - Macのどこからでも、聞いて、話す" width="640">
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/status-beta-orange" alt="Beta">
+  <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/yohasebe/speechdock" alt="License"></a>
+  <a href="https://github.com/yohasebe/speechdock/releases"><img src="https://img.shields.io/github/v/release/yohasebe/speechdock" alt="Release"></a>
+  <img src="https://img.shields.io/badge/homebrew-tap-brown" alt="Homebrew">
+</p>
+
+**Macのあらゆる音声をテキストに** — マイクからの声だけでなく、システム全体の音声や特定アプリの音声もキャプチャ可能。Macが聞ける音なら、SpeechDockがリアルタイムで文字起こしします。
+
 **画面上のあらゆるテキストを音声に** — 選択テキスト、直接入力、ペースト、画面からのOCRキャプチャ。見えるテキストなら、SpeechDockが読み上げます。
 
-**Macのあらゆる音声をテキストに** — マイクからの声、システム全体の音声、特定アプリの音声。Macが聞ける音なら、SpeechDockがリアルタイムで文字起こしします。
+**リアルタイム字幕と翻訳** — 文字起こしを画面上に字幕としてリアルタイム表示。オンデバイスまたはクラウドプロバイダを使って100以上の言語への翻訳にも対応。
 
 **メニューバーからいつでもアクセス** — グローバルホットキーで、アプリを切り替えることなくどこからでも利用可能。インストール後すぐに使え、APIキーは不要です。クラウドプロバイダはオプションで追加できます。
 

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Debug/Release build separation for simultaneous development and production use
+  - Debug build uses `com.speechdock.app.dev` bundle ID and "SpeechDock Dev" display name
+  - Green dot badge on menu bar icon for Debug builds (appearance-aware)
+- Rake tasks for Dev workflow (`dev:run`, `dev:quit`, `dev:restart`)
+- Homebrew Cask distribution via `yohasebe/homebrew-speechdock` tap
+- Stop button on subtitle overlay for convenience
 - Unified settings window with NavigationSplitView sidebar (9 categories)
 - Multilingual localization: Simplified Chinese (zh-Hans), Korean (ko), German (de), French (fr)
 - macOS 26+ Liquid Glass support for menu bar panel
