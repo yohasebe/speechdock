@@ -6,6 +6,7 @@ struct TranslationControls: View {
     @Bindable var appState: AppState
     let text: String
     let onTranslate: (String) -> Void  // Callback when translation completes
+    var applySameLanguageGuard: Bool = true  // Disable translation when STT language == target (STT panel only)
 
     /// Available target languages for translation (excludes auto)
     /// For macOS provider, only show installed languages
@@ -61,7 +62,7 @@ struct TranslationControls: View {
 
     /// Whether translation can be executed
     private var canTranslate: Bool {
-        hasEnoughText && isTargetLanguageAvailable && !appState.isSTTLanguageSameAsTranslationTarget
+        hasEnoughText && isTargetLanguageAvailable && (!applySameLanguageGuard || !appState.isSTTLanguageSameAsTranslationTarget)
     }
 
     /// Whether settings can be changed (disabled during translation)
@@ -135,7 +136,7 @@ struct TranslationControls: View {
         if !hasEnoughText {
             return "Enter text to enable translation"
         }
-        if appState.isSTTLanguageSameAsTranslationTarget {
+        if applySameLanguageGuard && appState.isSTTLanguageSameAsTranslationTarget {
             return "STT language is the same as translation target"
         }
         if !isTargetLanguageAvailable {
@@ -387,7 +388,7 @@ struct TranslationControls: View {
     /// Execute translation to the currently selected language
     private func executeTranslation() {
         guard hasEnoughText else { return }
-        guard !appState.isSTTLanguageSameAsTranslationTarget else { return }
+        guard !applySameLanguageGuard || !appState.isSTTLanguageSameAsTranslationTarget else { return }
         dprint("TranslationControls: executeTranslation called")
         dprint("TranslationControls: language = \(appState.translationTargetLanguage.displayName)")
         dprint("TranslationControls: text length = \(text.count)")

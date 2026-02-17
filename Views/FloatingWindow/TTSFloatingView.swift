@@ -928,7 +928,8 @@ struct TTSFloatingView: View {
                 text: displayText,
                 onTranslate: { translatedText in
                     editableText = translatedText
-                }
+                },
+                applySameLanguageGuard: false
             )
             .padding(8)
         }
