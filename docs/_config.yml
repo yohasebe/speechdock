@@ -6,8 +6,8 @@ description: A macOS menu bar app for Speech-to-Text and Text-to-Speech
 
 # GitHub Pages URL settings
 url: https://yohasebe.github.io
-baseurl: /SpeechDock
-repository: yohasebe/SpeechDock
+baseurl: /speechdock
+repository: yohasebe/speechdock
 
 # Theme
 remote_theme: just-the-docs/just-the-docs@v0.4.2
@@ -28,7 +28,7 @@ search_enabled: true
 # Aux links (top right)
 aux_links:
   "GitHub":
-    - "https://github.com/yohasebe/SpeechDock"
+    - "https://github.com/yohasebe/speechdock"
 
 aux_links_new_tab: true
 
