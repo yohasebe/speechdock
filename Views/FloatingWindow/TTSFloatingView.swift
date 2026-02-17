@@ -989,7 +989,7 @@ struct TTSFloatingView: View {
                         appState.speakCurrentText()
                     }
                 } label: {
-                    ButtonLabelWithShortcut(title: "Speak", shortcut: "(\(speakShortcut.displayString))", icon: "speaker.wave.2.fill", isProminent: true)
+                    ButtonLabelWithShortcut(title: "Speak", shortcut: "", icon: "speaker.wave.2.fill", isProminent: true)
                 }
                 .applyCustomShortcut(speakShortcut)
                 .buttonStyle(.borderedProminent)
@@ -1011,8 +1011,6 @@ struct TTSFloatingView: View {
                         }
                         Text("Save Audio")
                             .font(.body)
-                        Text("(\(saveShortcut.displayString))")
-                            .font(.callout)
                     }
                     .padding(.horizontal, 4)
                     .padding(.vertical, 3)
@@ -1025,14 +1023,14 @@ struct TTSFloatingView: View {
                 Button {
                     appState.pauseResumeTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Pause", shortcut: "(\(speakShortcut.displayString))", icon: "pause.fill")
+                    ButtonLabelWithShortcut(title: "Pause", shortcut: "", icon: "pause.fill")
                 }
                 .applyCustomShortcut(speakShortcut)
 
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))", icon: "stop.fill", isProminent: true)
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "", icon: "stop.fill", isProminent: true)
                 }
                 .applyCustomShortcut(stopShortcut)
                 .buttonStyle(.borderedProminent)
@@ -1041,7 +1039,7 @@ struct TTSFloatingView: View {
                 Button {
                     appState.pauseResumeTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Resume", shortcut: "(\(speakShortcut.displayString))", icon: "play.fill", isProminent: true)
+                    ButtonLabelWithShortcut(title: "Resume", shortcut: "", icon: "play.fill", isProminent: true)
                 }
                 .applyCustomShortcut(speakShortcut)
                 .buttonStyle(.borderedProminent)
@@ -1049,7 +1047,7 @@ struct TTSFloatingView: View {
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))", icon: "stop.fill")
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "", icon: "stop.fill")
                 }
                 .applyCustomShortcut(stopShortcut)
 
@@ -1057,7 +1055,7 @@ struct TTSFloatingView: View {
                 Button {
                     appState.stopTTS()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(\(stopShortcut.displayString))", icon: "xmark.circle")
+                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "", icon: "xmark.circle")
                 }
                 .applyCustomShortcut(stopShortcut)
             }

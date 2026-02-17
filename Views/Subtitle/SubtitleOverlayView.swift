@@ -200,7 +200,7 @@ struct SubtitleOverlayView: View {
     @ViewBuilder
     private var headerView: some View {
         HStack(spacing: 12) {
-            // Recording indicator with stop shortcut (left side)
+            // Recording indicator with stop button (left side)
             if appState.isRecording {
                 HStack(spacing: 6) {
                     Circle()
@@ -217,12 +217,24 @@ struct SubtitleOverlayView: View {
                             .frame(width: 10, height: 10)
                     }
 
-                    // Show global hotkey to stop
-                    if let shortcut = appState.hotKeyService?.sttKeyCombo.displayString {
-                        Text("(\(shortcut) to stop)")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.4))
+                    // Stop button
+                    Button {
+                        AppState.shared.toggleRecording()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 8))
+                            Text("Stop")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(4)
                     }
+                    .buttonStyle(.plain)
+
                 }
             }
 

@@ -17,8 +17,10 @@ struct ButtonLabelWithShortcut: View {
             }
             Text(title)
                 .font(.body)
-            Text(shortcut)
-                .font(.callout)
+            if !shortcut.isEmpty {
+                Text(shortcut)
+                    .font(.callout)
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 3)
@@ -39,9 +41,11 @@ struct CompactButtonLabel: View {
             }
             Text(title)
                 .font(.system(size: 11, weight: .medium))
-            Text("(\(shortcut))")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
+            if !shortcut.isEmpty {
+                Text("(\(shortcut))")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
         }
         .fixedSize()
         .padding(5)
@@ -1239,9 +1243,6 @@ struct TranscriptionFloatingView: View {
                         .font(.system(size: 10))
                     Text("Subtitle")
                         .font(.system(size: 11, weight: .medium))
-                    Text("(⌃⌥S)")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
                 }
                 .fixedSize()
                 .padding(5)
@@ -1282,7 +1283,7 @@ struct TranscriptionFloatingView: View {
                         Button {
                             AppState.shared.stopRecordingAndInsert(editedText)
                         } label: {
-                            CompactButtonLabel(title: "Paste", shortcut: pasteShortcut.displayString, icon: "doc.on.clipboard")
+                            CompactButtonLabel(title: "Paste", shortcut: "", icon: "doc.on.clipboard")
                                 .background(Color.secondary.opacity(0.1))
                                 .cornerRadius(4)
                         }
@@ -1293,7 +1294,7 @@ struct TranscriptionFloatingView: View {
                     Button {
                         onConfirm(editedText)
                     } label: {
-                        CompactButtonLabel(title: "Paste", shortcut: pasteShortcut.displayString, icon: "doc.on.clipboard")
+                        CompactButtonLabel(title: "Paste", shortcut: "", icon: "doc.on.clipboard")
                             .background(Color.secondary.opacity(0.1))
                             .cornerRadius(4)
                     }
@@ -1318,7 +1319,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     AppState.shared.toggleRecording()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Stop", shortcut: "(\(stopShortcut.displayString))", icon: "stop.fill", isProminent: true)
+                    ButtonLabelWithShortcut(title: "Stop", shortcut: "", icon: "stop.fill", isProminent: true)
                 }
                 .applyCustomShortcut(stopShortcut)
                 .buttonStyle(.borderedProminent)
@@ -1329,7 +1330,7 @@ struct TranscriptionFloatingView: View {
                     } label: {
                         ButtonLabelWithShortcut(
                             title: showCopiedFeedback ? "Copied!" : "Copy",
-                            shortcut: showCopiedFeedback ? "" : "(⌘⇧C)",
+                            shortcut: "",
                             icon: showCopiedFeedback ? "checkmark" : "doc.on.doc"
                         )
                     }
@@ -1340,7 +1341,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     appState.cancelFileTranscription()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "(Esc)", icon: "xmark", isProminent: false)
+                    ButtonLabelWithShortcut(title: "Cancel", shortcut: "", icon: "xmark", isProminent: false)
                 }
                 .buttonStyle(.bordered)
                 .keyboardShortcut(.escape, modifiers: [])
@@ -1349,7 +1350,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     startRecordingWithAppend()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Record", shortcut: "(\(recordShortcut.displayString))", icon: "mic.fill", isProminent: true)
+                    ButtonLabelWithShortcut(title: "Record", shortcut: "", icon: "mic.fill", isProminent: true)
                 }
                 .applyCustomShortcut(recordShortcut)
                 .buttonStyle(.borderedProminent)
@@ -1357,7 +1358,7 @@ struct TranscriptionFloatingView: View {
                 Button {
                     saveTextToFile()
                 } label: {
-                    ButtonLabelWithShortcut(title: "Save Text", shortcut: "(\(saveShortcut.displayString))", icon: "square.and.arrow.down")
+                    ButtonLabelWithShortcut(title: "Save Text", shortcut: "", icon: "square.and.arrow.down")
                 }
                 .applyCustomShortcut(saveShortcut)
                 .disabled(editedText.isEmpty)
@@ -1367,7 +1368,7 @@ struct TranscriptionFloatingView: View {
                 } label: {
                     ButtonLabelWithShortcut(
                         title: showCopiedFeedback ? "Copied!" : "Copy",
-                        shortcut: showCopiedFeedback ? "" : "(⌘⇧C)",
+                        shortcut: "",
                         icon: showCopiedFeedback ? "checkmark" : "doc.on.doc"
                     )
                 }
