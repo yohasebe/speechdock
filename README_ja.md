@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Beta">
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/yohasebe/speechdock" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
   <a href="https://github.com/yohasebe/speechdock/releases"><img src="https://img.shields.io/github/v/release/yohasebe/speechdock" alt="Release"></a>
   <img src="https://img.shields.io/badge/homebrew-tap-brown" alt="Homebrew">
 </p>
