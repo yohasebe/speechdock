@@ -93,7 +93,6 @@ jobs:
           DMG_FILE=$(ls SpeechDock-*.dmg)
           DMG_SIZE=$(stat -f%z "$DMG_FILE")
           VERSION=$(cat VERSION)
-          BUILD_NUMBER=$(grep -A1 'CFBundleVersion' Resources/Info.plist | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
           PUB_DATE=$(date -R)
 
           # Create temporary file with private key
@@ -119,7 +118,7 @@ jobs:
                   <item>
                       <title>Version ${VERSION}</title>
                       <pubDate>${PUB_DATE}</pubDate>
-                      <sparkle:version>${BUILD_NUMBER}</sparkle:version>
+                      <sparkle:version>${VERSION}</sparkle:version>
                       <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
                       <enclosure
