@@ -49,7 +49,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app
         PRODUCT_NAME: SpeechDock
         MARKETING_VERSION: "0.1.28"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "0.1.28"
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SpeechDock.entitlements
         SWIFT_VERSION: "5.9"

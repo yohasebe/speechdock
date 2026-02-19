@@ -48,9 +48,7 @@ namespace :version do
             puts "  #{file}: #{$1}"
           end
         when :info_plist
-          if content =~ /<key>CFBundleShortVersionString<\/key>\s*<string>(.+?)<\/string>/m
-            puts "  #{file}: #{$1}"
-          end
+          puts "  #{file}: (uses build setting variables)"
         end
       end
     end
@@ -69,11 +67,7 @@ namespace :version do
       versions[:project_yml] = $1
     end
 
-    # Check Info.plist
-    content = File.read(VERSION_FILES[:info_plist])
-    if content =~ /<key>CFBundleShortVersionString<\/key>\s*<string>(.+?)<\/string>/m
-      versions[:info_plist] = $1
-    end
+    # Info.plist uses build setting variables, no need to check
 
     unique_versions = versions.values.uniq
     if unique_versions.length == 1
@@ -131,16 +125,8 @@ namespace :version do
     puts "  Updating #{VERSION_FILES[:project_yml]}..."
     project_yml = File.read(VERSION_FILES[:project_yml])
     project_yml.gsub!(/MARKETING_VERSION: "[\d.]+"/, "MARKETING_VERSION: \"#{new_version}\"")
+    project_yml.gsub!(/CURRENT_PROJECT_VERSION: "[\d.]+"/, "CURRENT_PROJECT_VERSION: \"#{new_version}\"")
     File.write(VERSION_FILES[:project_yml], project_yml)
-
-    # Update Info.plist
-    puts "  Updating #{VERSION_FILES[:info_plist]}..."
-    info_plist = File.read(VERSION_FILES[:info_plist])
-    info_plist.gsub!(
-      /(<key>CFBundleShortVersionString<\/key>\s*<string>)[\d.]+(<\/string>)/m,
-      "\\1#{new_version}\\2"
-    )
-    File.write(VERSION_FILES[:info_plist], info_plist)
 
     puts ""
     puts "✓ Version bumped to #{new_version}"
