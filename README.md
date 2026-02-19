@@ -10,6 +10,8 @@
   <img src="https://img.shields.io/badge/homebrew-tap-brown" alt="Homebrew">
 </p>
 
+## What is SpeechDock?
+
 **Transcribe any audio on your Mac** — Not just your voice through the microphone, but also system-wide audio or sound from a specific app. If your Mac can hear it, SpeechDock can turn it into text in real time.
 
 **Hear any text on your screen** — Selected text, typed text, pasted content, or text captured via OCR from any screen region. If you can see it, SpeechDock can read it aloud.

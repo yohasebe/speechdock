@@ -45,7 +45,7 @@ final class WindowLevelCoordinator {
     /// Use this to ensure save dialogs are always visible
     static func configureSavePanel(_ savePanel: NSSavePanel) {
         savePanel.level = saveDialogLevel
-        savePanel.contentMinSize = NSSize(width: 400, height: 250)
-        savePanel.setContentSize(NSSize(width: 500, height: 350))
+        savePanel.contentMinSize = NSSize(width: 700, height: 450)
+        savePanel.setContentSize(NSSize(width: 900, height: 550))
     }
 }

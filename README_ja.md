@@ -10,6 +10,8 @@
   <img src="https://img.shields.io/badge/homebrew-tap-brown" alt="Homebrew">
 </p>
 
+## SpeechDockとは？
+
 **Macのあらゆる音声をテキストに** — マイクからの声だけでなく、システム全体の音声や特定アプリの音声もキャプチャ可能。Macが聞ける音なら、SpeechDockがリアルタイムで文字起こしします。
 
 **画面上のあらゆるテキストを音声に** — 選択テキスト、直接入力、ペースト、画面からのOCRキャプチャ。見えるテキストなら、SpeechDockが読み上げます。

@@ -51,6 +51,7 @@ struct CheckForUpdatesView: View {
         }) {
             HStack {
                 Image(systemName: "arrow.triangle.2.circlepath")
+                    .foregroundColor(.accentColor)
                     .frame(width: 20)
                 Text("Check for Updates...")
                     .font(.callout)

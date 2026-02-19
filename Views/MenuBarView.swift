@@ -271,6 +271,10 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(MenuBarActionButtonStyle())
 
+                // Check for Updates
+                CheckForUpdatesView()
+                    .buttonStyle(MenuBarActionButtonStyle())
+
                 // Help
                 Button(action: {
                     openHelp()
@@ -374,7 +378,11 @@ struct MenuBarView: View {
 
     private func openHelp() {
         StatusBarManager.shared.closePopover()
-        if let url = URL(string: "https://github.com/yohasebe/speechdock") {
+        let isJapanese = Locale.preferredLanguages.first?.hasPrefix("ja") == true
+        let urlString = isJapanese
+            ? "https://yohasebe.github.io/speechdock/index_ja.html"
+            : "https://yohasebe.github.io/speechdock/"
+        if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }
     }
