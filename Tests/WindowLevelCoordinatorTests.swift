@@ -76,9 +76,9 @@ final class WindowLevelCoordinatorTests: XCTestCase {
         let savePanel = NSSavePanel()
         WindowLevelCoordinator.configureSavePanel(savePanel)
 
-        XCTAssertEqual(savePanel.contentMinSize.width, 400,
-                      "Save panel min width should be 400")
-        XCTAssertEqual(savePanel.contentMinSize.height, 250,
-                      "Save panel min height should be 250")
+        XCTAssertEqual(savePanel.contentMinSize.width, 700,
+                      "Save panel min width should be 700")
+        XCTAssertEqual(savePanel.contentMinSize.height, 450,
+                      "Save panel min height should be 450")
     }
 }

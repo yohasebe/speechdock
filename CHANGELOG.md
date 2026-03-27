@@ -61,7 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Translation controls redesigned: separate language selection from translation execution
 - Subtitle translation uses provider's default model to avoid cross-provider conflicts
 - Improved permission flow and debounced preferences saving
-- Pinned FluidAudio to v0.9.1 for Xcode 26 compatibility
+- Removed FluidAudio dependency and unused VADService (server-side VAD unaffected)
+- Updated xcodeVersion to 26.0 for Xcode 26 / Swift 6.3 compatibility
 
 ### Fixed
 - Force unwraps replaced with safe guard-let patterns across translation services

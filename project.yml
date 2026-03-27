@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.speechdock
   deploymentTarget:
     macOS: "14.0"
-  xcodeVersion: "16.2"
+  xcodeVersion: "26.0"
   developmentLanguage: en
   knownRegions: [en, ja]
 
@@ -11,9 +11,6 @@ packages:
   HotKey:
     url: https://github.com/soffes/HotKey
     from: 0.2.1
-  FluidAudio:
-    url: https://github.com/FluidInference/FluidAudio
-    exactVersion: 0.9.1
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: 2.6.0
@@ -48,8 +45,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app
         PRODUCT_NAME: SpeechDock
-        MARKETING_VERSION: "0.1.28"
-        CURRENT_PROJECT_VERSION: "0.1.28"
+        MARKETING_VERSION: "0.1.29"
+        CURRENT_PROJECT_VERSION: "0.1.29"
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SpeechDock.entitlements
         SWIFT_VERSION: "5.9"
@@ -69,7 +66,6 @@ targets:
           SPEECHDOCK_DISPLAY_NAME: SpeechDock
     dependencies:
       - package: HotKey
-      - package: FluidAudio
       - package: Sparkle
 
   SpeechDockTests:
