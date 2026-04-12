@@ -210,8 +210,11 @@ struct MenuBarView: View {
 
             // TTS Action button with shortcut
             Button(action: {
+                // Capture frontmost app BEFORE closing the panel to ensure
+                // we know which browser/app to copy the selected text from
+                let capturedFrontmost = NSWorkspace.shared.frontmostApplication
                 StatusBarManager.shared.closePanel()
-                appState.startTTS()
+                appState.startTTS(frontmostApp: capturedFrontmost)
             }) {
                 HStack {
                     Image(systemName: "speaker.wave.2")

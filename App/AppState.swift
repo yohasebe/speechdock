@@ -1129,13 +1129,13 @@ final class AppState {
         }
 
         // Use precopied text if available (from immediate Cmd+C in hotkey handler)
-        // Otherwise, try to get selected text via accessibility/clipboard
+        // Otherwise, use the full text selection flow (which handles browsers by
+        // preferring the clipboard HTML path to preserve paragraph breaks)
         Task {
             var selectedText = precopiedText
 
-            // If no precopied text, try accessibility API (doesn't require clipboard)
             if selectedText == nil || selectedText?.isEmpty == true {
-                selectedText = TextSelectionService.shared.getSelectedTextViaAccessibility(from: frontmostApp)
+                selectedText = await TextSelectionService.shared.getSelectedText(from: frontmostApp)
             }
 
             if let selectedText = selectedText, !selectedText.isEmpty {
@@ -2221,7 +2221,9 @@ extension AppState: HotKeyServiceDelegate {
             // Check if clipboard was updated
             let newChangeCount = NSPasteboard.general.changeCount
             if newChangeCount != clipboardChangeCount {
-                copiedText = NSPasteboard.general.string(forType: .string)
+                // Read the best available text representation, preferring HTML/RTF
+                // so that paragraph breaks are preserved (plain text collapses them)
+                copiedText = TextSelectionService.shared.readBestTextFromPasteboard()
             }
             dprint("TTS HotKey: Clipboard changed: \(newChangeCount != clipboardChangeCount), text length: \(copiedText?.count ?? 0)")
 

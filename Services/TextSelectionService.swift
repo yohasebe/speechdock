@@ -14,6 +14,50 @@ final class TextSelectionService {
     /// UTType for HTML content
     private let htmlType = NSPasteboard.PasteboardType.html
 
+    /// Bundle IDs of apps that expose selected text via AX API as
+    /// single-newline-separated plain text, losing paragraph structure.
+    /// For these, we skip AX and use the clipboard (HTML/RTF) path to preserve
+    /// blank lines between paragraphs.
+    /// Includes web browsers and rich-text editors.
+    private let clipboardFirstBundleIDs: Set<String> = [
+        // Web browsers
+        "com.google.Chrome",
+        "com.google.Chrome.canary",
+        "com.google.Chrome.beta",
+        "com.apple.Safari",
+        "com.apple.SafariTechnologyPreview",
+        "org.mozilla.firefox",
+        "org.mozilla.firefoxdeveloperedition",
+        "org.mozilla.nightly",
+        "com.microsoft.edgemac",
+        "com.microsoft.edgemac.Beta",
+        "com.microsoft.edgemac.Dev",
+        "com.microsoft.edgemac.Canary",
+        "company.thebrowser.Browser",  // Arc
+        "com.brave.Browser",
+        "com.brave.Browser.beta",
+        "com.brave.Browser.nightly",
+        "com.vivaldi.Vivaldi",
+        "com.operasoftware.Opera",
+        "com.operasoftware.OperaNext",
+        "com.operasoftware.OperaDeveloper",
+        "com.operasoftware.OperaGX",
+        "org.chromium.Chromium",
+        "app.zen-browser.zen",
+        "net.kagi.kagimacOS",  // Orion
+        // Rich-text editors and mail/document apps
+        "com.apple.TextEdit",
+        "com.apple.mail",
+        "com.apple.Notes",
+        "com.apple.Pages",
+        "com.apple.iWork.Pages",
+        "com.microsoft.Word",
+        "com.microsoft.Outlook",
+        "com.readdle.smartemail-Mac",  // Spark
+        "com.airmailapp.airmail2",
+        "com.apple.iBooksX",
+    ]
+
     private init() {}
 
     /// Gets the currently selected text from the frontmost application
@@ -24,12 +68,32 @@ final class TextSelectionService {
         let frontApp = targetApp ?? NSWorkspace.shared.frontmostApplication
         dprint("TextSelectionService: getSelectedText called, target app: \(frontApp?.localizedName ?? "unknown") (bundle: \(frontApp?.bundleIdentifier ?? "unknown")), pre-captured: \(targetApp != nil)")
 
+        // For browsers and rich-text editors, skip AX API and go straight to clipboard.
+        // AX returns single-newline-separated text from these apps, which collapses
+        // paragraph breaks. The clipboard HTML/RTF path preserves blank lines between
+        // paragraphs via NSAttributedString's parser.
+        let useClipboardFirst = frontApp.flatMap { $0.bundleIdentifier }.map { clipboardFirstBundleIDs.contains($0) } ?? false
+        if useClipboardFirst {
+            dprint("TextSelectionService: Target is a rich-text app, skipping AX and using clipboard directly")
+            let clipboardText = await getSelectedTextViaClipboard(targetApp: frontApp)
+            if let text = clipboardText {
+                dprint("TextSelectionService: Got text via Clipboard (rich-text path), length: \(text.count)")
+                return text
+            }
+            // If clipboard path failed, fall through to AX as last resort
+        }
 
-        // Try accessibility API first (more reliable, less intrusive)
+        // Try accessibility API first (more reliable, less intrusive) for other apps
         if let text = getSelectedTextViaAccessibility(from: frontApp) {
             dprint("TextSelectionService: Got text via Accessibility API, length: \(text.count)")
 
             return text
+        }
+
+        // Clipboard-first path already tried clipboard above; skip redundant retry
+        if useClipboardFirst {
+            dprint("TextSelectionService: No text found via any method (rich-text path)")
+            return nil
         }
 
         // Fall back to clipboard-based approach with proper synchronization
@@ -104,32 +168,10 @@ final class TextSelectionService {
                 dprint("TextSelectionService: Clipboard updated, available types: \(availableTypes)")
                 #endif
 
-                // Try to get rich text formats for better layout preservation
-
-                // 1. Try HTML first (web browsers)
-                if let htmlString = pasteboard.string(forType: htmlType) {
-                    selectedText = convertHTMLToFormattedText(htmlString)
-                    dprint("TextSelectionService: Got HTML from clipboard, converted to formatted text")
-
-                }
-
-                // 2. Try RTF if HTML not available (Word, Pages, etc.)
-                if (selectedText == nil || selectedText?.isEmpty == true),
-                   let rtfData = pasteboard.data(forType: .rtf) {
-                    selectedText = convertRTFToFormattedText(rtfData)
-                    dprint("TextSelectionService: Got RTF from clipboard, converted to formatted text")
-
-                }
-
-                // 3. Fall back to plain text if rich text conversion failed or unavailable
-                if selectedText == nil || selectedText?.isEmpty == true {
-                    selectedText = pasteboard.string(forType: .string)
-                    #if DEBUG
-                    if selectedText != nil {
-                        dprint("TextSelectionService: Got plain text from clipboard")
-                    }
-                    #endif
-                }
+                // Pick the format that best preserves paragraph structure.
+                // See readBestTextFromPasteboard for the selection rationale.
+                selectedText = readBestTextFromPasteboard(pasteboard)
+                dprint("TextSelectionService: Selected best text representation from clipboard, length: \(selectedText?.count ?? 0)")
                 break
             }
             // Use Task.sleep instead of Thread.sleep to avoid blocking
@@ -159,11 +201,57 @@ final class TextSelectionService {
         return selectedText
     }
 
+    /// Read the best available text representation from the pasteboard.
+    /// Picks whichever format best preserves paragraph breaks (blank lines):
+    /// - If plain text already contains blank lines, use it directly
+    ///   (TextEdit, Pages, Notes, and many native apps put structure-preserving plain text)
+    /// - Otherwise try HTML with <br><br> injection (web browsers)
+    /// - Otherwise try RTF via attributed string walk
+    /// - Otherwise return plain text as last resort
+    /// Returns nil if the pasteboard has no readable text.
+    func readBestTextFromPasteboard(_ pasteboard: NSPasteboard = .general) -> String? {
+        let plainText = pasteboard.string(forType: .string)
+
+        // 1. If plain text already preserves paragraph structure (has blank lines),
+        // use it directly — it's the most faithful representation.
+        if let text = plainText, text.contains("\n\n") {
+            return text
+        }
+
+        // 2. HTML (web browsers put structured HTML but often collapse plain text)
+        if let htmlString = pasteboard.string(forType: htmlType),
+           let converted = convertHTMLToFormattedText(htmlString),
+           !converted.isEmpty {
+            // Only use HTML result if it's at least as structured as plain text
+            if converted.contains("\n\n") || plainText == nil || plainText?.isEmpty == true {
+                return converted
+            }
+        }
+
+        // 3. RTF (Word, Pages, Mail rich text)
+        if let rtfData = pasteboard.data(forType: .rtf),
+           let converted = convertRTFToFormattedText(rtfData),
+           !converted.isEmpty {
+            if converted.contains("\n\n") || plainText == nil || plainText?.isEmpty == true {
+                return converted
+            }
+        }
+
+        // 4. Fall back to plain text (even without blank lines)
+        return plainText
+    }
+
     /// Convert HTML string to formatted plain text preserving layout structure
     private func convertHTMLToFormattedText(_ html: String) -> String? {
-        guard let data = html.data(using: .utf8) else { return nil }
+        // NSAttributedString's HTML parser represents paragraph breaks as a single \n
+        // in the output .string (the visual blank line is stored as paragraphSpacing
+        // attribute, which we lose when converting to plain text). To preserve blank
+        // lines between paragraphs, inject explicit <br><br> after each block-level
+        // closing tag before parsing — these survive parsing as literal \n\n.
+        let preprocessedHTML = injectParagraphBreaks(html)
 
-        // Use NSAttributedString to parse HTML
+        guard let data = preprocessedHTML.data(using: .utf8) else { return nil }
+
         let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
             .documentType: NSAttributedString.DocumentType.html,
             .characterEncoding: String.Encoding.utf8.rawValue
@@ -174,6 +262,26 @@ final class TextSelectionService {
         }
 
         return cleanupAttributedStringText(attributedString)
+    }
+
+    /// Inject <br><br> after block-level closing tags to preserve paragraph boundaries
+    /// through NSAttributedString's HTML parser, which otherwise collapses them to single \n.
+    ///
+    /// Note: List items (`<li>`, `<dt>`, `<dd>`) and table rows (`<tr>`) are NOT included
+    /// — they should be separated by a single newline, not a blank line. Their enclosing
+    /// containers (`<ul>`, `<ol>`, `<table>`) still get blank-line treatment.
+    private func injectParagraphBreaks(_ html: String) -> String {
+        let pattern = #"</(p|div|h[1-6]|blockquote|pre|article|section|header|footer|nav|aside|figure|figcaption|ul|ol|table)\s*>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return html
+        }
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        return regex.stringByReplacingMatches(
+            in: html,
+            options: [],
+            range: range,
+            withTemplate: "</$1><br><br>"
+        )
     }
 
     /// Convert RTF data to formatted plain text preserving layout structure
@@ -187,7 +295,43 @@ final class TextSelectionService {
             return nil
         }
 
-        return cleanupAttributedStringText(attributedString)
+        // RTF: walk the attributed string and use paragraph style to detect paragraph breaks.
+        return attributedStringToTextPreservingParagraphs(attributedString)
+    }
+
+    /// Walk an NSAttributedString and emit plain text with \n\n at paragraph boundaries
+    /// (detected via paragraphSpacing / paragraphSpacingBefore in the paragraph style).
+    /// Used for RTF where we can't preprocess the source.
+    private func attributedStringToTextPreservingParagraphs(_ attrStr: NSAttributedString) -> String? {
+        let nsStr = attrStr.string as NSString
+        guard nsStr.length > 0 else { return nil }
+
+        var output = ""
+        var paragraphStart = 0
+
+        while paragraphStart < nsStr.length {
+            let paragraphRange = nsStr.paragraphRange(for: NSRange(location: paragraphStart, length: 0))
+            let paragraphText = nsStr.substring(with: paragraphRange)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if !paragraphText.isEmpty {
+                if !output.isEmpty {
+                    // Check paragraph style to decide: blank line or single newline
+                    let style = attrStr.attribute(.paragraphStyle, at: paragraphRange.location, effectiveRange: nil) as? NSParagraphStyle
+                    let hasSpacing = (style?.paragraphSpacing ?? 0) > 0 || (style?.paragraphSpacingBefore ?? 0) > 0
+                    output += hasSpacing ? "\n\n" : "\n"
+                }
+                output += paragraphText
+            }
+
+            paragraphStart = NSMaxRange(paragraphRange)
+        }
+
+        // Apply the same whitespace normalization as cleanupAttributedStringText
+        var result = output.replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
+        result = result.replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
+        result = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.isEmpty ? nil : result
     }
 
     /// Clean up attributed string text while preserving layout structure
@@ -195,15 +339,17 @@ final class TextSelectionService {
         // Get the plain text from attributed string (preserves line breaks from structure)
         var result = attributedString.string
 
-        // Clean up excessive whitespace while preserving intentional line breaks
-        // Replace multiple spaces with single space
+        // Replace multiple spaces/tabs with single space (applies within lines)
         result = result.replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
-        // Replace more than 2 consecutive newlines with just 2
-        result = result.replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
-        // Trim leading/trailing whitespace from each line
+        // Trim leading/trailing whitespace from each line.
+        // This converts whitespace-only lines (e.g. from <p>&nbsp;</p>) to empty lines.
         result = result.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .joined(separator: "\n")
+        // Collapse 3+ consecutive newlines to exactly 2 (one blank line between paragraphs).
+        // Must run AFTER line trimming so that "whitespace-only lines" become true empties
+        // and participate in the collapse.
+        result = result.replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
         // Trim overall leading/trailing whitespace
         result = result.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -242,7 +388,7 @@ final class TextSelectionService {
 
     /// Alternative method using Accessibility API (requires accessibility permissions)
     /// - Parameter targetApp: The app to get selected text from (if nil, uses current frontmost)
-    func getSelectedTextViaAccessibility(from targetApp: NSRunningApplication? = nil) -> String? {
+    private func getSelectedTextViaAccessibility(from targetApp: NSRunningApplication? = nil) -> String? {
         guard let app = targetApp ?? NSWorkspace.shared.frontmostApplication else {
             dprint("TextSelectionService: No target application")
 

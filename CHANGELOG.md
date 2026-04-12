@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated xcodeVersion to 26.0 for Xcode 26 / Swift 6.3 compatibility
 
 ### Fixed
+- Preserve paragraph breaks when pasting selected text from rich-text sources
+  - Browsers (Chrome, Safari, Firefox, Edge, Arc, Brave, Vivaldi, Opera, etc.) and rich-text editors (TextEdit, Mail, Notes, Pages, Word, Outlook, etc.) now use the clipboard HTML/RTF path instead of Accessibility API, which collapsed blank lines between paragraphs
+  - Auto-paste logic picks the representation (plain text / HTML / RTF) that best preserves paragraph structure
+  - HTML parser preprocessing injects `<br><br>` after block-level closing tags so NSAttributedString's parser emits proper `\n\n` paragraph boundaries
 - Force unwraps replaced with safe guard-let patterns across translation services
 - Accessibility API force casts now protected with CFGetTypeID checks
 - `precondition` in LLMTranslation replaced with debug-only `assert`
