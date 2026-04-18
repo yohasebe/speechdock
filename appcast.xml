@@ -6,15 +6,15 @@
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
-            <title>Version 0.1.30</title>
-            <pubDate>Sun, 12 Apr 2026 00:48:41 +0000</pubDate>
-            <sparkle:version>0.1.30</sparkle:version>
-            <sparkle:shortVersionString>0.1.30</sparkle:shortVersionString>
+            <title>Version 0.1.31</title>
+            <pubDate>Sat, 18 Apr 2026 05:15:08 +0000</pubDate>
+            <sparkle:version>0.1.31</sparkle:version>
+            <sparkle:shortVersionString>0.1.31</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/yohasebe/speechdock/releases/download/v0.1.30/SpeechDock-0.1.30.dmg"
-                sparkle:edSignature="O0GSVE6JUEnpuKIMGGxzq2iSQsxe5Fm7zUhQbEYkBs9lNi2RyHqHUj3siXSBCVDYP85+Ft+wmD5euQqbpahaDw=="
-                length="3710589"
+                url="https://github.com/yohasebe/speechdock/releases/download/v0.1.31/SpeechDock-0.1.31.dmg"
+                sparkle:edSignature="WzgX8G3sNf3IZiz6QmAa0kkBcZOPWABah+Ar+TCMjs3x/m6qVo1EyNlTc4ZgsZaYt1Zk3YbRvH419oMVzDI0Dw=="
+                length="3733945"
                 type="application/octet-stream"/>
         </item>
     </channel>
