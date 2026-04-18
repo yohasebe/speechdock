@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Gemini 3.1 Flash TTS as the Gemini TTS model (replaces 2.5 Flash/Pro TTS in the picker)
+  - Dedicated TTS model with expressive inline voice tags (`[whispers]`, `[excited]`, etc.) and improved naturalness
+  - REST-only — bypasses the Live API streaming path since this model does not support WebSocket streaming
+  - Existing users on deprecated 2.5 Flash/Pro TTS settings are migrated automatically to 3.1 on next launch
+- Grok TTS via xAI's dedicated TTS REST API (replaces the Voice Agent Realtime workaround in the picker)
+  - 5 voices (eve, ara, rex, sal, leo) with 20+ languages and auto-detection
+  - Supports inline expressive tags (`[pause]`, `[laugh]`, `[sigh]`, `[gulp]`) and wrapping tags (`<whisper>`, `<soft>`, `<loud>`, `<slow>`, `<fast>`)
+  - Legacy Voice Agent WebSocket path is retained in the code for potential future use but no longer selectable
+  - Existing users on `grok-2-public` are migrated automatically to `grok-tts` on next launch
+- Inline voice-tag hints in the empty TTS panel placeholder for Gemini, Grok, and ElevenLabs v3
+- Speed slider now disabled (with guidance text) for models without an API speed parameter: Gemini 3.1 Flash TTS, Grok TTS, and OpenAI gpt-4o-mini-tts
 - Debug/Release build separation for simultaneous development and production use
   - Debug build uses `com.speechdock.app.dev` bundle ID and "SpeechDock Dev" display name
   - Green dot badge on menu bar icon for Debug builds (appearance-aware)

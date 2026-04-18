@@ -61,9 +61,11 @@
 |----------|--------|---------|
 | **macOS Native** | System Default | 不要 |
 | **OpenAI** | GPT-4o Mini TTS (Dec 2025), GPT-4o Mini TTS, TTS-1, TTS-1 HD | 必要 |
-| **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | 必要 |
+| **Google Gemini** | Gemini 3.1 Flash TTS (Preview) — 表現豊か、多言語対応 | 必要 |
 | **ElevenLabs** | Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5, Monolingual v1 | 必要 |
-| **Grok** | Grok Voice | 必要 |
+| **Grok** | Grok TTS — 5音声、20以上の言語対応 | 必要 |
+
+**音声タグ**: Gemini 3.1、Grok TTS、ElevenLabs v3 は `[whispers]`、`[laughs]`、`[excited]` などのインラインタグや、Grokの `<whisper>...</whisper>`、`<slow>...</slow>` などのラップタグをサポートしています。タグはTTSパネルのテキストに直接記述できます。空のパネルに表示される "Reference" リンクから各プロバイダの公式タグ一覧にアクセスできます。
 
 ### OCR読み上げ
 

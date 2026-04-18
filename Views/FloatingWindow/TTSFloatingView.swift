@@ -392,6 +392,13 @@ struct ScrollableTextView: NSViewRepresentable {
     }
 }
 
+/// Hint describing inline voice tags available for the current TTS provider.
+/// Shown in the empty-state placeholder to help users discover expressive markup.
+struct InlineTagHint {
+    let description: String
+    let referenceURL: URL
+}
+
 struct TTSFloatingView: View {
     var appState: AppState
     let onClose: () -> Void
@@ -400,6 +407,35 @@ struct TTSFloatingView: View {
     @State private var forceTextUpdate: Bool = false  // Force text view update (for hotkey captures)
     @State private var isDragOver: Bool = false  // Track drag over state for text file drop
     @StateObject private var shortcutManager = ShortcutSettingsManager.shared
+
+    /// Hint shown in the empty placeholder describing available inline tags for the
+    /// current provider. Returns nil when the provider doesn't support inline tags.
+    ///
+    /// NOTE: Reference URLs are hardcoded to each provider's official docs. If a
+    /// page is moved/renamed upstream, the link will 404 and the hint needs to be
+    /// updated here. This is a deliberate trade-off to keep the list compact; no
+    /// runtime URL resolution is performed.
+    private var inlineTagHint: InlineTagHint? {
+        switch appState.selectedTTSProvider {
+        case .gemini:
+            return InlineTagHint(
+                description: "Expressive voice tags supported.",
+                referenceURL: URL(string: "https://ai.google.dev/gemini-api/docs/speech-generation")!
+            )
+        case .grok:
+            return InlineTagHint(
+                description: "Expressive voice tags supported.",
+                referenceURL: URL(string: "https://docs.x.ai/developers/model-capabilities/audio/text-to-speech")!
+            )
+        case .elevenLabs where appState.selectedTTSModel == "eleven_v3":
+            return InlineTagHint(
+                description: "Expressive audio tags supported.",
+                referenceURL: URL(string: "https://elevenlabs.io/docs/best-practices/prompting")!
+            )
+        default:
+            return nil
+        }
+    }
 
     init(appState: AppState, onClose: @escaping () -> Void) {
         self.appState = appState
@@ -475,6 +511,16 @@ struct TTSFloatingView: View {
                         .foregroundColor(.secondary.opacity(0.8))
                     Text("• Use OCR (\(ocrShortcut)) to capture screen text")
                         .foregroundColor(.secondary.opacity(0.8))
+                    if let hint = inlineTagHint {
+                        HStack(spacing: 4) {
+                            Text(hint.description)
+                                .foregroundColor(.secondary.opacity(0.8))
+                            Link("Reference", destination: hint.referenceURL)
+                                .foregroundColor(.accentColor)
+                        }
+                        .font(.callout)
+                        .padding(.top, 2)
+                    }
                 }
                 .font(.callout)
 
@@ -992,7 +1038,7 @@ struct TTSFloatingView: View {
                     ButtonLabelWithShortcut(title: "Speak", shortcut: "", icon: "speaker.wave.2.fill", isProminent: true)
                 }
                 .applyCustomShortcut(speakShortcut)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(ProminentActionButtonStyle())
                 .disabled(editableText.isEmpty || appState.isSavingAudio)
 
                 Button {
@@ -1033,7 +1079,7 @@ struct TTSFloatingView: View {
                     ButtonLabelWithShortcut(title: "Stop", shortcut: "", icon: "stop.fill", isProminent: true)
                 }
                 .applyCustomShortcut(stopShortcut)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(ProminentActionButtonStyle())
 
             case .paused:
                 Button {
@@ -1042,7 +1088,7 @@ struct TTSFloatingView: View {
                     ButtonLabelWithShortcut(title: "Resume", shortcut: "", icon: "play.fill", isProminent: true)
                 }
                 .applyCustomShortcut(speakShortcut)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(ProminentActionButtonStyle())
 
                 Button {
                     appState.stopTTS()

@@ -27,6 +27,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             TTSVoiceCache.shared.cleanupExpiredCaches()
         }
 
+        // Preload macOS system voices at startup so the first TTS panel open finds
+        // a warm cache instead of blocking on AVSpeechSynthesisVoice.speechVoices().
+        //
+        // NOTE: We intentionally run this on the main actor rather than on a
+        // detached background task. `AVSpeechSynthesisVoice.speechVoices()` does
+        // not document thread-safety guarantees, so calling it from any thread
+        // other than main is an unverified assumption. Running on main with a
+        // ~1 second delay means the (200-400ms) enumeration happens while the
+        // UI is idle, which is effectively invisible to the user, at the cost
+        // of being strictly safe.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1.0s
+            let needsPreload = TTSVoiceCache.shared.isCacheExpired(for: .macOS)
+                || (TTSVoiceCache.shared.getCachedVoices(for: .macOS)?.isEmpty ?? true)
+            guard needsPreload else { return }
+            let voices = MacOSTTS.fetchSystemVoicesForPreload()
+            TTSVoiceCache.shared.cacheVoices(voices, for: .macOS)
+            dprint("TTSVoiceCache: Preloaded \(voices.count) macOS voices at startup")
+        }
+
+        // Preload audio output devices so the TTS panel's output picker doesn't
+        // block on Core Audio enumeration the first time it appears.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)  // 1.2s (after voice preload)
+            _ = AudioOutputManager.shared.availableOutputDevices()
+            dprint("AudioOutputManager: Preloaded output devices at startup")
+        }
+
         // Initialize and register hotkey service immediately
         hotKeyService = HotKeyService()
 

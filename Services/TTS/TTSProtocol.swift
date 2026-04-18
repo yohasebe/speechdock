@@ -177,7 +177,7 @@ enum TTSProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI: return NSLocalizedString("OpenAI TTS (high quality)", comment: "TTS provider description")
         case .gemini: return NSLocalizedString("Gemini TTS (multilingual)", comment: "TTS provider description")
         case .elevenLabs: return NSLocalizedString("ElevenLabs (natural voices)", comment: "TTS provider description")
-        case .grok: return NSLocalizedString("Grok Voice (5 voices)", comment: "TTS provider description")
+        case .grok: return NSLocalizedString("Grok TTS (5 voices)", comment: "TTS provider description")
         }
     }
 }

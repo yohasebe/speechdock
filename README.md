@@ -61,9 +61,11 @@ Convert text to speech using:
 |----------|--------|---------|
 | **macOS Native** | System Default | Not required |
 | **OpenAI** | GPT-4o Mini TTS (Dec 2025), GPT-4o Mini TTS, TTS-1, TTS-1 HD | Required |
-| **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | Required |
+| **Google Gemini** | Gemini 3.1 Flash TTS (Preview) — expressive, multilingual | Required |
 | **ElevenLabs** | Eleven v3, Flash v2.5, Multilingual v2, Turbo v2.5, Monolingual v1 | Required |
-| **Grok** | Grok Voice | Required |
+| **Grok** | Grok TTS — 5 voices, 20+ languages | Required |
+
+**Voice tags**: Gemini 3.1, Grok TTS, and ElevenLabs v3 support expressive inline tags like `[whispers]`, `[laughs]`, `[excited]`, and (for Grok) wrapping tags like `<whisper>...</whisper>`, `<slow>...</slow>`. Paste or type tags directly into the TTS panel; a "Reference" link in the empty panel points to each provider's tag documentation.
 
 ### OCR to Speech
 

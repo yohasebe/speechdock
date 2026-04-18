@@ -14,31 +14,100 @@ struct AudioOutputDevice: Identifiable, Equatable, Hashable {
 final class AudioOutputManager {
     static let shared = AudioOutputManager()
 
+    // Cache state protected by `cacheLock` — methods may be called from audio
+    // setup threads (TTSAudioPlaybackController / StreamingAudioPlayer) as well
+    // as MainActor UI code, so all cache access must be serialized.
     private var cachedDevices: [AudioOutputDevice]?
     private var cacheTime: Date?
-    private let cacheExpirationInterval: TimeInterval = 30  // 30 seconds cache
+    private let cacheLock = NSLock()
+    // Audio devices rarely change (hot-plug is the main case). A short TTL caused
+    // every panel open after 30s idle to block on Core Audio enumeration. Five
+    // minutes keeps repeated panel opens fast while still picking up device
+    // changes within a reasonable window. A Core Audio device-change listener
+    // (registered in `init`) also invalidates the cache immediately on hot-plug.
+    private let cacheExpirationInterval: TimeInterval = 300  // 5 minutes
 
-    private init() {}
+    /// Opaque handle returned by AudioObjectAddPropertyListenerBlock, used to
+    /// remove the listener on deinit.
+    private var deviceChangeListener: AudioObjectPropertyListenerBlock?
+
+    private init() {
+        registerDeviceChangeListener()
+    }
+
+    deinit {
+        unregisterDeviceChangeListener()
+    }
 
     /// Get list of available audio output devices (cached)
     func availableOutputDevices() -> [AudioOutputDevice] {
-        // Return cached devices if available and not expired
+        cacheLock.lock()
         if let cached = cachedDevices,
            let time = cacheTime,
            Date().timeIntervalSince(time) < cacheExpirationInterval {
+            cacheLock.unlock()
             return cached
         }
+        cacheLock.unlock()
 
+        // Fetch outside the lock (Core Audio calls can be slow) then re-acquire
+        // to publish the result.
         let devices = fetchDevicesFromSystem()
+        cacheLock.lock()
         cachedDevices = devices
         cacheTime = Date()
+        cacheLock.unlock()
         return devices
     }
 
     /// Clear the device cache (call when devices might have changed)
     func clearCache() {
+        cacheLock.lock()
         cachedDevices = nil
         cacheTime = nil
+        cacheLock.unlock()
+    }
+
+    // MARK: - Core Audio device change listener
+
+    private func registerDeviceChangeListener() {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            // A device was added/removed — invalidate our cache so the next
+            // availableOutputDevices() call re-enumerates.
+            self?.clearCache()
+        }
+        let status = AudioObjectAddPropertyListenerBlock(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            DispatchQueue.global(qos: .utility),
+            listener
+        )
+        if status == noErr {
+            deviceChangeListener = listener
+        } else {
+            dprint("AudioOutputManager: Failed to register device change listener (OSStatus \(status))")
+        }
+    }
+
+    private func unregisterDeviceChangeListener() {
+        guard let listener = deviceChangeListener else { return }
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectRemovePropertyListenerBlock(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            DispatchQueue.global(qos: .utility),
+            listener
+        )
+        deviceChangeListener = nil
     }
 
     /// Fetch devices from system (Core Audio)

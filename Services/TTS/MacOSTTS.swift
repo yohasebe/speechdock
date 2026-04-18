@@ -616,6 +616,14 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
     /// Fetch voices from system using AVSpeechSynthesisVoice API
     @MainActor
     private func fetchVoicesFromSystem() -> [TTSVoice] {
+        Self.fetchSystemVoicesForPreload()
+    }
+
+    /// Thread-safe voice enumeration for background preloading at app startup.
+    /// `AVSpeechSynthesisVoice.speechVoices()` has no documented MainActor requirement
+    /// and is safe to call from any queue; this lets the first (slow) enumeration
+    /// happen off the main thread instead of blocking panel open.
+    nonisolated static func fetchSystemVoicesForPreload() -> [TTSVoice] {
         var voices: [TTSVoice] = []
 
         // Add auto-detect option

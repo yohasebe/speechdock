@@ -15,7 +15,7 @@ final class GeminiTTS: NSObject, TTSService {
     }
 
     var selectedVoice: String = "Zephyr"  // Default voice
-    var selectedModel: String = "gemini-2.5-flash-preview-tts"
+    var selectedModel: String = "gemini-3.1-flash-tts-preview"
     var selectedSpeed: Double = 1.0  // Speed multiplier (uses prompt-based control)
     var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects from text)
     var audioOutputDeviceUID: String = "" {
@@ -113,11 +113,25 @@ final class GeminiTTS: NSObject, TTSService {
 
         stop()
 
-        if useStreamingMode {
+        // Route through Live API streaming only when both enabled and the selected
+        // model is compatible. TTS-only models (e.g. gemini-3.1-flash-tts-preview)
+        // have no Live API counterpart and must use REST generateContent.
+        let canStream = useStreamingMode && Self.modelSupportsLiveStreaming(selectedModel)
+        if canStream {
             try await speakStreaming(text: text, apiKey: apiKey)
         } else {
             try await speakNonStreaming(text: text, apiKey: apiKey)
         }
+    }
+
+    /// Whether the given Gemini model supports the Live API WebSocket streaming path.
+    /// Models outside this set are served by the REST `:generateContent` endpoint instead.
+    private static func modelSupportsLiveStreaming(_ modelId: String) -> Bool {
+        // gemini-3.1-flash-tts-preview is a REST-only TTS model — no Live API support.
+        if modelId == "gemini-3.1-flash-tts-preview" {
+            return false
+        }
+        return true
     }
 
     /// WebSocket streaming playback with chunked text support
@@ -436,10 +450,15 @@ final class GeminiTTS: NSObject, TTSService {
         // Validate voice - use default if invalid, and convert to lowercase
         let validVoice = Self.validVoiceIds.contains(selectedVoice.lowercased()) ? selectedVoice.lowercased() : "zephyr"
 
-        // For Save Audio (non-streaming), prepend pace instruction if speed != 1.0
-        // Gemini doesn't have a direct speed parameter, so we use natural language instruction
+        // Speed control strategy:
+        // - gemini-3.1-flash-tts-preview: pace prefixes confuse the model's classifier
+        //   (can trigger text-token responses or PROHIBITED_CONTENT), so rely on
+        //   AVAudioPlayer rate for playback speed. Save Audio will save at 1.0x.
+        // - Older 2.5 TTS REST models: prepend a natural-language pace instruction,
+        //   which also embeds the speed change into saved audio.
         let textToSpeak: String
-        if abs(selectedSpeed - 1.0) > 0.01 {
+        let isDedicatedTTSModel = (modelId == "gemini-3.1-flash-tts-preview")
+        if !isDedicatedTTSModel && abs(selectedSpeed - 1.0) > 0.01 {
             let paceInstruction = paceInstructionForSpeed(selectedSpeed)
             textToSpeak = paceInstruction + text
         } else {
@@ -478,6 +497,10 @@ final class GeminiTTS: NSObject, TTSService {
               let firstCandidate = candidates.first,
               let content = firstCandidate["content"] as? [String: Any],
               let parts = content["parts"] as? [[String: Any]] else {
+            // Log raw response body to help diagnose issues like text-token responses
+            // or PROHIBITED_CONTENT rejections (known 3.1 TTS preview issues).
+            let snippet = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 \(data.count) bytes>"
+            dprint("Gemini TTS: Invalid response format. Raw body (first 500 bytes): \(snippet)")
             throw TTSError.apiError("Invalid response format")
         }
 
@@ -505,17 +528,29 @@ final class GeminiTTS: NSObject, TTSService {
 
         let mimeType = detectedMimeType.isEmpty ? "audio/L16;rate=24000" : detectedMimeType
         let audioData = combinedAudioData
+        dprint("Gemini TTS: Response mimeType=\(mimeType), size=\(audioData.count) bytes")
 
-        // Handle PCM audio (L16) by adding WAV header
+        // Detect whether the payload is already a complete WAV container (starts with "RIFF....WAVE").
+        // Some Gemini TTS models report mimeType=audio/wav but return raw PCM without a header,
+        // so we can't trust the mime type alone — inspect the bytes.
+        let hasWAVHeader: Bool = {
+            guard audioData.count >= 12 else { return false }
+            let riff = audioData.prefix(4)
+            let wave = audioData.subdata(in: 8..<12)
+            return riff.elementsEqual([0x52, 0x49, 0x46, 0x46]) && wave.elementsEqual([0x57, 0x41, 0x56, 0x45])
+        }()
+
         let finalAudioData: Data
         let sourceExt: String
-        if mimeType.contains("L16") || mimeType.contains("pcm") {
+        if hasWAVHeader {
+            finalAudioData = audioData
+            sourceExt = "wav"
+        } else {
+            // Treat as raw PCM — add a WAV header (sample rate from mime type, default 24kHz)
             let sampleRate = AudioConverter.extractSampleRate(from: mimeType)
             finalAudioData = AudioConverter.createWAVFromPCM(audioData, sampleRate: sampleRate)
             sourceExt = "wav"
-        } else {
-            finalAudioData = audioData
-            sourceExt = "wav"  // Gemini typically returns WAV-compatible format
+            dprint("Gemini TTS: Wrapped raw PCM as WAV (sampleRate=\(sampleRate))")
         }
 
         // Convert to M4A (AAC) for smaller file size - await completion for Save Audio support
@@ -646,8 +681,7 @@ final class GeminiTTS: NSObject, TTSService {
 
     func availableModels() -> [TTSModelInfo] {
         [
-            TTSModelInfo(id: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash TTS", description: "Fast, multilingual", isDefault: true),
-            TTSModelInfo(id: "gemini-2.5-pro-preview-tts", name: "Gemini 2.5 Pro TTS", description: "Higher quality")
+            TTSModelInfo(id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS", description: "Expressive, multilingual (Preview)", isDefault: true)
         ]
     }
 

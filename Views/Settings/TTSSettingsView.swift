@@ -279,11 +279,16 @@ struct TTSSpeedSlider: View {
     private var supportsSpeed: Bool {
         switch appState.selectedTTSProvider {
         case .openAI:
-            let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
-            return model != "gpt-4o-mini-tts"
+            // gpt-4o-mini-tts models don't support the speed parameter.
+            return !appState.selectedTTSModel.hasPrefix("gpt-4o-mini-tts")
         case .grok:
+            // grok-tts REST API has no speed parameter.
             return false
-        case .macOS, .gemini, .elevenLabs:
+        case .gemini:
+            // gemini-3.1-flash-tts-preview has no speed parameter (pace prompts trigger
+            // classifier rejections). Older 2.5 TTS REST models do support a pace prefix.
+            return appState.selectedTTSModel != "gemini-3.1-flash-tts-preview"
+        case .macOS, .elevenLabs:
             return true
         }
     }
@@ -291,17 +296,19 @@ struct TTSSpeedSlider: View {
     private var speedHelpText: String? {
         switch appState.selectedTTSProvider {
         case .openAI:
-            let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
-            if model == "gpt-4o-mini-tts" {
-                return "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control."
+            if appState.selectedTTSModel.hasPrefix("gpt-4o-mini-tts") {
+                return "Speed control not available. Use TTS-1 or TTS-1 HD for speed control."
             }
             return nil
         case .gemini:
+            if appState.selectedTTSModel == "gemini-3.1-flash-tts-preview" {
+                return "Speed control not available. Use inline tags in text (e.g. [pause]) for pacing effects."
+            }
             return "Gemini uses natural language pace control (approximate)."
         case .elevenLabs:
             return "ElevenLabs has limited speed range (0.7x-1.2x mapped)."
         case .grok:
-            return "Grok Voice Agent does not support speed control."
+            return "Speed control not available. Wrap text with <slow> or <fast> for pacing effects."
         case .macOS:
             return nil
         }
@@ -354,19 +361,21 @@ struct TTSSpeedSlider: View {
     private var speedTooltip: String {
         switch appState.selectedTTSProvider {
         case .openAI:
-            let model = appState.selectedTTSModel.isEmpty ? "gpt-4o-mini-tts" : appState.selectedTTSModel
-            if model == "gpt-4o-mini-tts" {
+            if appState.selectedTTSModel.hasPrefix("gpt-4o-mini-tts") {
                 return "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD."
             }
             return "Adjust playback speed (0.25x–4.0x)"
         case .gemini:
+            if appState.selectedTTSModel == "gemini-3.1-flash-tts-preview" {
+                return "Gemini 3.1 Flash TTS does not support speed control"
+            }
             return "Gemini uses prompt-based pacing (approximate adjustment)"
         case .elevenLabs:
             return "Adjust playback speed (actual range: 0.7x–1.2x)"
         case .macOS:
             return "Adjust playback speed"
         case .grok:
-            return "Grok Voice Agent does not support speed control"
+            return "Grok TTS does not support speed control"
         }
     }
 

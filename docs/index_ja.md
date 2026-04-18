@@ -62,10 +62,10 @@ lang: ja
 - **TTS連携** — 翻訳テキストを自動的に読み上げ
 
 ### クラウドプロバイダ（オプション）
-- **OpenAI** — GPT-4o Transcribe、GPT-4o Mini TTS
-- **Google Gemini** — Gemini 2.5 Flash（STT/TTS）
+- **OpenAI** — GPT-4o Transcribe（STT）、GPT-4o Mini TTS / TTS-1（TTS）
+- **Google Gemini** — Gemini 2.5 Flash（STT）、Gemini 3.1 Flash TTS（TTS）
 - **ElevenLabs** — Scribe v2（STT）、Eleven v3（TTS）
-- **Grok (xAI)** — Grok 2（STT/TTS）
+- **Grok (xAI)** — Grok Realtime（STT）、Grok TTS（TTS）
 
 ---
 

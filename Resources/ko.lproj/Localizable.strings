@@ -174,7 +174,7 @@
 "OpenAI TTS (high quality)" = "OpenAI TTS (고품질)";
 "Gemini TTS (multilingual)" = "Gemini TTS (다국어)";
 "ElevenLabs (natural voices)" = "ElevenLabs (자연스러운 음성)";
-"Grok Voice (5 voices)" = "Grok Voice (5종 음성)";
+"Grok TTS (5 voices)" = "Grok TTS (5종 음성)";
 
 /* Settings - Translation Provider Descriptions */
 "On-device, no API key" = "온디바이스, API 키 불필요";

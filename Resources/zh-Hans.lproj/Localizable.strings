@@ -174,7 +174,7 @@
 "OpenAI TTS (high quality)" = "OpenAI TTS（高质量）";
 "Gemini TTS (multilingual)" = "Gemini TTS（多语言）";
 "ElevenLabs (natural voices)" = "ElevenLabs（自然语音）";
-"Grok Voice (5 voices)" = "Grok Voice（5 种语音）";
+"Grok TTS (5 voices)" = "Grok TTS（5 种语音）";
 
 /* Settings - Translation Provider Descriptions */
 "On-device, no API key" = "设备端处理，无需 API 密钥";

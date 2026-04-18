@@ -1128,27 +1128,59 @@ final class AppState {
             cancelRecording()
         }
 
-        // Use precopied text if available (from immediate Cmd+C in hotkey handler)
-        // Otherwise, use the full text selection flow (which handles browsers by
-        // preferring the clipboard HTML path to preserve paragraph breaks)
-        Task {
-            var selectedText = precopiedText
+        // Stop any existing TTS before starting a new session
+        stopTTSPlayback()
 
-            if selectedText == nil || selectedText?.isEmpty == true {
-                selectedText = await TextSelectionService.shared.getSelectedText(from: frontmostApp)
+        // Show the panel immediately for snappy perceived open latency, even when
+        // selected text retrieval takes 200-800ms (e.g. for browsers). For hotkey-
+        // triggered TTS, `precopiedText` is already populated synchronously by
+        // `ttsHotKeyPressed`, so the panel appears with the text right away. For
+        // menu-bar TTS, the panel appears empty first and is populated when the
+        // async text fetch completes below.
+        let initialText = precopiedText ?? ""
+        ttsText = initialText
+        ttsState = .idle
+        if !showTTSWindow || !floatingWindowManager.isVisible {
+            showTTSFloatingWindow()
+        } else {
+            floatingWindowManager.bringToFront()
+        }
+
+        // If text was already supplied by the caller, trigger auto-speak and skip
+        // the async retrieval — there is no further text to load.
+        if !initialText.isEmpty {
+            dprint("TTS: Using precopied text, length: \(initialText.count)")
+            if ttsAutoSpeak {
+                speakCurrentText()
             }
+            return
+        }
 
-            if let selectedText = selectedText, !selectedText.isEmpty {
-                dprint("TTS: Got selected text, length: \(selectedText.count), content: '\(selectedText.prefix(200))'")
+        // Otherwise retrieve selected text from the frontmost app in the background
+        // and populate the panel when it arrives. The user can also start typing
+        // in the meantime; if they do, we won't overwrite their input.
+        //
+        // Thread-safety note: `AppState` is `@MainActor`, so this `Task` inherits
+        // MainActor isolation. The `ttsText.isEmpty` check and the subsequent
+        // `ttsText = fetched` assignment run as a single atomic unit of work on
+        // the main actor — any user typing that modifies `ttsText` is serialized
+        // with this block, so there is no read-modify-write race in practice.
+        Task {
+            guard let fetched = await TextSelectionService.shared.getSelectedText(from: frontmostApp),
+                  !fetched.isEmpty else {
+                dprint("TTS: No selected text retrieved; panel ready for manual input")
+                return
+            }
+            dprint("TTS: Got selected text, length: \(fetched.count), content: '\(fetched.prefix(200))'")
 
-                startTTSWithText(selectedText)
-            } else {
-                dprint("TTS: No selected text, showing manual input window")
-
-                // Show TTS window for manual input
-                ttsText = ""
-                ttsState = .idle
-                showTTSFloatingWindow()
+            // Only populate if the panel text is still empty (user hasn't typed)
+            guard ttsText.isEmpty else {
+                dprint("TTS: Panel already has user-entered text; skipping auto-populate")
+                return
+            }
+            ttsText = fetched
+            if ttsAutoSpeak {
+                speakCurrentText()
             }
         }
     }
@@ -1860,6 +1892,24 @@ final class AppState {
 
         if let ttsModel = UserDefaults.standard.string(forKey: "selectedTTSModel") {
             selectedTTSModel = ttsModel
+        }
+
+        // Migrate deprecated Gemini TTS model IDs (removed from the selectable list).
+        // Old values stay functional internally, but the Settings picker won't show them,
+        // so nudge affected users onto the current default.
+        if selectedTTSProvider == .gemini {
+            let deprecatedGeminiTTSModels: Set<String> = [
+                "gemini-2.5-flash-preview-tts",
+                "gemini-2.5-pro-preview-tts"
+            ]
+            if deprecatedGeminiTTSModels.contains(selectedTTSModel) {
+                selectedTTSModel = "gemini-3.1-flash-tts-preview"
+            }
+        }
+
+        // Migrate legacy Grok Voice Agent model ID to the dedicated TTS API model.
+        if selectedTTSProvider == .grok && selectedTTSModel == "grok-2-public" {
+            selectedTTSModel = "grok-tts"
         }
 
         if UserDefaults.standard.object(forKey: "selectedTTSSpeed") != nil {

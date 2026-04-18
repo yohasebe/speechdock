@@ -19,6 +19,12 @@ final class TextSelectionService {
     /// For these, we skip AX and use the clipboard (HTML/RTF) path to preserve
     /// blank lines between paragraphs.
     /// Includes web browsers and rich-text editors.
+    ///
+    /// NOTE: This is a manual allowlist — new apps reported to collapse paragraphs
+    /// via AX (e.g. a newly popular browser) should be appended here. A dynamic
+    /// fallback (try AX, retry via clipboard when the result has no blank lines)
+    /// was considered but rejected because the retry doubles latency on every
+    /// selection and the current list covers the overwhelming majority of cases.
     private let clipboardFirstBundleIDs: Set<String> = [
         // Web browsers
         "com.google.Chrome",

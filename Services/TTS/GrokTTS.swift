@@ -1,8 +1,11 @@
 import Foundation
 @preconcurrency import AVFoundation
 
-/// Grok Voice Agent API for text-to-speech via WebSocket
-/// Uses the OpenAI Realtime API compatible endpoint with audio response
+/// Grok TTS implementation.
+/// - Primary path: dedicated REST TTS API (`https://api.x.ai/v1/tts`), selected via
+///   the `grok-tts` model ID. Supports 5 voices and inline expressive tags.
+/// - Legacy path: Voice Agent (Realtime) API via WebSocket (`wss://api.x.ai/v1/realtime`).
+///   Retained as code for potential future use, but no longer exposed in the model picker.
 @MainActor
 final class GrokTTS: NSObject, TTSService {
     weak var delegate: TTSDelegate?
@@ -10,43 +13,76 @@ final class GrokTTS: NSObject, TTSService {
     private(set) var isSpeaking = false
     private(set) var isPaused = false
 
-    var selectedVoice: String = "Ara"
-    var selectedModel: String = "grok-2-public"
-    var selectedSpeed: Double = 1.0  // Note: Speed may not be supported by Grok Voice Agent
+    var selectedVoice: String = "eve"
+    var selectedModel: String = "grok-tts"
+    var selectedSpeed: Double = 1.0  // Speed control not directly supported
     var selectedLanguage: String = ""  // "" = Auto
     var audioOutputDeviceUID: String = "" {
         didSet {
+            playbackController.outputDeviceUID = audioOutputDeviceUID
             streamingPlayer.outputDeviceUID = audioOutputDeviceUID
         }
     }
 
-    /// Streaming mode is always true for WebSocket-based TTS
+    /// Streaming mode for the legacy Voice Agent path. The REST TTS API is non-streaming.
     var useStreamingMode: Bool = true
 
     private(set) var lastAudioData: Data?
-    var audioFileExtension: String { "m4a" }
 
-    var supportsSpeedControl: Bool { false }  // Grok Voice Agent doesn't support speed control
+    /// Dedicated REST TTS API uses MP3; legacy Voice Agent path produces M4A.
+    var audioFileExtension: String {
+        selectedModel == Self.dedicatedTTSModelId ? "mp3" : "m4a"
+    }
+
+    var supportsSpeedControl: Bool { false }
+
+    /// Model ID for the dedicated Grok TTS REST API.
+    fileprivate static let dedicatedTTSModelId = "grok-tts"
+    /// Endpoint for the dedicated Grok TTS REST API.
+    private static let ttsRestEndpoint = "https://api.x.ai/v1/tts"
 
     private let apiKeyManager = APIKeyManager.shared
+    private let playbackController = TTSAudioPlaybackController()
     private let streamingPlayer = StreamingAudioPlayer()
 
-    // WebSocket components
+    // WebSocket components (legacy Voice Agent path)
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
 
-    // Audio accumulation for saving
+    // Audio accumulation for saving (legacy Voice Agent path)
     private var accumulatedPCMData = Data()
 
-    // Text being spoken (for system instruction)
+    // Text being spoken (for system instruction, legacy path)
     private var currentText: String = ""
 
-    // Completion handler
+    // Completion handler (legacy path)
     private var speakCompletion: ((Result<Void, Error>) -> Void)?
 
     override init() {
         super.init()
+        setupPlaybackController()
         setupStreamingPlayer()
+    }
+
+    private func setupPlaybackController() {
+        playbackController.onPlaybackStarted = { [weak self] in
+            guard let self = self else { return }
+            self.delegate?.ttsDidStartSpeaking(self)
+        }
+        playbackController.onWordHighlight = { [weak self] range, text in
+            guard let self = self else { return }
+            self.delegate?.tts(self, willSpeakRange: range, of: text)
+        }
+        playbackController.onFinishSpeaking = { [weak self] success in
+            guard let self = self else { return }
+            self.isSpeaking = false
+            self.delegate?.tts(self, didFinishSpeaking: success)
+        }
+        playbackController.onError = { [weak self] error in
+            guard let self = self else { return }
+            self.isSpeaking = false
+            self.delegate?.tts(self, didFailWithError: error)
+        }
     }
 
     private func setupStreamingPlayer() {
@@ -79,6 +115,65 @@ final class GrokTTS: NSObject, TTSService {
 
         stop()
 
+        // Dispatch based on model: dedicated REST TTS API or legacy Voice Agent WebSocket.
+        if selectedModel == Self.dedicatedTTSModelId {
+            try await speakViaTTSAPI(text: text, apiKey: apiKey)
+        } else {
+            try await speakViaVoiceAgent(text: text, apiKey: apiKey)
+        }
+    }
+
+    /// Dedicated Grok TTS REST API path. Non-streaming; returns full MP3 audio.
+    private func speakViaTTSAPI(text: String, apiKey: String) async throws {
+        guard let url = URL(string: Self.ttsRestEndpoint) else {
+            throw TTSError.apiError("Invalid Grok TTS endpoint URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
+
+        let language = selectedLanguage.isEmpty ? "auto" : selectedLanguage
+        let voiceId = selectedVoice.lowercased()
+
+        let body: [String: Any] = [
+            "text": text,
+            "voice_id": voiceId,
+            "language": language,
+            "output_format": [
+                "codec": "mp3",
+                "sample_rate": 24000,
+                "bit_rate": 128000
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        isSpeaking = true
+
+        // Perform request with retry for transient errors
+        let (data, _) = try await TTSAPIHelper.performRequest(request, providerName: "Grok TTS")
+
+        guard !data.isEmpty else {
+            isSpeaking = false
+            throw TTSError.audioError("No audio data in response")
+        }
+
+        lastAudioData = data
+
+        // Prepare text for word highlighting during playback
+        playbackController.prepareText(text)
+        // Set initial playback rate
+        playbackController.setPlaybackRate(Float(selectedSpeed))
+        // Play MP3 directly via AVAudioPlayer
+        try playbackController.playAudio(data: data, fileExtension: "mp3")
+    }
+
+    /// Legacy Voice Agent Realtime API path.
+    /// Retained for potential future use; not currently exposed in the model picker.
+    private func speakViaVoiceAgent(text: String, apiKey: String) async throws {
         currentText = text
         accumulatedPCMData = Data()
         isSpeaking = true
@@ -97,21 +192,30 @@ final class GrokTTS: NSObject, TTSService {
     }
 
     func pause() {
-        streamingPlayer.pause()
+        if selectedModel == Self.dedicatedTTSModelId {
+            playbackController.pause()
+        } else {
+            streamingPlayer.pause()
+        }
         isPaused = true
     }
 
     func resume() {
-        streamingPlayer.resume()
+        if selectedModel == Self.dedicatedTTSModelId {
+            playbackController.resume()
+        } else {
+            streamingPlayer.resume()
+        }
         isPaused = false
     }
 
     func stop() {
         isSpeaking = false
         isPaused = false
+        playbackController.stopPlayback()
         streamingPlayer.stop()
 
-        // Close WebSocket
+        // Close WebSocket (legacy path)
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
         urlSession?.invalidateAndCancel()
@@ -122,7 +226,11 @@ final class GrokTTS: NSObject, TTSService {
 
     /// Set playback rate dynamically during playback (0.25 to 4.0)
     func setPlaybackRate(_ rate: Float) {
-        streamingPlayer.setPlaybackRate(rate)
+        if selectedModel == Self.dedicatedTTSModelId {
+            playbackController.setPlaybackRate(rate)
+        } else {
+            streamingPlayer.setPlaybackRate(rate)
+        }
     }
 
     func clearAudioCache() {
@@ -131,19 +239,20 @@ final class GrokTTS: NSObject, TTSService {
     }
 
     func availableVoices() -> [TTSVoice] {
-        // Grok Voice Agent has 5 distinct voices
+        // Grok TTS voices. Voice IDs are case-insensitive on the API side,
+        // but we emit lowercase to match the API's canonical form.
         [
-            TTSVoice(id: "Ara", name: "Ara (Female, Warm)", language: "en", isDefault: true),
-            TTSVoice(id: "Rex", name: "Rex (Male, Confident)", language: "en"),
-            TTSVoice(id: "Sal", name: "Sal (Neutral, Smooth)", language: "en"),
-            TTSVoice(id: "Eve", name: "Eve (Female, Energetic)", language: "en"),
-            TTSVoice(id: "Leo", name: "Leo (Male, Authoritative)", language: "en")
+            TTSVoice(id: "eve", name: "Eve (Energetic)", language: "multi", isDefault: true),
+            TTSVoice(id: "ara", name: "Ara (Warm)", language: "multi"),
+            TTSVoice(id: "rex", name: "Rex (Confident)", language: "multi"),
+            TTSVoice(id: "sal", name: "Sal (Smooth)", language: "multi"),
+            TTSVoice(id: "leo", name: "Leo (Authoritative)", language: "multi")
         ]
     }
 
     func availableModels() -> [TTSModelInfo] {
         [
-            TTSModelInfo(id: "grok-2-public", name: "Grok 2", description: "Grok Voice Agent", isDefault: true)
+            TTSModelInfo(id: Self.dedicatedTTSModelId, name: "Grok TTS", description: "Expressive, multilingual", isDefault: true)
         ]
     }
 

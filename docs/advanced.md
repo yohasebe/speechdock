@@ -48,9 +48,21 @@ Cloud TTS provides natural-sounding voices with various styles and languages.
 | Provider | Models | Voices |
 |----------|--------|--------|
 | **OpenAI** | GPT-4o Mini TTS, TTS-1, TTS-1 HD | alloy, echo, fable, onyx, nova, shimmer |
-| **Google Gemini** | Gemini 2.5 Flash TTS, Gemini 2.5 Pro TTS | Multilingual voices |
+| **Google Gemini** | Gemini 3.1 Flash TTS (Preview) | 30 multilingual voices (Zephyr, Kore, Puck, etc.) |
 | **ElevenLabs** | Eleven v3, Eleven Flash v2.5, Eleven Multilingual v2, Eleven Turbo v2.5 | Large voice library |
-| **Grok** | Grok 2 | Clio, Sage, Charon, Fenrir, Leda |
+| **Grok** | Grok TTS | eve, ara, rex, sal, leo (20+ languages, auto-detected) |
+
+### Voice Tags (Expressive Markup)
+
+Some providers support inline voice tags that control delivery (laughter, whispers, pauses, etc.). Tags are typed directly in the TTS panel alongside the text.
+
+| Provider | Inline tags | Wrapping tags | Example |
+|----------|-------------|---------------|---------|
+| **Gemini 3.1 Flash TTS** | `[whispers]`, `[excited]`, `[sighs]`, `[laughs]`, `[sarcastic]`, `[crying]`, `[tired]`, etc. | — | `Welcome! [excited] Let's go.` |
+| **Grok TTS** | `[pause]`, `[long-pause]`, `[laugh]`, `[sigh]`, `[gulp]`, `[inhale]`, `[exhale]` | `<soft>`, `<loud>`, `<slow>`, `<fast>`, `<whisper>`, `<sing>` | `I have <whisper>a secret</whisper>.` |
+| **ElevenLabs v3** | `[laughs]`, `[sighs]`, `[whispers]`, `[excited]`, `[tired]`, etc. | — | `That was hilarious! [laughs]` |
+
+The empty-state TTS panel placeholder includes a "Reference" link to each provider's official tag documentation.
 
 ### Voice and Model Selection
 
@@ -170,13 +182,13 @@ When saving audio to a file, speed is controlled differently from real-time play
 
 | Provider | Parameter | Range | Notes |
 |----------|-----------|-------|-------|
-| OpenAI | `speed` | 0.25–4.0 | TTS-1/TTS-1 HD only |
+| OpenAI | `speed` | 0.25–4.0 | TTS-1 / TTS-1 HD only; gpt-4o-mini-tts has no speed parameter |
 | ElevenLabs | `voice_settings.speed` | 0.7–1.2 | Mapped from app range |
-| Gemini | Text instruction | N/A | Natural language pace instruction |
+| Gemini | — | — | Gemini 3.1 Flash TTS has no speed parameter; use `[pause]` or similar tags in text for pacing effects |
 | macOS | Words per minute | 50–500 | Based on 175 wpm baseline |
-| Grok | — | — | Speed parameter not supported |
+| Grok | — | — | No speed parameter; wrap text with `<slow>...</slow>` or `<fast>...</fast>` for pacing |
 
-For real-time playback, speed is always controlled locally via audio processing, allowing dynamic adjustment during playback.
+For real-time playback, speed is controlled locally via audio processing for providers that support it, allowing dynamic adjustment during playback. Providers without an API speed parameter (Gemini 3.1, Grok TTS, OpenAI gpt-4o-mini-tts) disable the speed slider.
 
 ## Privacy Considerations
 

@@ -50,9 +50,21 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 | プロバイダ | モデル | 音声 |
 |----------|--------|--------|
 | **OpenAI** | GPT-4o Mini TTS、TTS-1、TTS-1 HD | alloy、echo、fable、onyx、nova、shimmer |
-| **Google Gemini** | Gemini 2.5 Flash TTS、Gemini 2.5 Pro TTS | 多言語音声 |
+| **Google Gemini** | Gemini 3.1 Flash TTS (Preview) | 30の多言語音声（Zephyr、Kore、Puck など） |
 | **ElevenLabs** | Eleven v3、Eleven Flash v2.5、Eleven Multilingual v2、Eleven Turbo v2.5 | 豊富な音声ライブラリ |
-| **Grok** | Grok 2 | Clio、Sage、Charon、Fenrir、Leda |
+| **Grok** | Grok TTS | eve、ara、rex、sal、leo（20以上の言語を自動検出） |
+
+### 音声タグ（表現マークアップ）
+
+一部のプロバイダは、読み上げ（笑い声、ささやき、間など）を制御するインラインの音声タグをサポートしています。タグはTTSパネルのテキストに直接記述します。
+
+| プロバイダ | インラインタグ | ラップタグ | 例 |
+|----------|-------------|---------------|---------|
+| **Gemini 3.1 Flash TTS** | `[whispers]`、`[excited]`、`[sighs]`、`[laughs]`、`[sarcastic]`、`[crying]`、`[tired]` ほか | — | `Welcome! [excited] Let's go.` |
+| **Grok TTS** | `[pause]`、`[long-pause]`、`[laugh]`、`[sigh]`、`[gulp]`、`[inhale]`、`[exhale]` | `<soft>`、`<loud>`、`<slow>`、`<fast>`、`<whisper>`、`<sing>` | `I have <whisper>a secret</whisper>.` |
+| **ElevenLabs v3** | `[laughs]`、`[sighs]`、`[whispers]`、`[excited]`、`[tired]` ほか | — | `That was hilarious! [laughs]` |
+
+TTSパネルが空の状態のプレースホルダには、各プロバイダの公式タグ一覧へのリンク（"Reference"）が表示されます。
 
 ### 音声とモデルの選択
 
@@ -172,13 +184,13 @@ STTとTTSの両方で、すべてのクラウドプロバイダで言語選択�
 
 | プロバイダ | パラメータ | 範囲 | 備考 |
 |----------|-----------|-------|-------|
-| OpenAI | `speed` | 0.25〜4.0 | TTS-1/TTS-1 HDのみ |
+| OpenAI | `speed` | 0.25〜4.0 | TTS-1 / TTS-1 HDのみ（gpt-4o-mini-ttsは速度パラメータ非対応） |
 | ElevenLabs | `voice_settings.speed` | 0.7〜1.2 | アプリの範囲からマッピング |
-| Gemini | テキスト指示 | なし | 自然言語によるペース指示 |
+| Gemini | — | — | Gemini 3.1 Flash TTSは速度パラメータ非対応。`[pause]` などのタグで間合いを表現 |
 | macOS | 1分あたりの単語数 | 50〜500 | 基準175 wpm |
-| Grok | — | — | 速度パラメータ非対応 |
+| Grok | — | — | 速度パラメータ非対応。`<slow>...</slow>` や `<fast>...</fast>` でラップしてペース調整 |
 
-リアルタイム再生では、速度は常にオーディオ処理によってローカルで制御され、再生中に動的に調整できます。
+リアルタイム再生では、対応プロバイダについて速度はオーディオ処理によってローカルで制御され、再生中に動的に調整できます。API速度パラメータ非対応のプロバイダ（Gemini 3.1、Grok TTS、OpenAI gpt-4o-mini-tts）では速度スライダーが無効化されます。
 
 ## プライバシーに関する考慮事項
 

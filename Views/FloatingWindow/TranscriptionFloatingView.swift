@@ -1,6 +1,35 @@
 import SwiftUI
 import Carbon.HIToolbox
 
+/// Custom prominent button style for primary panel actions (Speak / Record / Stop / Resume).
+///
+/// macOS's built-in `.borderedProminent` style dims its accent-colored background
+/// heavily when the containing window is not the key window. SpeechDock's floating
+/// panels frequently lose key status (Cmd+Tab to another app while speaking,
+/// click-through overlays, etc.), making the main CTA nearly invisible. This
+/// style uses an explicit `Color.accentColor` fill that is independent of
+/// `controlActiveState`, keeping the button readable in all window states.
+struct ProminentActionButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(backgroundColor(isPressed: configuration.isPressed))
+            )
+            .opacity(isEnabled ? 1.0 : 0.5)
+            .contentShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func backgroundColor(isPressed: Bool) -> Color {
+        isPressed ? Color.accentColor.opacity(0.85) : Color.accentColor
+    }
+}
+
 /// Button label with icon and keyboard shortcut text
 struct ButtonLabelWithShortcut: View {
     @Environment(\.isEnabled) private var isEnabled
@@ -1322,7 +1351,7 @@ struct TranscriptionFloatingView: View {
                     ButtonLabelWithShortcut(title: "Stop", shortcut: "", icon: "stop.fill", isProminent: true)
                 }
                 .applyCustomShortcut(stopShortcut)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(ProminentActionButtonStyle())
 
                 if !editedText.isEmpty {
                     Button {
@@ -1353,7 +1382,7 @@ struct TranscriptionFloatingView: View {
                     ButtonLabelWithShortcut(title: "Record", shortcut: "", icon: "mic.fill", isProminent: true)
                 }
                 .applyCustomShortcut(recordShortcut)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(ProminentActionButtonStyle())
 
                 Button {
                     saveTextToFile()
