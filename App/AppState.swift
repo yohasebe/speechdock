@@ -460,7 +460,7 @@ final class AppState {
         }
     }
 
-    /// Maximum number of lines to display (2-6)
+    /// Maximum number of lines to display (2-8)
     var subtitleMaxLines: Int = 3 {
         didSet {
             guard !isLoadingPreferences else { return }

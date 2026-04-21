@@ -55,7 +55,7 @@ final class SubtitleOverlayManager {
         // Calculate height based on max lines + header + padding
         let lineHeight = appState.subtitleFontSize * 1.4
         let textAreaHeight = lineHeight * CGFloat(appState.subtitleMaxLines)
-        let windowHeight = textAreaHeight + 80  // header + padding
+        let windowHeight = textAreaHeight + 84  // header (24) + padding
         var windowFrame: NSRect
 
         if appState.subtitleUseCustomPosition {

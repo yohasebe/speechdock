@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.32] - 2026-04-21
+
+### Fixed
+- Subtitle overlay translation menu was inaccessible when STT language matched the translation target. The globe icon became disabled and the provider/language selectors were hidden at the same time, leaving no way to change the target language. Provider/language selectors are now shown in that state so users can pick a different target and re-enable translation.
+
+### Changed
+- Subtitle mode toggle unified into a single segmented control (Panel / Subtitle) in the STT panel header, replacing the duplicate subtitle indicator and footer toggle button.
+- Subtitle overlay header UI: increased font sizes for the recording indicator, Stop button, font size / max lines controls, and provider/language selectors for better readability without changing subtitle text defaults.
+- Subtitle overlay: maximum lines setting range extended from 2–6 to 2–8.
+
+### Added
+- "Panel" localization across en/ja/de/fr/ko/zh-Hans.
+
+## [0.1.31] - 2026-04-18
 
 ### Added
 - Gemini 3.1 Flash TTS as the Gemini TTS model (replaces 2.5 Flash/Pro TTS in the picker)

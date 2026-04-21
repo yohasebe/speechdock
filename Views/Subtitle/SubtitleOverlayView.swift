@@ -205,31 +205,31 @@ struct SubtitleOverlayView: View {
                 HStack(spacing: 6) {
                     Circle()
                         .fill(Color.red)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 10, height: 10)
                     Text("Recording")
-                        .font(.system(size: 13))
+                        .font(.system(size: 15))
                         .foregroundColor(.white.opacity(0.6))
 
                     // Translation in progress indicator (shown next to Recording)
                     if appState.subtitleTranslationEnabled && appState.subtitleTranslationState.isTranslating {
                         ProgressView()
-                            .scaleEffect(0.5)
-                            .frame(width: 10, height: 10)
+                            .scaleEffect(0.6)
+                            .frame(width: 12, height: 12)
                     }
 
                     // Stop button
                     Button {
                         AppState.shared.toggleRecording()
                     } label: {
-                        HStack(spacing: 3) {
+                        HStack(spacing: 4) {
                             Image(systemName: "stop.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 10))
                             Text("Stop")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: 13, weight: .medium))
                         }
                         .foregroundColor(.white.opacity(0.7))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
                         .background(Color.white.opacity(0.15))
                         .cornerRadius(4)
                     }
@@ -255,7 +255,7 @@ struct SubtitleOverlayView: View {
                 }
             } label: {
                 Image(systemName: showControls ? "chevron.up" : "slider.horizontal.3")
-                    .font(.system(size: 11))
+                    .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.5))
             }
             .buttonStyle(.plain)
@@ -267,14 +267,14 @@ struct SubtitleOverlayView: View {
                     SubtitleOverlayManager.shared.resetToPresetPosition()
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 10))
+                        .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.5))
                 }
                 .buttonStyle(.plain)
                 .help("Reset to default position")
             }
         }
-        .frame(height: 20)
+        .frame(height: 24)
     }
 
     /// Translation toggle that's always visible in header
@@ -288,7 +288,7 @@ struct SubtitleOverlayView: View {
                 appState.subtitleTranslationEnabled.toggle()
             } label: {
                 Image(systemName: appState.subtitleTranslationEnabled ? "globe.badge.chevron.backward" : "globe")
-                    .font(.system(size: 11))
+                    .font(.system(size: 13))
                     .foregroundColor(appState.subtitleTranslationEnabled ? .blue : .white.opacity(0.5))
             }
             .buttonStyle(.plain)
@@ -297,13 +297,14 @@ struct SubtitleOverlayView: View {
                   ? "STT language is the same as translation target"
                   : appState.subtitleTranslationEnabled ? "Disable translation" : "Enable translation")
 
-            // Provider and language selector (only when translation is enabled)
-            if appState.subtitleTranslationEnabled {
+            // Provider and language selector
+            // Also shown when STT language matches target (so user can pick a different target)
+            if appState.subtitleTranslationEnabled || appState.isSTTLanguageSameAsTranslationTarget {
                 // Provider selector
                 SubtitleProviderMenu(appState: appState)
 
                 Text("→")
-                    .font(.system(size: 9))
+                    .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.3))
 
                 // Language selector
@@ -320,7 +321,7 @@ struct SubtitleOverlayView: View {
             // Font size control
             HStack(spacing: 4) {
                 Image(systemName: "textformat.size")
-                    .font(.system(size: 9))
+                    .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.4))
 
                 HStack(spacing: 3) {
@@ -330,15 +331,15 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "minus")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
 
                     Text("\(Int(appState.subtitleFontSize))")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 20)
+                        .frame(width: 24)
 
                     Button {
                         if appState.subtitleFontSize < 48 {
@@ -346,7 +347,7 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
@@ -356,7 +357,7 @@ struct SubtitleOverlayView: View {
             // Max lines control
             HStack(spacing: 4) {
                 Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 9))
+                    .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.4))
 
                 HStack(spacing: 3) {
@@ -366,23 +367,23 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "minus")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
 
                     Text("\(appState.subtitleMaxLines)")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 12)
+                        .frame(width: 14)
 
                     Button {
-                        if appState.subtitleMaxLines < 6 {
+                        if appState.subtitleMaxLines < 8 {
                             appState.subtitleMaxLines += 1
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
@@ -423,10 +424,10 @@ struct SubtitleLanguageMenu: View {
         } label: {
             HStack(spacing: 2) {
                 Text(appState.translationTargetLanguage.displayName)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 7))
+                    .font(.system(size: 9))
                     .foregroundColor(.white.opacity(0.4))
             }
         }
@@ -500,7 +501,7 @@ struct SubtitleProviderMenu: View {
             }
         } label: {
             Text(appState.translationProvider.displayName)
-                .font(.system(size: 9))
+                .font(.system(size: 11))
                 .foregroundColor(.white.opacity(0.4))
         }
         .menuStyle(.borderlessButton)

@@ -970,20 +970,8 @@ struct TranscriptionFloatingView: View {
                 Text(headerText)
                     .font(.headline)
 
-                // Subtitle mode indicator
-                if appState.subtitleModeEnabled {
-                    HStack(spacing: 4) {
-                        Image(systemName: "captions.bubble.fill")
-                            .font(.system(size: 10))
-                        Text("Subtitle")
-                            .font(.callout)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.accentColor.opacity(0.8))
-                    .cornerRadius(4)
-                }
+                // Mode selector (Panel / Subtitle)
+                modeSelector
 
                 // Recording duration and audio level
                 if isRecording {
@@ -1261,27 +1249,22 @@ struct TranscriptionFloatingView: View {
         AppState.shared.toggleRecording()
     }
 
+    @ViewBuilder
+    private var modeSelector: some View {
+        @Bindable var appState = appState
+        Picker("", selection: $appState.subtitleModeEnabled) {
+            Text("Panel").tag(false)
+            Text("Subtitle").tag(true)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .disabled(isTranscribingFile)
+        .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Panel Mode (⌃⌥S to switch)")
+    }
+
     private var actionButtons: some View {
         HStack(spacing: 8) {
-            // Subtitle mode toggle
-            Button(action: {
-                appState.toggleSubtitleMode()
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: appState.subtitleModeEnabled ? "captions.bubble.fill" : "captions.bubble")
-                        .font(.system(size: 10))
-                    Text("Subtitle")
-                        .font(.system(size: 11, weight: .medium))
-                }
-                .fixedSize()
-                .padding(5)
-                .background(appState.subtitleModeEnabled ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.1))
-                .cornerRadius(4)
-            }
-            .buttonStyle(.plain)
-            .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Subtitle Mode: Off (⌃⌥S)")
-            .disabled(isTranscribingFile)
-
             // Target + Paste group
             HStack(spacing: 4) {
                 // Target selector
