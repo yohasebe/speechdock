@@ -49,7 +49,7 @@
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | 必要 |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | 必要 |
 | **ElevenLabs** | Scribe v2 Realtime | 必要 |
-| **Grok** | Grok Realtime | 必要 |
+| **Grok** | Grok STT | 必要 |
 
 **注意**: macOS 26+では、ネイティブSTTはAppleの新しいSpeechAnalyzerフレームワークを使用し、時間制限なしのリアルタイム文字起こしと高いパフォーマンスを提供します。
 

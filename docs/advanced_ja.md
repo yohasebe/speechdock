@@ -39,7 +39,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 | **OpenAI** | GPT-4o Transcribe、GPT-4o Mini Transcribe、Whisper | 高精度、100以上の言語 |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 2.0 Flash Live | マルチモーダル、高速 |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
-| **Grok** | Grok 2 | xAIのリアルタイム文字起こし |
+| **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
 
 プロバイダは**設定** > **音声認識**から選択できます。
 

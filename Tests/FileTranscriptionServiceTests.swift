@@ -109,7 +109,11 @@ final class FileTranscriptionServiceTests: XCTestCase {
 
     func testFileTranscriptionError_FileNotFound() {
         let error = FileTranscriptionError.fileNotFound
-        XCTAssertEqual(error.errorDescription, "Audio file not found")
+        // errorDescription is localized via NSLocalizedString, so the literal string
+        // varies by system locale. Verify only that a non-empty description exists —
+        // the actual wording is the localization files' responsibility, not unit tests'.
+        XCTAssertNotNil(error.errorDescription)
+        XCTAssertFalse(error.errorDescription?.isEmpty ?? true)
     }
 
     func testFileTranscriptionError_UnsupportedFormat() {

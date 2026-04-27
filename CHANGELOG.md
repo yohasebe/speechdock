@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.33] - 2026-04-27
+
+### Changed
+- **Grok STT migrated to xAI's dedicated streaming API** (`wss://api.x.ai/v1/stt`).
+  - Previously used the Voice Agent endpoint (`/v1/realtime`), which forced an AI audio reply for every utterance and blocked subsequent input — long sessions lost most of what was said. The new endpoint is transcription-only, so the issue is gone.
+  - Audio is now sent as raw binary WebSocket frames; configuration is via URL query params (`sample_rate`, `encoding`, `interim_results`, `endpointing`, `language`).
+  - Endpointing duration is computed adaptively from the live noise floor (range 300–800 ms for microphone, 250 ms for external audio).
+  - The model ID `grok-2-public` is migrated automatically to `grok-stt` on next launch.
+  - Display name changed from "Grok 2" / "Grok Realtime" to "Grok STT".
+- **Grok TTS legacy Voice Agent code removed** (~340 lines). The dedicated `/v1/tts` REST API has been the active path since v0.1.31; the unused WebSocket path, system-prompt scaffolding, and PCM→M4A conversion have been deleted.
+
+### Fixed
+- Grok STT: send `language=xx` hint for supported languages (improves accuracy), but auto-detect for codes verified to silently stall on the xAI server (currently `ja`).
+- Grok STT: wait up to 1.5 s for `transcript.done` after `audio.done` before closing the WebSocket, so the server-authoritative final transcript is captured instead of being cut off.
+- Grok STT: dedupe finalized partials by `(start, text)` so xAI's two-event-per-utterance pattern (is_final, then speech_final with same text) no longer doubles the text. Robust to xAI dropping either flag in future revisions.
+- `FileTranscriptionServiceTests.testFileTranscriptionError_FileNotFound` no longer fails on non-English locales (the assertion was comparing localized output to a hard-coded English string).
+
+### Internal
+- `dprint` now also forwards to `os_log` (subsystem `com.speechdock.app.dev`, category `debug`) in DEBUG builds, so `log stream --predicate 'subsystem == "com.speechdock.app.dev"' --level debug` surfaces app diagnostics without launching the binary from a terminal. Release builds are unaffected.
+
 ## [0.1.32] - 2026-04-21
 
 ### Fixed

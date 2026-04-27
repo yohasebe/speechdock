@@ -1871,6 +1871,11 @@ final class AppState {
             selectedRealtimeSTTModel = sttModel
         }
 
+        // Migrate legacy Grok Voice Agent STT model ID to the dedicated STT API model.
+        if selectedRealtimeProvider == .grok && selectedRealtimeSTTModel == "grok-2-public" {
+            selectedRealtimeSTTModel = "grok-stt"
+        }
+
         if let providerRaw = UserDefaults.standard.string(forKey: "selectedProvider"),
            let provider = STTProvider(rawValue: providerRaw) {
             selectedProvider = provider

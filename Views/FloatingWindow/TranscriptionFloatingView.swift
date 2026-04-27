@@ -969,6 +969,8 @@ struct TranscriptionFloatingView: View {
                 statusIcon
                 Text(headerText)
                     .font(.headline)
+                    .lineLimit(1)
+                    .fixedSize()
 
                 // Mode selector (Panel / Subtitle)
                 modeSelector
@@ -983,11 +985,14 @@ struct TranscriptionFloatingView: View {
                         Text(formattedDuration)
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(.red)
+                            .lineLimit(1)
+                            .fixedSize()
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(4)
+                    .fixedSize()
                 }
 
                 Spacer()
@@ -1258,6 +1263,7 @@ struct TranscriptionFloatingView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
+        .controlSize(.small)
         .fixedSize()
         .disabled(isTranscribingFile)
         .help(appState.subtitleModeEnabled ? "Subtitle Mode: On (⌃⌥S)" : "Panel Mode (⌃⌥S to switch)")

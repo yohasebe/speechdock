@@ -49,7 +49,7 @@ Convert speech to text using:
 | **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | Required |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | Required |
 | **ElevenLabs** | Scribe v2 Realtime | Required |
-| **Grok** | Grok Realtime | Required |
+| **Grok** | Grok STT | Required |
 
 **Note**: On macOS 26+, the native STT uses Apple's new SpeechAnalyzer framework, providing real-time transcription without time limits and improved performance.
 
