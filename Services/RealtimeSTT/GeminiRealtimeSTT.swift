@@ -168,7 +168,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
             RealtimeSTTModelInfo(id: "gemini-2.5-flash-native-audio-preview-12-2025", name: "Gemini 2.5 Flash Native Audio", description: "Native audio with transcription support", isDefault: true),
-            RealtimeSTTModelInfo(id: "gemini-2.0-flash-live-001", name: "Gemini 2.0 Flash Live", description: "Fast streaming (limited transcription)")
+            RealtimeSTTModelInfo(id: "gemini-3.1-flash-live-preview", name: "Gemini 3.1 Flash Live", description: "Real-time audio model (preview)")
         ]
     }
 
@@ -597,16 +597,16 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private func sendAudioData(_ pcmData: Data) {
         guard let webSocketTask = webSocketTask, isSetupComplete else { return }
 
-        // Send as base64 encoded audio using realtimeInput with mediaChunks
+        // Send as base64 encoded audio via realtimeInput.audio (the legacy
+        // realtimeInput.mediaChunks form is rejected by gemini-3.1-flash-live-preview
+        // with: "realtime_input.media_chunks is deprecated. Use audio, video, or text instead.")
         let base64Audio = pcmData.base64EncodedString()
 
         let message: [String: Any] = [
             "realtimeInput": [
-                "mediaChunks": [
-                    [
-                        "mimeType": "audio/pcm;rate=16000",
-                        "data": base64Audio
-                    ]
+                "audio": [
+                    "mimeType": "audio/pcm;rate=16000",
+                    "data": base64Audio
                 ]
             ]
         ]

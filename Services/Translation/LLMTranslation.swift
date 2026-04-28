@@ -208,6 +208,9 @@ final class LLMTranslation: TranslationServiceProtocol {
 
         let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
 
+        // Gemini 3.x models think by default; set thinkingLevel="low" so Flash/Flash-Lite
+        // skip reasoning entirely (Pro always thinks regardless). Translation doesn't
+        // benefit from chain-of-thought and the latency cost is significant.
         let requestBody: [String: Any] = [
             "contents": [[
                 "parts": [
@@ -215,7 +218,8 @@ final class LLMTranslation: TranslationServiceProtocol {
                 ]
             ]],
             "generationConfig": [
-                "temperature": 0.3
+                "temperature": 0.3,
+                "thinkingConfig": ["thinkingLevel": "low"]
             ]
         ]
 
@@ -244,21 +248,31 @@ final class LLMTranslation: TranslationServiceProtocol {
             throw TranslationError.apiError("Gemini API Error (\(httpResponse.statusCode)): \(errorBody)")
         }
 
-        // Parse response
+        // Parse response. Gemini 3.x can return multiple parts where some are thoughts
+        // (`"thought": true`) and others are the actual answer. Skip thought parts and
+        // concatenate any remaining text — `parts.first?["text"]` would otherwise return
+        // the reasoning trace on Gemini 3.1 Pro (which always thinks).
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let candidates = json["candidates"] as? [[String: Any]],
               let content = candidates.first?["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let resultText = parts.first?["text"] as? String else {
+              let parts = content["parts"] as? [[String: Any]] else {
             dprint("Gemini Translation: Invalid response format")
             dprint("Gemini Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
-
             throw TranslationError.apiError("Invalid response format from Gemini")
         }
-        dprint("Gemini Translation: Success, content length = \(resultText.count)")
 
+        let answerText = parts
+            .filter { ($0["thought"] as? Bool) != true }
+            .compactMap { $0["text"] as? String }
+            .joined()
+        guard !answerText.isEmpty else {
+            dprint("Gemini Translation: No non-thought text parts in response")
+            dprint("Gemini Translation: Raw response = \(String(data: data, encoding: .utf8) ?? "nil")")
+            throw TranslationError.apiError("Invalid response format from Gemini")
+        }
+        dprint("Gemini Translation: Success, content length = \(answerText.count)")
 
-        return resultText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return answerText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - Grok Translation

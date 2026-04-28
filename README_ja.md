@@ -47,7 +47,7 @@
 |----------|--------|---------|
 | **macOS Native** | System Default（macOS 26+ではSpeechAnalyzer） | 不要 |
 | **OpenAI** | GPT-4o Mini Transcribe, Whisper | 必要 |
-| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | 必要 |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 3.1 Flash Live | 必要 |
 | **ElevenLabs** | Scribe v2 Realtime | 必要 |
 | **Grok** | Grok STT | 必要 |
 

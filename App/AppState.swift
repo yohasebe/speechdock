@@ -1882,6 +1882,12 @@ final class AppState {
             selectedRealtimeSTTModel = "gpt-4o-mini-transcribe-2025-12-15"
         }
 
+        // Migrate Gemini 2.0 Flash Live (deprecated 2026-02-18, shutdown 2026-06-01)
+        // to the Gemini 3.1 Flash Live preview successor.
+        if selectedRealtimeProvider == .gemini && selectedRealtimeSTTModel == "gemini-2.0-flash-live-001" {
+            selectedRealtimeSTTModel = "gemini-3.1-flash-live-preview"
+        }
+
         if let providerRaw = UserDefaults.standard.string(forKey: "selectedProvider"),
            let provider = STTProvider(rawValue: providerRaw) {
             selectedProvider = provider
@@ -1928,6 +1934,19 @@ final class AppState {
             ]
             if deprecatedOpenAITTSModels.contains(selectedTTSModel) {
                 selectedTTSModel = "gpt-4o-mini-tts-2025-12-15"
+            }
+        }
+
+        // Migrate older ElevenLabs TTS models (removed from the selectable list).
+        // multilingual_v2 / turbo_v2_5 / monolingual_v1 are superseded by v3 / flash_v2_5.
+        if selectedTTSProvider == .elevenLabs {
+            let supersededElevenLabsTTSModels: Set<String> = [
+                "eleven_multilingual_v2",
+                "eleven_turbo_v2_5",
+                "eleven_monolingual_v1"
+            ]
+            if supersededElevenLabsTTSModels.contains(selectedTTSModel) {
+                selectedTTSModel = "eleven_v3"
             }
         }
 

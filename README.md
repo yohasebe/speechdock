@@ -47,7 +47,7 @@ Convert speech to text using:
 |----------|--------|---------|
 | **macOS Native** | System Default (SpeechAnalyzer on macOS 26+) | Not required |
 | **OpenAI** | GPT-4o Mini Transcribe, Whisper | Required |
-| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | Required |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 3.1 Flash Live | Required |
 | **ElevenLabs** | Scribe v2 Realtime | Required |
 | **Grok** | Grok STT | Required |
 

@@ -11,10 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Translation models refreshed across all LLM providers**:
   - OpenAI: default `gpt-5-nano` → `gpt-5.4-mini`. Selectable list trimmed to `gpt-5.4-mini` (default) and `gpt-5.4-nano`. Older `gpt-5-*` and `gpt-5.2` IDs are no longer offered; saved selections fall through to the new default.
   - Gemini: default `gemini-3-flash-preview` → `gemini-3.1-flash-lite-preview` (cost roughly halved, low-latency tier optimized for streaming). `gemini-3.1-pro-preview` is the accuracy alternative.
-  - Grok: default `grok-3-fast` → `grok-4.1-fast-non-reasoning` (cheaper, lower hallucination, no chain-of-thought overhead). `grok-4.1-fast-reasoning` is the alternative.
+  - Grok: default `grok-3-fast` → `grok-4-1-fast-non-reasoning` (cheaper, lower hallucination, no chain-of-thought overhead). `grok-4-1-fast-reasoning` is the alternative.
 - **OpenAI STT**: default migrated from `gpt-4o-transcribe` (retired by OpenAI on 2026-02-28) to `gpt-4o-mini-transcribe-2025-12-15` — the current low-hallucination snapshot. Existing users on the retired ID are auto-migrated.
 - **OpenAI TTS**: deprecated models removed from the picker (`gpt-4o-mini-tts` undated, `tts-1`, `tts-1-hd`). Only the dated snapshot `gpt-4o-mini-tts-2025-12-15` remains. Saved selections on removed IDs are auto-migrated to the new default.
+- **Gemini STT**: replaced `gemini-2.0-flash-live-001` (deprecated 2026-02-18, scheduled shutdown 2026-06-01) with `gemini-3.1-flash-live-preview` as the secondary option. Existing users on the retired ID are auto-migrated.
+- **ElevenLabs TTS**: trimmed picker to current generations only — `eleven_v3` (default) and `eleven_flash_v2_5` (low-latency). Older `eleven_multilingual_v2` / `eleven_turbo_v2_5` / `eleven_monolingual_v1` are auto-migrated to `eleven_v3`.
 - File-transcription `STTModel` enum: `gpt-4o-transcribe` case removed (matching the realtime-side migration).
+
+### Fixed
+- **Gemini translation with thinking-capable models**: `gemini-3.1-pro-preview` always returns chain-of-thought parts (`"thought": true`) before the answer; the old parser grabbed the reasoning trace via `parts.first?["text"]` and translation appeared to silently fail. The parser now skips thought parts and concatenates remaining text. `thinkingConfig.thinkingLevel: "low"` is also requested to suppress thinking on Flash models where supported.
+- **Gemini STT audio frame format**: switched `realtimeInput` audio payload from the deprecated `mediaChunks` array to `realtimeInput.audio`. The old form was rejected by `gemini-3.1-flash-live-preview` with a 1007 close (`realtime_input.media_chunks is deprecated. Use audio, video, or text instead.`); the new form works for both 2.5 Native Audio and 3.1 Flash Live.
 
 ## [0.1.33] - 2026-04-27
 

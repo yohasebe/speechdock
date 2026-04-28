@@ -35,7 +35,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 | Provider | Models | Features |
 |----------|--------|----------|
 | **OpenAI** | GPT-4o Mini Transcribe, Whisper | High accuracy, 100+ languages |
-| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | Multimodal, fast |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 3.1 Flash Live | Multimodal, fast |
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |
 
@@ -49,7 +49,7 @@ Cloud TTS provides natural-sounding voices with various styles and languages.
 |----------|--------|--------|
 | **OpenAI** | GPT-4o Mini TTS, TTS-1, TTS-1 HD | alloy, echo, fable, onyx, nova, shimmer |
 | **Google Gemini** | Gemini 3.1 Flash TTS (Preview) | 30 multilingual voices (Zephyr, Kore, Puck, etc.) |
-| **ElevenLabs** | Eleven v3, Eleven Flash v2.5, Eleven Multilingual v2, Eleven Turbo v2.5 | Large voice library |
+| **ElevenLabs** | Eleven v3, Eleven Flash v2.5 | Large voice library |
 | **Grok** | Grok TTS | eve, ara, rex, sal, leo (20+ languages, auto-detected) |
 
 ### Voice Tags (Expressive Markup)

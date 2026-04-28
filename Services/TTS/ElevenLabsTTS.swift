@@ -131,8 +131,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
             ]
         ]
 
-        // Add language_code only for models that support it (Turbo/Flash v2.5, Multilingual v2)
-        // eleven_v3 and eleven_monolingual_v1 do NOT support language_code parameter
+        // Add language_code only for models that support it (Flash v2.5).
+        // eleven_v3 does NOT support language_code parameter.
         let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
         if supportsLanguageCode,
            !selectedLanguage.isEmpty,
@@ -248,8 +248,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
             "voice_settings": voiceSettings
         ]
 
-        // Add language_code only for models that support it (Turbo/Flash v2.5, Multilingual v2)
-        // eleven_v3 and eleven_monolingual_v1 do NOT support language_code parameter
+        // Add language_code only for models that support it (Flash v2.5).
+        // eleven_v3 does NOT support language_code parameter.
         let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
         if supportsLanguageCode,
            !selectedLanguage.isEmpty,
@@ -334,12 +334,14 @@ final class ElevenLabsTTS: NSObject, TTSService {
     }
 
     func availableModels() -> [TTSModelInfo] {
+        // Trimmed to current generations:
+        //   - eleven_v3: flagship, expressive audio tags, 70+ languages
+        //   - eleven_flash_v2_5: ~75ms latency variant for real-time use
+        // Older models (multilingual_v2, turbo_v2_5, monolingual_v1) are superseded;
+        // existing users on those IDs are auto-migrated by AppState.loadPreferences.
         [
             TTSModelInfo(id: "eleven_v3", name: "Eleven v3", description: "Latest, highest quality", isDefault: true),
-            TTSModelInfo(id: "eleven_flash_v2_5", name: "Eleven Flash v2.5", description: "Fast, low latency"),
-            TTSModelInfo(id: "eleven_multilingual_v2", name: "Eleven Multilingual v2", description: "High quality, multilingual"),
-            TTSModelInfo(id: "eleven_turbo_v2_5", name: "Eleven Turbo v2.5", description: "Fastest, optimized"),
-            TTSModelInfo(id: "eleven_monolingual_v1", name: "Eleven Monolingual v1", description: "English only")
+            TTSModelInfo(id: "eleven_flash_v2_5", name: "Eleven Flash v2.5", description: "Fast, low latency")
         ]
     }
 

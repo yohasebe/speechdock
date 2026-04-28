@@ -50,7 +50,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         case .macOS: return "System"
         case .openAI: return "gpt-5.4-mini"
         case .gemini: return "gemini-3.1-flash-lite-preview"
-        case .grok: return "grok-4.1-fast-non-reasoning"
+        case .grok: return "grok-4-1-fast-non-reasoning"
         }
     }
 
@@ -71,8 +71,8 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
             ]
         case .grok:
             return [
-                TranslationModelInfo(id: "grok-4.1-fast-non-reasoning", name: "Grok 4.1 Fast", isDefault: true),
-                TranslationModelInfo(id: "grok-4.1-fast-reasoning", name: "Grok 4.1 Fast (Reasoning)", isDefault: false)
+                TranslationModelInfo(id: "grok-4-1-fast-non-reasoning", name: "Grok 4.1 Fast", isDefault: true),
+                TranslationModelInfo(id: "grok-4-1-fast-reasoning", name: "Grok 4.1 Fast (Reasoning)", isDefault: false)
             ]
         }
     }

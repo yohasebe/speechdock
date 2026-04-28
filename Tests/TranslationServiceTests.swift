@@ -144,9 +144,9 @@ final class TranslationServiceTests: XCTestCase {
     func testTranslationModelInfo_Grok() {
         let models = TranslationProvider.grok.availableModels
         XCTAssertEqual(models.count, 2)
-        XCTAssertEqual(models[0].id, "grok-4.1-fast-non-reasoning")
+        XCTAssertEqual(models[0].id, "grok-4-1-fast-non-reasoning")
         XCTAssertTrue(models[0].isDefault)
-        XCTAssertEqual(models[1].id, "grok-4.1-fast-reasoning")
+        XCTAssertEqual(models[1].id, "grok-4-1-fast-reasoning")
         XCTAssertFalse(models[1].isDefault)
     }
 
@@ -160,7 +160,7 @@ final class TranslationServiceTests: XCTestCase {
     func testTranslationProvider_DefaultModelId() {
         XCTAssertEqual(TranslationProvider.openAI.defaultModelId, "gpt-5.4-mini")
         XCTAssertEqual(TranslationProvider.gemini.defaultModelId, "gemini-3.1-flash-lite-preview")
-        XCTAssertEqual(TranslationProvider.grok.defaultModelId, "grok-4.1-fast-non-reasoning")
+        XCTAssertEqual(TranslationProvider.grok.defaultModelId, "grok-4-1-fast-non-reasoning")
         XCTAssertEqual(TranslationProvider.macOS.defaultModelId, "system")
     }
 

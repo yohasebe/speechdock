@@ -37,7 +37,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 | プロバイダ | モデル | 特徴 |
 |----------|--------|----------|
 | **OpenAI** | GPT-4o Mini Transcribe、Whisper | 高精度、100以上の言語 |
-| **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 2.0 Flash Live | マルチモーダル、高速 |
+| **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 3.1 Flash Live | マルチモーダル、高速 |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
 
@@ -51,7 +51,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 |----------|--------|--------|
 | **OpenAI** | GPT-4o Mini TTS、TTS-1、TTS-1 HD | alloy、echo、fable、onyx、nova、shimmer |
 | **Google Gemini** | Gemini 3.1 Flash TTS (Preview) | 30の多言語音声（Zephyr、Kore、Puck など） |
-| **ElevenLabs** | Eleven v3、Eleven Flash v2.5、Eleven Multilingual v2、Eleven Turbo v2.5 | 豊富な音声ライブラリ |
+| **ElevenLabs** | Eleven v3、Eleven Flash v2.5 | 豊富な音声ライブラリ |
 | **Grok** | Grok TTS | eve、ara、rex、sal、leo（20以上の言語を自動検出） |
 
 ### 音声タグ（表現マークアップ）
