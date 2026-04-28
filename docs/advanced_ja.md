@@ -36,7 +36,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 
 | プロバイダ | モデル | 特徴 |
 |----------|--------|----------|
-| **OpenAI** | GPT-4o Transcribe、GPT-4o Mini Transcribe、Whisper | 高精度、100以上の言語 |
+| **OpenAI** | GPT-4o Mini Transcribe、Whisper | 高精度、100以上の言語 |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 2.0 Flash Live | マルチモーダル、高速 |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
@@ -184,13 +184,13 @@ STTとTTSの両方で、すべてのクラウドプロバイダで言語選択�
 
 | プロバイダ | パラメータ | 範囲 | 備考 |
 |----------|-----------|-------|-------|
-| OpenAI | `speed` | 0.25〜4.0 | TTS-1 / TTS-1 HDのみ（gpt-4o-mini-ttsは速度パラメータ非対応） |
+| OpenAI | — | — | GPT-4o Mini TTSは速度パラメータ非対応。再生時にローカルで速度調整 |
 | ElevenLabs | `voice_settings.speed` | 0.7〜1.2 | アプリの範囲からマッピング |
 | Gemini | — | — | Gemini 3.1 Flash TTSは速度パラメータ非対応。`[pause]` などのタグで間合いを表現 |
 | macOS | 1分あたりの単語数 | 50〜500 | 基準175 wpm |
 | Grok | — | — | 速度パラメータ非対応。`<slow>...</slow>` や `<fast>...</fast>` でラップしてペース調整 |
 
-リアルタイム再生では、対応プロバイダについて速度はオーディオ処理によってローカルで制御され、再生中に動的に調整できます。API速度パラメータ非対応のプロバイダ（Gemini 3.1、Grok TTS、OpenAI gpt-4o-mini-tts）では速度スライダーが無効化されます。
+リアルタイム再生では、対応プロバイダについて速度はオーディオ処理によってローカルで制御され、再生中に動的に調整できます。API速度パラメータ非対応のプロバイダ（OpenAI GPT-4o Mini TTS、Gemini 3.1、Grok TTS）では速度スライダーが無効化されます。
 
 ## プライバシーに関する考慮事項
 

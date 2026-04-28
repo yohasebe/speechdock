@@ -315,11 +315,11 @@ final class OpenAITTS: NSObject, TTSService {
     }
 
     func availableModels() -> [TTSModelInfo] {
+        // gpt-4o-mini-tts (undated), tts-1, tts-1-hd are deprecated by OpenAI;
+        // we keep only the current dated snapshot. Existing users on the removed
+        // IDs are migrated to this default by AppState.loadPreferences.
         [
-            TTSModelInfo(id: "gpt-4o-mini-tts-2025-12-15", name: "GPT-4o Mini TTS (Dec 2025)", description: "Latest, fast (no speed control)", isDefault: true),
-            TTSModelInfo(id: "gpt-4o-mini-tts", name: "GPT-4o Mini TTS", description: "Fast (no speed control)"),
-            TTSModelInfo(id: "tts-1", name: "TTS-1", description: "Standard quality"),
-            TTSModelInfo(id: "tts-1-hd", name: "TTS-1 HD", description: "High quality")
+            TTSModelInfo(id: "gpt-4o-mini-tts-2025-12-15", name: "GPT-4o Mini TTS (Dec 2025)", description: "Latest, fast (no speed control)", isDefault: true)
         ]
     }
 

@@ -48,9 +48,9 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
     var modelName: String {
         switch self {
         case .macOS: return "System"
-        case .openAI: return "gpt-5-nano"
-        case .gemini: return "gemini-3-flash-preview"
-        case .grok: return "grok-3-fast"
+        case .openAI: return "gpt-5.4-mini"
+        case .gemini: return "gemini-3.1-flash-lite-preview"
+        case .grok: return "grok-4.1-fast-non-reasoning"
         }
     }
 
@@ -61,19 +61,18 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
             return [TranslationModelInfo(id: "system", name: "System", isDefault: true)]
         case .openAI:
             return [
-                TranslationModelInfo(id: "gpt-5-nano", name: "GPT-5 Nano", isDefault: true),
-                TranslationModelInfo(id: "gpt-5-mini", name: "GPT-5 Mini", isDefault: false),
-                TranslationModelInfo(id: "gpt-5.2", name: "GPT-5.2", isDefault: false)
+                TranslationModelInfo(id: "gpt-5.4-mini", name: "GPT-5.4 Mini", isDefault: true),
+                TranslationModelInfo(id: "gpt-5.4-nano", name: "GPT-5.4 Nano", isDefault: false)
             ]
         case .gemini:
             return [
-                TranslationModelInfo(id: "gemini-3-flash-preview", name: "Gemini 3 Flash", isDefault: true),
-                TranslationModelInfo(id: "gemini-3-pro-preview", name: "Gemini 3 Pro", isDefault: false)
+                TranslationModelInfo(id: "gemini-3.1-flash-lite-preview", name: "Gemini 3.1 Flash Lite", isDefault: true),
+                TranslationModelInfo(id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", isDefault: false)
             ]
         case .grok:
             return [
-                TranslationModelInfo(id: "grok-3-fast", name: "Grok 3 Fast", isDefault: true),
-                TranslationModelInfo(id: "grok-3-mini-fast", name: "Grok 3 Mini Fast", isDefault: false)
+                TranslationModelInfo(id: "grok-4.1-fast-non-reasoning", name: "Grok 4.1 Fast", isDefault: true),
+                TranslationModelInfo(id: "grok-4.1-fast-reasoning", name: "Grok 4.1 Fast (Reasoning)", isDefault: false)
             ]
         }
     }

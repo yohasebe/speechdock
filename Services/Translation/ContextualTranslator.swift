@@ -299,8 +299,9 @@ final class LLMContextualTranslator: ContextualTranslator {
             ]
         ]
 
-        if modelId.contains("gpt-5") {
-            body["reasoning_effort"] = modelId == "gpt-5.2" ? "none" : "minimal"
+        if modelId.hasPrefix("gpt-5") {
+            // GPT-5.x (e.g. gpt-5.2, gpt-5.4-mini) supports "none"; bare gpt-5 family supports only "minimal".
+            body["reasoning_effort"] = modelId.contains("5.") ? "none" : "minimal"
         } else {
             body["temperature"] = 0.3
         }

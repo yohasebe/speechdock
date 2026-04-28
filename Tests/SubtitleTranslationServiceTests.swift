@@ -83,7 +83,7 @@ final class SubtitleTranslationServiceTests: XCTestCase {
 
     @MainActor
     func testContextualTranslatorFactory_WithModel() {
-        let translator = ContextualTranslatorFactory.makeTranslator(for: .openAI, model: "gpt-5-mini")
+        let translator = ContextualTranslatorFactory.makeTranslator(for: .openAI, model: "gpt-5.4-mini")
         XCTAssertNotNil(translator)
         XCTAssertEqual(translator?.provider, .openAI)
     }

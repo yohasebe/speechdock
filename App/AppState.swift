@@ -1876,6 +1876,12 @@ final class AppState {
             selectedRealtimeSTTModel = "grok-stt"
         }
 
+        // Migrate deprecated OpenAI gpt-4o-transcribe (retired 2026-02-28) to the
+        // current low-hallucination snapshot.
+        if selectedRealtimeProvider == .openAI && selectedRealtimeSTTModel == "gpt-4o-transcribe" {
+            selectedRealtimeSTTModel = "gpt-4o-mini-transcribe-2025-12-15"
+        }
+
         if let providerRaw = UserDefaults.standard.string(forKey: "selectedProvider"),
            let provider = STTProvider(rawValue: providerRaw) {
             selectedProvider = provider
@@ -1909,6 +1915,19 @@ final class AppState {
             ]
             if deprecatedGeminiTTSModels.contains(selectedTTSModel) {
                 selectedTTSModel = "gemini-3.1-flash-tts-preview"
+            }
+        }
+
+        // Migrate deprecated OpenAI TTS model IDs (removed from the selectable list).
+        // gpt-4o-mini-tts (undated), tts-1, and tts-1-hd are all deprecated by OpenAI.
+        if selectedTTSProvider == .openAI {
+            let deprecatedOpenAITTSModels: Set<String> = [
+                "gpt-4o-mini-tts",
+                "tts-1",
+                "tts-1-hd"
+            ]
+            if deprecatedOpenAITTSModels.contains(selectedTTSModel) {
+                selectedTTSModel = "gpt-4o-mini-tts-2025-12-15"
             }
         }
 

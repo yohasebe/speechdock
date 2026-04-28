@@ -125,30 +125,28 @@ final class TranslationServiceTests: XCTestCase {
 
     func testTranslationModelInfo_OpenAI() {
         let models = TranslationProvider.openAI.availableModels
-        XCTAssertEqual(models.count, 3)
-        XCTAssertEqual(models[0].id, "gpt-5-nano")
+        XCTAssertEqual(models.count, 2)
+        XCTAssertEqual(models[0].id, "gpt-5.4-mini")
         XCTAssertTrue(models[0].isDefault)
-        XCTAssertEqual(models[1].id, "gpt-5-mini")
+        XCTAssertEqual(models[1].id, "gpt-5.4-nano")
         XCTAssertFalse(models[1].isDefault)
-        XCTAssertEqual(models[2].id, "gpt-5.2")
-        XCTAssertFalse(models[2].isDefault)
     }
 
     func testTranslationModelInfo_Gemini() {
         let models = TranslationProvider.gemini.availableModels
         XCTAssertEqual(models.count, 2)
-        XCTAssertEqual(models[0].id, "gemini-3-flash-preview")
+        XCTAssertEqual(models[0].id, "gemini-3.1-flash-lite-preview")
         XCTAssertTrue(models[0].isDefault)
-        XCTAssertEqual(models[1].id, "gemini-3-pro-preview")
+        XCTAssertEqual(models[1].id, "gemini-3.1-pro-preview")
         XCTAssertFalse(models[1].isDefault)
     }
 
     func testTranslationModelInfo_Grok() {
         let models = TranslationProvider.grok.availableModels
         XCTAssertEqual(models.count, 2)
-        XCTAssertEqual(models[0].id, "grok-3-fast")
+        XCTAssertEqual(models[0].id, "grok-4.1-fast-non-reasoning")
         XCTAssertTrue(models[0].isDefault)
-        XCTAssertEqual(models[1].id, "grok-3-mini-fast")
+        XCTAssertEqual(models[1].id, "grok-4.1-fast-reasoning")
         XCTAssertFalse(models[1].isDefault)
     }
 
@@ -160,18 +158,18 @@ final class TranslationServiceTests: XCTestCase {
     }
 
     func testTranslationProvider_DefaultModelId() {
-        XCTAssertEqual(TranslationProvider.openAI.defaultModelId, "gpt-5-nano")
-        XCTAssertEqual(TranslationProvider.gemini.defaultModelId, "gemini-3-flash-preview")
-        XCTAssertEqual(TranslationProvider.grok.defaultModelId, "grok-3-fast")
+        XCTAssertEqual(TranslationProvider.openAI.defaultModelId, "gpt-5.4-mini")
+        XCTAssertEqual(TranslationProvider.gemini.defaultModelId, "gemini-3.1-flash-lite-preview")
+        XCTAssertEqual(TranslationProvider.grok.defaultModelId, "grok-4.1-fast-non-reasoning")
         XCTAssertEqual(TranslationProvider.macOS.defaultModelId, "system")
     }
 
     @MainActor
     func testTranslationFactory_MakeService_WithModel() {
-        let service = TranslationFactory.makeService(for: .openAI, model: "gpt-5.2")
+        let service = TranslationFactory.makeService(for: .openAI, model: "gpt-5.4-nano")
         XCTAssertEqual(service.provider, .openAI)
         if let llmService = service as? LLMTranslation {
-            XCTAssertEqual(llmService.model, "gpt-5.2")
+            XCTAssertEqual(llmService.model, "gpt-5.4-nano")
         } else {
             XCTFail("Expected LLMTranslation instance")
         }
@@ -181,7 +179,7 @@ final class TranslationServiceTests: XCTestCase {
     func testTranslationFactory_MakeService_DefaultModel() {
         let service = TranslationFactory.makeService(for: .gemini)
         if let llmService = service as? LLMTranslation {
-            XCTAssertEqual(llmService.model, "gemini-3-flash-preview")
+            XCTAssertEqual(llmService.model, "gemini-3.1-flash-lite-preview")
         } else {
             XCTFail("Expected LLMTranslation instance")
         }

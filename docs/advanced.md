@@ -34,7 +34,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 
 | Provider | Models | Features |
 |----------|--------|----------|
-| **OpenAI** | GPT-4o Transcribe, GPT-4o Mini Transcribe, Whisper | High accuracy, 100+ languages |
+| **OpenAI** | GPT-4o Mini Transcribe, Whisper | High accuracy, 100+ languages |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 2.0 Flash Live | Multimodal, fast |
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |
@@ -182,13 +182,13 @@ When saving audio to a file, speed is controlled differently from real-time play
 
 | Provider | Parameter | Range | Notes |
 |----------|-----------|-------|-------|
-| OpenAI | `speed` | 0.25–4.0 | TTS-1 / TTS-1 HD only; gpt-4o-mini-tts has no speed parameter |
+| OpenAI | — | — | GPT-4o Mini TTS has no speed parameter; speed is applied locally during playback |
 | ElevenLabs | `voice_settings.speed` | 0.7–1.2 | Mapped from app range |
 | Gemini | — | — | Gemini 3.1 Flash TTS has no speed parameter; use `[pause]` or similar tags in text for pacing effects |
 | macOS | Words per minute | 50–500 | Based on 175 wpm baseline |
 | Grok | — | — | No speed parameter; wrap text with `<slow>...</slow>` or `<fast>...</fast>` for pacing |
 
-For real-time playback, speed is controlled locally via audio processing for providers that support it, allowing dynamic adjustment during playback. Providers without an API speed parameter (Gemini 3.1, Grok TTS, OpenAI gpt-4o-mini-tts) disable the speed slider.
+For real-time playback, speed is controlled locally via audio processing for providers that support it, allowing dynamic adjustment during playback. Providers without an API speed parameter (OpenAI GPT-4o Mini TTS, Gemini 3.1, Grok TTS) disable the speed slider.
 
 ## Privacy Considerations
 

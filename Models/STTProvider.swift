@@ -20,7 +20,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     var availableModels: [STTModel] {
         switch self {
         case .openAI:
-            return [.gpt4oMiniTranscribe, .gpt4oTranscribe, .whisper1]
+            return [.gpt4oMiniTranscribe, .whisper1]
         case .gemini:
             return [.gemini25Flash]
         case .elevenLabs:
@@ -42,20 +42,23 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     var footerDescription: String {
         switch self {
         case .openAI:
-            return "Enables STT (GPT-4o Transcribe, Whisper), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
+            return "Enables STT (GPT-4o Mini Transcribe, Whisper), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
         case .gemini:
-            return "Enables STT (Gemini 2.5 Flash), TTS (Gemini 2.5 Flash/Pro), and translation. Optional — macOS built-in works without this."
+            return "Enables STT (Gemini 2.5 Flash), TTS (Gemini 3.1 Flash TTS), and translation. Optional — macOS built-in works without this."
         case .elevenLabs:
-            return "Enables STT (Scribe v2) and TTS (Eleven v3, Flash v2.5, Multilingual v2). Optional — macOS built-in works without this."
+            return "Enables STT (Scribe v2) and TTS (Eleven v3). Optional — macOS built-in works without this."
         case .grok:
-            return "Enables STT (Grok 2), TTS (Grok Voice), and translation. Optional — macOS built-in works without this."
+            return "Enables STT (Grok STT), TTS (Grok TTS), and translation. Optional — macOS built-in works without this."
         }
     }
 }
 
 enum STTModel: String, CaseIterable, Identifiable, Codable {
     // OpenAI models
-    case gpt4oTranscribe = "gpt-4o-transcribe"
+    // Note: gpt-4o-transcribe was retired by OpenAI on 2026-02-28 and removed.
+    // AppState.loadPreferences migrates legacy "gpt-4o-transcribe" UserDefaults to the
+    // current default; the raw value won't decode here, so existing users fall through
+    // to the default selection cleanly.
     case gpt4oMiniTranscribe = "gpt-4o-mini-transcribe-2025-12-15"
     case whisper1 = "whisper-1"
 
@@ -73,7 +76,6 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
 
     var displayName: String {
         switch self {
-        case .gpt4oTranscribe: return "GPT-4o Transcribe"
         case .gpt4oMiniTranscribe: return "GPT-4o Mini Transcribe"
         case .whisper1: return "Whisper-1"
         case .gemini25Flash: return "Gemini 2.5 Flash"
@@ -85,7 +87,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
 
     var provider: STTProvider {
         switch self {
-        case .gpt4oTranscribe, .gpt4oMiniTranscribe, .whisper1:
+        case .gpt4oMiniTranscribe, .whisper1:
             return .openAI
         case .gemini25Flash:
             return .gemini

@@ -7,7 +7,7 @@ import Foundation
 final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "gpt-4o-transcribe"
+    var selectedModel: String = "gpt-4o-mini-transcribe-2025-12-15"
     var selectedLanguage: String = ""  // "" = Auto (OpenAI auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
@@ -176,8 +176,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "gpt-4o-transcribe", name: "GPT-4o Transcribe", description: "High quality streaming transcription", isDefault: true),
-            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe", description: "Faster, lower cost streaming"),
+            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe-2025-12-15", name: "GPT-4o Mini Transcribe (Dec 2025)", description: "Latest, low hallucination", isDefault: true),
+            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe", description: "Tracks latest mini-transcribe revision"),
             RealtimeSTTModelInfo(id: "whisper-1", name: "Whisper", description: "OpenAI Whisper (full transcript on completion)")
         ]
     }

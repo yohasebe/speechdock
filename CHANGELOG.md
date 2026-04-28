@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.34] - 2026-04-28
+
+### Changed
+- **Translation models refreshed across all LLM providers**:
+  - OpenAI: default `gpt-5-nano` → `gpt-5.4-mini`. Selectable list trimmed to `gpt-5.4-mini` (default) and `gpt-5.4-nano`. Older `gpt-5-*` and `gpt-5.2` IDs are no longer offered; saved selections fall through to the new default.
+  - Gemini: default `gemini-3-flash-preview` → `gemini-3.1-flash-lite-preview` (cost roughly halved, low-latency tier optimized for streaming). `gemini-3.1-pro-preview` is the accuracy alternative.
+  - Grok: default `grok-3-fast` → `grok-4.1-fast-non-reasoning` (cheaper, lower hallucination, no chain-of-thought overhead). `grok-4.1-fast-reasoning` is the alternative.
+- **OpenAI STT**: default migrated from `gpt-4o-transcribe` (retired by OpenAI on 2026-02-28) to `gpt-4o-mini-transcribe-2025-12-15` — the current low-hallucination snapshot. Existing users on the retired ID are auto-migrated.
+- **OpenAI TTS**: deprecated models removed from the picker (`gpt-4o-mini-tts` undated, `tts-1`, `tts-1-hd`). Only the dated snapshot `gpt-4o-mini-tts-2025-12-15` remains. Saved selections on removed IDs are auto-migrated to the new default.
+- File-transcription `STTModel` enum: `gpt-4o-transcribe` case removed (matching the realtime-side migration).
+
 ## [0.1.33] - 2026-04-27
 
 ### Changed
