@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.35] - 2026-05-15
+
+### Changed
+- **OpenAI STT migrated to the GA Realtime API with streaming Whisper.**
+  - New default model: `gpt-realtime-whisper` (replaces `gpt-4o-mini-transcribe-2025-12-15`). The Whisper realtime model emits a steady stream of `.delta` events as you speak, so the subtitle overlay now updates word-by-word during a continuous utterance instead of only when the server finalizes a segment. The other available models (`gpt-4o-mini-transcribe-2025-12-15`, `whisper-1`) only emit `.completed` after each commit — text appears in larger chunks rather than streaming, with higher per-segment accuracy as the trade-off.
+  - Session setup switched from the deprecated `transcription_session.update` to GA `session.update` + `session.type: "transcription"` with the nested `audio.input` shape. `noise_reduction` is `near_field` for microphone capture and `far_field` for system-audio capture (videos, app audio).
+  - Server VAD is no longer used. `gpt-realtime-whisper` rejects any `turn_detection` value, and the gpt-4o-mini-transcribe family's default server VAD auto-commits every ~200 ms (too aggressive). We now run client-side VAD against `audioLevelMonitor`'s noise-floor-adapted threshold and silence duration (with lower threshold / shorter silence for external sources), and send `input_audio_buffer.commit` ourselves when an utterance ends.
+  - Force-commit safeguards: a single segment that runs longer than 60 s without a silence-triggered commit is committed anyway to bound buffer growth. If a `.completed` event fails to arrive within 10 s of a commit, the in-flight flag self-resets so subsequent utterances aren't silently dropped.
+  - Existing users on the retired `gpt-4o-transcribe` snapshot are migrated to `gpt-realtime-whisper`. Saved selections of `gpt-4o-mini-transcribe-2025-12-15` or `whisper-1` are preserved.
+
+### Fixed
+- Pre-existing state bug: when `startRealtimeSTT` failed (network/API error during the initial `startListening`), `startRecording` still flipped `isRecording = true` and `transcriptionState = .recording`, leaving the menu bar showing "録音中" while the panel displayed the error and a Record button. The transition now short-circuits when `transcriptionState` is `.error`.
+
 ## [0.1.34] - 2026-04-28
 
 ### Changed

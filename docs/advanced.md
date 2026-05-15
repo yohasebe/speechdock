@@ -34,7 +34,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 
 | Provider | Models | Features |
 |----------|--------|----------|
-| **OpenAI** | GPT-4o Mini Transcribe, Whisper | High accuracy, 100+ languages |
+| **OpenAI** | GPT Realtime Whisper, GPT-4o Mini Transcribe, Whisper | Streaming deltas (Whisper), high accuracy, 100+ languages |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 3.1 Flash Live | Multimodal, fast |
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |

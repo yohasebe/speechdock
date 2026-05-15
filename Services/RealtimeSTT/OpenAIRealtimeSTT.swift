@@ -1,13 +1,24 @@
 import Foundation
 @preconcurrency import AVFoundation
 
-/// OpenAI Realtime API for true streaming speech-to-text via WebSocket
-/// Uses the intent=transcription mode for real-time transcription
+/// OpenAI Realtime API for true streaming speech-to-text via WebSocket.
+///
+/// Uses the GA `?intent=transcription` endpoint with `session.update` +
+/// `session.type: "transcription"`. Two operating modes depending on model:
+///
+/// * `gpt-realtime-whisper` (default): emits continuous `.delta` events for live
+///   partial transcripts. Server VAD is unsupported — we run client-side VAD on
+///   `audioLevelMonitor` and send `input_audio_buffer.commit` when speech ends, which
+///   triggers `.completed` with the finalized segment. Lower latency than the
+///   gpt-4o-mini-transcribe family for live subtitle use.
+/// * `gpt-4o-mini-transcribe*` / `whisper-1`: also driven by client-side commit
+///   (server VAD explicitly disabled with `turn_detection: null`). Mostly emits
+///   `.completed` events per commit; less suited to live deltas but higher accuracy.
 @MainActor
 final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "gpt-4o-mini-transcribe-2025-12-15"
+    var selectedModel: String = "gpt-realtime-whisper"
     var selectedLanguage: String = ""  // "" = Auto (OpenAI auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
@@ -49,6 +60,25 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     // Connection state tracking
     private var sessionCreated = false
 
+    // Client-side VAD (used because OpenAI's Realtime API requires manual commit for
+    // transcription-only sessions — server VAD is either unsupported on whisper or
+    // explicitly disabled to avoid 200ms auto-commits on the gpt-4o-mini family).
+    /// Last time an above-threshold audio sample was observed (since last commit).
+    private var lastAudioActivityTime: Date?
+    /// Time the first audio of the current unfinalized segment was observed.
+    /// Used to force-commit long monologues that never hit silence.
+    private var currentSegmentStartTime: Date?
+    /// Whether audio has been sent since the most recent commit and needs flushing.
+    private var hasUnfinalizedAudio = false
+    /// Set after sendCommit; cleared when `.completed` arrives or after timeout.
+    private var commitInFlight = false
+    /// When commitInFlight was set. Used to recover from missing `.completed` events.
+    private var commitInFlightStartTime: Date?
+    /// Hard upper bound on a single segment without silence-triggered commit (60s).
+    private let maxSegmentDuration: TimeInterval = 60.0
+    /// Timeout after which commitInFlight auto-resets if `.completed` never arrives.
+    private let commitInFlightTimeout: TimeInterval = 10.0
+
     // Auto-reconnect support
     private var isIntentionallyStopping = false
     private var reconnectAttempts = 0
@@ -70,6 +100,11 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         accumulatedText = ""
         currentPartialText = ""
         audioStartTime = nil
+        lastAudioActivityTime = nil
+        currentSegmentStartTime = nil
+        hasUnfinalizedAudio = false
+        commitInFlight = false
+        commitInFlightStartTime = nil
         preBufferLock.lock()
         preBuffer.removeAll()
         isPreBuffering = true
@@ -119,7 +154,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     func stopListening() {
         isIntentionallyStopping = true
 
-        // Stop audio engine
+        // Stop audio engine immediately so we don't keep streaming after user stops
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
@@ -133,30 +168,64 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         isPreBuffering = false
         preBufferLock.unlock()
 
-        // Close WebSocket
-        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        // Capture WebSocket for the deferred close so subsequent state changes don't race.
+        let task = webSocketTask
+        let session = urlSession
+        let needsFinalCommit = hasUnfinalizedAudio && !commitInFlight
+        // If we'll send a final commit, mark so the wait loop knows to expect a
+        // `.completed` event before closing.
+        if needsFinalCommit {
+            commitInFlight = true
+            commitInFlightStartTime = Date()
+        }
         webSocketTask = nil
-        urlSession?.invalidateAndCancel()
         urlSession = nil
 
-        // Send final result if there's any text
-        if !accumulatedText.isEmpty || !currentPartialText.isEmpty {
-            let finalText: String
-            if accumulatedText.isEmpty {
-                finalText = currentPartialText
-            } else if currentPartialText.isEmpty {
-                finalText = accumulatedText
-            } else {
-                finalText = accumulatedText + " " + currentPartialText
-            }
-            if !finalText.isEmpty {
-                delegate?.realtimeSTT(self, didReceiveFinalResult: finalText)
-            }
-        }
-
+        // Flip listening state immediately so UI reflects "stopped" without waiting.
+        let wasListening = isListening
         if isListening {
             isListening = false
             delegate?.realtimeSTT(self, didChangeListeningState: false)
+        }
+
+        if wasListening, let task = task, task.state == .running {
+            // Send a final commit so the server emits one last `.completed` with the
+            // trailing utterance, then close after ~1.5s to capture it.
+            Task { @MainActor [weak self] in
+                if needsFinalCommit {
+                    if let jsonData = try? JSONSerialization.data(withJSONObject: ["type": "input_audio_buffer.commit"]),
+                       let jsonString = String(data: jsonData, encoding: .utf8) {
+                        try? await task.send(.string(jsonString))
+                    }
+                }
+                let deadline = Date().addingTimeInterval(1.5)
+                while let self = self,
+                      self.commitInFlight,
+                      Date() < deadline {
+                    try? await Task.sleep(nanoseconds: 50_000_000)
+                }
+                task.cancel(with: .normalClosure, reason: nil)
+                session?.invalidateAndCancel()
+                self?.emitFinalResult()
+            }
+        } else {
+            session?.invalidateAndCancel()
+            emitFinalResult()
+        }
+    }
+
+    /// Emit didReceiveFinalResult with the current accumulatedText (+ trailing partial).
+    private func emitFinalResult() {
+        let finalText: String
+        if accumulatedText.isEmpty {
+            finalText = currentPartialText
+        } else if currentPartialText.isEmpty {
+            finalText = accumulatedText
+        } else {
+            finalText = accumulatedText + " " + currentPartialText
+        }
+        if !finalText.isEmpty {
+            delegate?.realtimeSTT(self, didReceiveFinalResult: finalText)
         }
     }
 
@@ -176,8 +245,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe-2025-12-15", name: "GPT-4o Mini Transcribe (Dec 2025)", description: "Latest, low hallucination", isDefault: true),
-            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe", description: "Tracks latest mini-transcribe revision"),
+            RealtimeSTTModelInfo(id: "gpt-realtime-whisper", name: "GPT Realtime Whisper", description: "Streaming deltas, lowest latency", isDefault: true),
+            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe-2025-12-15", name: "GPT-4o Mini Transcribe (Dec 2025)", description: "Higher accuracy snapshot"),
             RealtimeSTTModelInfo(id: "whisper-1", name: "Whisper", description: "OpenAI Whisper (full transcript on completion)")
         ]
     }
@@ -185,16 +254,20 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     // MARK: - WebSocket Connection
 
     private func connectWebSocket(apiKey: String) async throws {
-        // Use the transcription intent endpoint
+        // GA Realtime endpoint for transcription-only sessions. The URL's `?model=`
+        // parameter only accepts conversation/realtime models (e.g. gpt-realtime-2);
+        // passing a transcription-only model like gpt-realtime-whisper there is rejected
+        // with: "Model … is a transcription model and cannot be used as the realtime
+        // session model. … Pass this transcription model as audio.input.transcription.model
+        // instead." So we use the transcription intent URL and supply the transcription
+        // model inside session.update's `audio.input.transcription.model`.
         guard let url = URL(string: "wss://api.openai.com/v1/realtime?intent=transcription") else {
             throw RealtimeSTTError.apiError("Invalid WebSocket URL")
         }
         dprint("OpenAIRealtimeSTT: Connecting to \(url.absoluteString)")
 
-
         var request = URLRequest(url: url)
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("realtime=v1", forHTTPHeaderField: "OpenAI-Beta")
 
         let session = URLSession(configuration: .default)
         urlSession = session
@@ -238,62 +311,49 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     private func configureSession() async throws {
-        // Configure the transcription session
+        // Configure the transcription session using the GA session.update format.
         let model = selectedModel.isEmpty ? defaultModelId : selectedModel
+        let isWhisperRealtime = model.hasPrefix("gpt-realtime-whisper")
 
-        // VAD parameters differ based on audio source
-        let threshold: NSDecimalNumber
-        let silenceDurationMs: Int
-        let prefixPaddingMs: Int
-
-        if audioSource == .external {
-            // External source (system audio like videos):
-            // - Videos often have background music that never fully stops
-            // - Need lower threshold to detect speech amid background audio
-            // - Need shorter silence duration since true silence is rare
-            threshold = NSDecimalNumber(string: "0.25")
-            silenceDurationMs = 250  // Shorter to finalize faster
-            prefixPaddingMs = 200
-            dprint("OpenAIRealtimeSTT: External source VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms")
-
-        } else {
-            // Microphone: Use adaptive VAD parameters based on detected noise floor
-            let adaptiveThreshold = audioLevelMonitor.recommendedVADThreshold()
-            let adaptiveSilenceMs = audioLevelMonitor.recommendedSilenceDuration()
-
-            // Use NSDecimalNumber to ensure exact decimal representation in JSON
-            threshold = NSDecimalNumber(string: String(format: "%.2f", adaptiveThreshold))
-            silenceDurationMs = adaptiveSilenceMs
-            prefixPaddingMs = 300
-            dprint("OpenAIRealtimeSTT: Microphone VAD - threshold: \(threshold), silence: \(silenceDurationMs)ms, noise floor: \(audioLevelMonitor.noiseFloor)")
-
+        // GA Realtime API: nested `audio.input` shape under `session.type: "transcription"`.
+        var transcriptionConfig: [String: Any] = ["model": model]
+        if !selectedLanguage.isEmpty {
+            transcriptionConfig["language"] = selectedLanguage
         }
 
-        var config: [String: Any] = [
-            "type": "transcription_session.update",
-            "session": [
-                "input_audio_transcription": [
-                    "model": model
-                ],
-                "turn_detection": [
-                    "type": "server_vad",
-                    "threshold": threshold,
-                    "prefix_padding_ms": prefixPaddingMs,
-                    "silence_duration_ms": silenceDurationMs
-                ],
-                "input_audio_format": "pcm16"
-            ]
+        // Noise reduction: near_field assumes a microphone close to the speaker;
+        // far_field is tuned for distant or speaker-output sources (system audio).
+        let noiseReductionType = (audioSource == .external) ? "far_field" : "near_field"
+        var audioInput: [String: Any] = [
+            "format": [
+                "type": "audio/pcm",
+                "rate": Int(sampleRate)
+            ],
+            "transcription": transcriptionConfig,
+            "noise_reduction": ["type": noiseReductionType]
         ]
 
-        // Add language if specified
-        if !selectedLanguage.isEmpty {
-            if var session = config["session"] as? [String: Any],
-               var transcription = session["input_audio_transcription"] as? [String: Any] {
-                transcription["language"] = selectedLanguage
-                session["input_audio_transcription"] = transcription
-                config["session"] = session
-            }
+        // Turn detection handling:
+        //   * gpt-realtime-whisper rejects ANY turn_detection value
+        //     ("Turn detection is not supported for this transcription model").
+        //     Omit the key entirely.
+        //   * gpt-4o-mini-transcribe / whisper-1 default to server VAD with
+        //     200ms silence — which auto-commits aggressively and clobbers our
+        //     own commit timing. Explicitly send `null` to disable.
+        if !isWhisperRealtime {
+            audioInput["turn_detection"] = NSNull()
         }
+        dprint("OpenAIRealtimeSTT: Configuring session for model=\(model) (clientVAD)")
+
+        let config: [String: Any] = [
+            "type": "session.update",
+            "session": [
+                "type": "transcription",
+                "audio": [
+                    "input": audioInput
+                ]
+            ]
+        ]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: config),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
@@ -463,6 +523,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
                 dprint("OpenAIRealtimeSTT: Transcription completed: '\(transcript.prefix(50))...'")
 
             }
+            // Segment finalized — allow client-side VAD to detect the next utterance.
+            commitInFlight = false
+            commitInFlightStartTime = nil
 
         case "input_audio_buffer.speech_started":
             dprint("OpenAIRealtimeSTT: Speech started")
@@ -601,7 +664,98 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
             preBufferLock.unlock()
         } else {
             sendAudioData(pcmData)
+            updateClientVAD()
         }
+    }
+
+    /// Client-side VAD: track audio level vs. adaptive threshold. When silence
+    /// exceeds the recommended duration after an utterance, send a manual
+    /// `input_audio_buffer.commit` so the server finalizes a transcript segment.
+    /// Also force-commits when a single segment exceeds `maxSegmentDuration` to
+    /// keep buffer growth bounded during long monologues.
+    /// (OpenAI's gpt-realtime-whisper rejects server VAD; gpt-4o-mini-transcribe's
+    /// default server VAD auto-commits every 200ms which we explicitly disable.)
+    private func updateClientVAD() {
+        // Recover from a stuck commitInFlight if `.completed` was never received
+        // (server stall, transient network error). Without this, the entire session
+        // would silently stop emitting transcripts after one failed commit.
+        if commitInFlight,
+           let startTime = commitInFlightStartTime,
+           Date().timeIntervalSince(startTime) > commitInFlightTimeout {
+            dprint("OpenAIRealtimeSTT: commitInFlight timeout — resetting")
+            commitInFlight = false
+            commitInFlightStartTime = nil
+        }
+
+        let level = audioLevelMonitor.level
+        let threshold = clientVADThreshold()
+        let silenceMs = clientVADSilenceDurationMs()
+        let now = Date()
+
+        if level > threshold {
+            // Speech detected — extend activity window. Continue tracking even
+            // during commitInFlight so we don't miss a new utterance starting
+            // before `.completed` arrives.
+            lastAudioActivityTime = now
+            if currentSegmentStartTime == nil {
+                currentSegmentStartTime = now
+            }
+            hasUnfinalizedAudio = true
+        }
+
+        // Don't attempt a new commit while one is in flight; the next one will
+        // fire when `.completed` arrives (or after the timeout above).
+        guard !commitInFlight else { return }
+
+        // Silence-triggered commit.
+        if hasUnfinalizedAudio,
+           let lastTime = lastAudioActivityTime,
+           now.timeIntervalSince(lastTime) * 1000 >= Double(silenceMs) {
+            sendCommit(reason: "silence")
+            return
+        }
+
+        // Max-segment-duration force-commit (long monologue without pauses).
+        if hasUnfinalizedAudio,
+           let segStart = currentSegmentStartTime,
+           now.timeIntervalSince(segStart) >= maxSegmentDuration {
+            sendCommit(reason: "max-duration")
+            return
+        }
+    }
+
+    /// Client VAD threshold. External audio (videos with BGM) needs a lower bar
+    /// than microphone since true silence is rare.
+    private func clientVADThreshold() -> Float {
+        if audioSource == .external {
+            return 0.25
+        }
+        return Float(audioLevelMonitor.recommendedVADThreshold())
+    }
+
+    /// Client VAD silence duration. Shorter for external audio so we finalize
+    /// segments despite the lack of true silence.
+    private func clientVADSilenceDurationMs() -> Int {
+        if audioSource == .external {
+            return 250
+        }
+        return audioLevelMonitor.recommendedSilenceDuration()
+    }
+
+    /// Tell the server to commit the current input audio buffer. Triggers
+    /// `.completed` once the segment is transcribed.
+    private func sendCommit(reason: String) {
+        guard let task = webSocketTask, task.state == .running else { return }
+        commitInFlight = true
+        commitInFlightStartTime = Date()
+        hasUnfinalizedAudio = false
+        lastAudioActivityTime = nil
+        currentSegmentStartTime = nil
+        if let jsonData = try? JSONSerialization.data(withJSONObject: ["type": "input_audio_buffer.commit"]),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            task.send(.string(jsonString)) { _ in }
+        }
+        dprint("OpenAIRealtimeSTT: Sent input_audio_buffer.commit (reason=\(reason))")
     }
 
     private func flushPreBuffer() async {

@@ -36,7 +36,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 
 | プロバイダ | モデル | 特徴 |
 |----------|--------|----------|
-| **OpenAI** | GPT-4o Mini Transcribe、Whisper | 高精度、100以上の言語 |
+| **OpenAI** | GPT Realtime Whisper、GPT-4o Mini Transcribe、Whisper | ストリーミングdelta（Whisper）、高精度、100以上の言語 |
 | **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 3.1 Flash Live | マルチモーダル、高速 |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |

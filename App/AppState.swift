@@ -814,8 +814,14 @@ final class AppState {
         Task {
             await startRealtimeSTT()
 
-            // After audio capture has started, update UI state on main thread
+            // After audio capture has started, update UI state on main thread.
+            // If startRealtimeSTT failed it sets transcriptionState to .error; in that
+            // case we must NOT flip isRecording to true, otherwise the menu bar shows
+            // "録音中" while the panel shows the error and a Record button.
             await MainActor.run {
+                if case .error = transcriptionState {
+                    return
+                }
                 isRecording = true
                 transcriptionState = .recording
 
@@ -1877,9 +1883,9 @@ final class AppState {
         }
 
         // Migrate deprecated OpenAI gpt-4o-transcribe (retired 2026-02-28) to the
-        // current low-hallucination snapshot.
+        // current streaming-optimized default.
         if selectedRealtimeProvider == .openAI && selectedRealtimeSTTModel == "gpt-4o-transcribe" {
-            selectedRealtimeSTTModel = "gpt-4o-mini-transcribe-2025-12-15"
+            selectedRealtimeSTTModel = "gpt-realtime-whisper"
         }
 
         // Migrate Gemini 2.0 Flash Live (deprecated 2026-02-18, shutdown 2026-06-01)
