@@ -80,8 +80,11 @@ jobs:
           ./scripts/notarize.sh
 
       - name: Download Sparkle
+        # Keep aligned with the Sparkle framework version pinned in project.yml.
+        # Used here only for the `sign_update` CLI that produces the EdDSA
+        # signature embedded in appcast.xml.
         run: |
-          curl -L -o /tmp/Sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.6.0/Sparkle-2.6.0.tar.xz
+          curl -L -o /tmp/Sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.9.3/Sparkle-2.9.3.tar.xz
           mkdir -p /tmp/Sparkle
           tar -xf /tmp/Sparkle.tar.xz -C /tmp/Sparkle
 
