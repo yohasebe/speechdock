@@ -345,7 +345,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
              "auth_error", "quota_exceeded", "rate_limited",
              "queue_overflow", "resource_exhausted",
              "session_time_limit_exceeded", "chunk_size_exceeded",
-             "transcriber_error":
+             "transcriber_error", "input_error", "unaccepted_terms":
             // Fatal — surface to user and stop. These were previously silently
             // dropped via `default: break` despite being real failure signals.
             let errorMessage = json["error"] as? String

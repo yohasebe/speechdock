@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sparkle bumped from 2.8.1 to 2.9.3.** Picks up the two high-severity security fixes shipped in 2.9.2 (delta-update symlink-attack mitigation and appcast connection validation) and the 2.9.3 fix for initial-install failure on apps whose bundle ID ends in `.app` — directly affects `com.speechdock.app`.
 
 ### Fixed
-- **ElevenLabs STT WebSocket parameters updated to match current API.** Replaced the deprecated `sample_rate` + `encoding` query params with `audio_format=pcm_16000`; the older form was silently ignored by recent server deployments and was on the deprecation track.
+- **ElevenLabs STT WebSocket parameters updated to match current API.** Replaced the `sample_rate` + `encoding` query params with `audio_format=pcm_16000`; the older params are no longer part of the documented API.
 - **ElevenLabs STT now surfaces previously-silenced server errors.** Ten error event types (`auth_error`, `quota_exceeded`, `rate_limited`, `queue_overflow`, `resource_exhausted`, `session_time_limit_exceeded`, `chunk_size_exceeded`, `transcriber_error`, etc.) were falling into `default: break` with no user-visible feedback. They are now reported through the standard error delegate path. Two advisory events (`insufficient_audio_activity`, `commit_throttled`) are logged but no longer fatal.
 
 ## [0.1.35] - 2026-05-15
