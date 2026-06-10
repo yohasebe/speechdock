@@ -92,9 +92,9 @@ final class PermissionService {
 
                 guard !Task.isCancelled else { break }
 
-                await self?.refreshAllPermissions()
+                self?.refreshAllPermissions()
 
-                if await self?.allGranted == true {
+                if self?.allGranted == true {
                     dprint("PermissionService: All permissions granted, stopping polling")
 
                     break

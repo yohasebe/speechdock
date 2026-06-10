@@ -353,8 +353,6 @@ final class TTSAudioPlaybackController: NSObject {
     /// Simple whitespace-based splitting
     static func calculateWordRanges(for text: String) -> [NSRange] {
         var ranges: [NSRange] = []
-        let nsString = text as NSString
-
         var currentIndex = 0
         let components = text.components(separatedBy: .whitespacesAndNewlines)
 

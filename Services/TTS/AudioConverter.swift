@@ -1,5 +1,7 @@
 import Foundation
-import AVFoundation
+// AVAssetWriter/Reader predate Sendable; @preconcurrency silences capture
+// warnings in the requestMediaDataWhenReady callback (Apple's canonical pattern).
+@preconcurrency import AVFoundation
 
 /// Utility for converting audio formats
 enum AudioConverter {
@@ -170,22 +172,31 @@ enum AudioConverter {
         // Process samples
         let processingQueue = DispatchQueue(label: "com.speechdock.audioconverter")
 
-        return await withCheckedContinuation { continuation in
-            writerInput.requestMediaDataWhenReady(on: processingQueue) {
-                while writerInput.isReadyForMoreMediaData {
-                    if let sampleBuffer = readerOutput.copyNextSampleBuffer() {
-                        writerInput.append(sampleBuffer)
-                    } else {
-                        writerInput.markAsFinished()
+        // AVAssetWriter/Reader objects are confined to processingQueue inside the
+        // callback (Apple's canonical requestMediaDataWhenReady pattern), but the
+        // types predate Sendable so the compiler can't prove it. The unsafe
+        // wrappers assert that confinement.
+        nonisolated(unsafe) let reader = assetReader
+        nonisolated(unsafe) let writer = assetWriter
+        nonisolated(unsafe) let output = readerOutput
+        nonisolated(unsafe) let input = writerInput
 
-                        if assetReader.status == .completed {
-                            assetWriter.finishWriting {
-                                continuation.resume(returning: assetWriter.status == .completed)
+        return await withCheckedContinuation { continuation in
+            input.requestMediaDataWhenReady(on: processingQueue) {
+                while input.isReadyForMoreMediaData {
+                    if let sampleBuffer = output.copyNextSampleBuffer() {
+                        input.append(sampleBuffer)
+                    } else {
+                        input.markAsFinished()
+
+                        if reader.status == .completed {
+                            writer.finishWriting {
+                                continuation.resume(returning: writer.status == .completed)
                             }
                         } else {
-                            dprint("AudioConverter: Reader failed with status: \(assetReader.status)")
+                            dprint("AudioConverter: Reader failed with status: \(reader.status)")
 
-                            assetWriter.cancelWriting()
+                            writer.cancelWriting()
                             continuation.resume(returning: false)
                         }
                         return

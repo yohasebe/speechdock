@@ -191,7 +191,7 @@ final class SubtitleOverlayManager {
     }
 
     private func windowDidMove() {
-        guard let window = overlayWindow, let appState = appState else { return }
+        guard overlayWindow != nil, appState != nil else { return }
 
         // Mark as dragging to prevent updatePosition() calls
         isDragging = true

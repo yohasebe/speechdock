@@ -708,9 +708,10 @@ final class FloatingWindowManager: ObservableObject {
     /// Activate the selected window and return success status
     func activateSelectedWindow() -> Bool {
         guard let window = selectedWindow else {
-            // Fall back to previous app
+            // Fall back to previous app (.activateIgnoringOtherApps is deprecated
+            // and a no-op since macOS 14)
             if let previousApp = previousApp {
-                return previousApp.activate(options: [.activateIgnoringOtherApps])
+                return previousApp.activate(options: [])
             }
             return false
         }

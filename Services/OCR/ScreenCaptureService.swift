@@ -3,6 +3,13 @@ import AppKit
 import CoreGraphics
 
 /// Service for capturing screen regions
+///
+/// NOTE on CGWindowListCreateImage deprecation (macOS 14): the calls below emit
+/// deprecation warnings. Migration to SCScreenshotManager is deliberately
+/// deferred while the app supports macOS 14 — the macOS 15+ rect-capture API
+/// isn't available there, so we'd have to keep this exact code as the macOS 14
+/// fallback anyway (same warnings, more code). Revisit when the deployment
+/// target moves to macOS 15+.
 enum ScreenCaptureService {
 
     /// Capture error types
@@ -79,9 +86,8 @@ enum ScreenCaptureService {
 
         // Get window IDs to exclude
         let excludeWindowIDs = excludingWindows.compactMap { window -> CGWindowID? in
-            guard let windowNumber = window.windowNumber as? Int, windowNumber > 0 else {
-                return nil
-            }
+            let windowNumber = window.windowNumber
+            guard windowNumber > 0 else { return nil }
             return CGWindowID(windowNumber)
         }
 

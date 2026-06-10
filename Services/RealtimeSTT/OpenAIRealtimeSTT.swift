@@ -105,10 +105,10 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         hasUnfinalizedAudio = false
         commitInFlight = false
         commitInFlightStartTime = nil
-        preBufferLock.lock()
-        preBuffer.removeAll()
-        isPreBuffering = true
-        preBufferLock.unlock()
+        preBufferLock.withLock {
+            preBuffer.removeAll()
+            isPreBuffering = true
+        }
 
         // Mark when audio capture starts for settling time (applies to both mic and external)
         audioStartTime = Date()
@@ -759,11 +759,12 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     private func flushPreBuffer() async {
-        preBufferLock.lock()
-        let buffersToFlush = preBuffer
-        preBuffer.removeAll()
-        isPreBuffering = false
-        preBufferLock.unlock()
+        let buffersToFlush = preBufferLock.withLock {
+            let buffers = preBuffer
+            preBuffer.removeAll()
+            isPreBuffering = false
+            return buffers
+        }
         dprint("OpenAIRealtimeSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")
 
 

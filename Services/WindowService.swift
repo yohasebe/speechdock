@@ -214,6 +214,9 @@ final class WindowService {
 
     /// Generate thumbnail for a specific window asynchronously
     /// Call this from a background task to avoid blocking main thread
+    ///
+    /// NOTE: CGWindowListCreateImage is deprecated (macOS 14) but kept while the
+    /// app supports macOS 14 — see ScreenCaptureService for the full rationale.
     nonisolated func generateThumbnailAsync(for windowID: CGWindowID, bounds: CGRect) async -> NSImage? {
         // Run on a background thread
         return await Task.detached(priority: .userInitiated) {
@@ -297,8 +300,8 @@ final class WindowService {
         // Check if the window is minimized and unminiaturize it first
         unminiaturizeWindowIfNeeded(windowInfo)
 
-        // Activate the app
-        let activated = app.activate(options: [.activateIgnoringOtherApps])
+        // Activate the app (.activateIgnoringOtherApps is deprecated and a no-op since macOS 14)
+        let activated = app.activate(options: [])
 
         if activated {
             // Try to raise the specific window using Accessibility API

@@ -1,6 +1,9 @@
 import Foundation
 import Speech
 @preconcurrency import AVFoundation
+// AVAudioPCMBuffer is attributed to the AVFAudio module in diagnostics, so the
+// AVFoundation umbrella's @preconcurrency above doesn't cover it.
+@preconcurrency import AVFAudio
 
 // SpeechAnalyzer APIs are only available in macOS 26+ SDK (Xcode 17+)
 // Use compile-time check to avoid errors on older SDKs
@@ -76,10 +79,10 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
         #endif
 
         // Reset pre-buffer state
-        preBufferLock.lock()
-        preBuffer.removeAll()
-        isPreBuffering = true
-        preBufferLock.unlock()
+        preBufferLock.withLock {
+            preBuffer.removeAll()
+            isPreBuffering = true
+        }
 
         // Start audio capture FIRST to avoid missing initial audio
         if audioSource == .microphone {
@@ -127,6 +130,24 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
             throw RealtimeSTTError.serviceUnavailable("Failed to create SpeechTranscriber")
         }
 
+        // Verify the locale is supported, then auto-download its language model if
+        // missing. assetInstallationRequest(supporting:) returns nil when assets are
+        // already installed, so the happy path costs one cheap inventory check.
+        // Previously a missing model surfaced as an opaque start failure and users
+        // had to discover the manual download path themselves.
+        let supportedIds = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+        guard supportedIds.contains(locale.identifier(.bcp47)) else {
+            throw RealtimeSTTError.serviceUnavailable(
+                "Speech recognition for \(locale.identifier) is not supported on this system")
+        }
+        if let installationRequest = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
+            debugLog("SpeechAnalyzerSTT: Language model for \(locale.identifier) missing — downloading...")
+            delegate?.realtimeSTT(self, didReceivePartialResult: "[Downloading language model...]")
+            try await installationRequest.downloadAndInstall()
+            delegate?.realtimeSTT(self, didReceivePartialResult: "")
+            debugLog("SpeechAnalyzerSTT: Language model installed")
+        }
+
         // Initialize SpeechAnalyzer with the transcriber module
         analyzer = SpeechAnalyzer(modules: [transcriber])
 
@@ -140,6 +161,10 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
         guard analyzerFormat != nil else {
             throw RealtimeSTTError.audioError("Failed to get analyzer audio format")
         }
+
+        // Prewarm model resources before start — documented pattern to cut
+        // first-result latency on a fresh session.
+        try? await analyzer.prepareToAnalyze(in: analyzerFormat)
 
         // Create AsyncStream for audio input
         let (inputSequence, continuation) = AsyncStream<AnalyzerInput>.makeStream()
@@ -332,11 +357,12 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
     }
 
     private func flushPreBuffer() async {
-        preBufferLock.lock()
-        let buffersToFlush = preBuffer
-        preBuffer.removeAll()
-        isPreBuffering = false
-        preBufferLock.unlock()
+        let buffersToFlush = preBufferLock.withLock {
+            let buffers = preBuffer
+            preBuffer.removeAll()
+            isPreBuffering = false
+            return buffers
+        }
 
         #if DEBUG
         debugLog("SpeechAnalyzerSTT: Flushing \(buffersToFlush.count) pre-buffered audio chunks")

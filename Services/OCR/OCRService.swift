@@ -1,5 +1,7 @@
 import Foundation
-import Vision
+// Vision types (VNImageRequestHandler etc.) predate Sendable; @preconcurrency
+// silences capture warnings for closures that hop to a worker queue.
+@preconcurrency import Vision
 import AppKit
 
 /// Service for performing OCR (Optical Character Recognition) on images
@@ -198,15 +200,14 @@ enum OCRService {
 
     /// Get available recognition languages supported by Vision
     static func supportedLanguages(for accuracy: AccuracyLevel = .accurate) -> [String] {
-        do {
-            let revision = VNRecognizeTextRequestRevision3
-            return try VNRecognizeTextRequest.supportedRecognitionLanguages(
-                for: accuracy.vnLevel,
-                revision: revision
-            )
-        } catch {
-            // Fallback to common languages
-            return ["en-US", "ja-JP", "zh-Hans", "zh-Hant", "ko-KR", "de-DE", "fr-FR", "es-ES"]
+        // Instance method replaces the class-level supportedRecognitionLanguages(for:revision:)
+        // deprecated in macOS 12. The request's recognitionLevel determines the language set.
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = accuracy.vnLevel
+        if let languages = try? request.supportedRecognitionLanguages() {
+            return languages
         }
+        // Fallback to common languages
+        return ["en-US", "ja-JP", "zh-Hans", "zh-Hant", "ko-KR", "de-DE", "fr-FR", "es-ES"]
     }
 }

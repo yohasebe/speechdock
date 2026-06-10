@@ -141,8 +141,9 @@ final class TextSelectionService {
             dprint("TextSelectionService: Current frontmost: \(currentFrontmost?.localizedName ?? "none"), target: \(targetApp.localizedName ?? "unknown")")
             #endif
 
-            // Force activate the target app, ignoring other apps
-            targetApp.activate(options: .activateIgnoringOtherApps)
+            // Activate the target app (.activateIgnoringOtherApps is deprecated
+            // and a no-op since macOS 14)
+            targetApp.activate(options: [])
 
             // Wait for activation to complete - apps like Chrome need more time
             try? await Task.sleep(nanoseconds: 150_000_000)  // 150ms

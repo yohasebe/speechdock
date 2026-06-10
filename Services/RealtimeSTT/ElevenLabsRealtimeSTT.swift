@@ -137,11 +137,22 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         default:    audioFormat = "pcm_16000"  // safe fallback matching our sampleRate=16000
         }
 
+        // Pin commit_strategy=vad explicitly. We never send manual commit messages,
+        // yet the server emits committed_transcript events — i.e. we depend on
+        // server-side VAD commits. Pinning the strategy locks that in instead of
+        // relying on an ambiguous default, and lets us tune the silence threshold:
+        // the API default of 1.5 s makes subtitles finalize noticeably later than
+        // our other providers (~0.3–0.8 s). External audio (videos with BGM) gets
+        // a shorter threshold since true silence is rare there.
+        let vadSilenceSecs = (audioSource == .external) ? "0.5" : "0.8"
+
         var urlComponents = URLComponents(string: "wss://api.elevenlabs.io/v1/speech-to-text/realtime")!
         urlComponents.queryItems = [
             URLQueryItem(name: "model_id", value: model),
             URLQueryItem(name: "audio_format", value: audioFormat),
-            URLQueryItem(name: "include_language_detection", value: "true")
+            URLQueryItem(name: "include_language_detection", value: "true"),
+            URLQueryItem(name: "commit_strategy", value: "vad"),
+            URLQueryItem(name: "vad_silence_threshold_secs", value: vadSilenceSecs)
         ]
 
         // Add language if specified (recommended for better accuracy)
@@ -341,7 +352,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                 delegate?.realtimeSTT(self, didReceivePartialResult: committedText)
             }
 
-        case "error", "invalid_request",
+        case "error",
              "auth_error", "quota_exceeded", "rate_limited",
              "queue_overflow", "resource_exhausted",
              "session_time_limit_exceeded", "chunk_size_exceeded",
