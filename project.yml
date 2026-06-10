@@ -13,7 +13,11 @@ packages:
     from: 0.2.1
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: 2.6.0
+    # 2.9.3+: includes high-severity security fixes (delta-update symlink attack,
+    # appcast connection validation) shipped in 2.9.2, plus the 2.9.3 fix for
+    # initial-install failure on apps whose bundle ID ends in `.app` — directly
+    # affects com.speechdock.app.
+    from: 2.9.3
 
 targets:
   SpeechDock:
@@ -45,8 +49,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.speechdock.app
         PRODUCT_NAME: SpeechDock
-        MARKETING_VERSION: "0.1.35"
-        CURRENT_PROJECT_VERSION: "0.1.35"
+        MARKETING_VERSION: "0.1.36"
+        CURRENT_PROJECT_VERSION: "0.1.36"
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SpeechDock.entitlements
         SWIFT_VERSION: "5.9"

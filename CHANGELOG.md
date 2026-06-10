@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.36] - 2026-06-10
+
+### Changed
+- **Subtitle realtime translation responds much faster.** Per-provider debounce intervals shortened to match v0.1.34's faster default LLMs (Gemini 3.1 Flash Lite, GPT-5.4 Mini, Grok 4.1 Fast non-reasoning): macOS 300 → 200 ms, Gemini 600 → 350 ms, OpenAI 800 → 400 ms, Grok 800 → 350 ms. Combined with the new in-flight queue (below), end-to-end "speech → translated subtitle" delay now tracks API latency rather than debounce.
+- **Subtitle translation pipeline now queues updates instead of dropping them.** Previously, while a translation request was in flight, every new partial-text update was discarded for the entire 1–2 s the API call took; only the next update after completion triggered a fresh translation. The pipeline now records the latest pending text and immediately fires another translation as soon as the current one completes, so long utterances with continuous OpenAI STT deltas track the spoken text smoothly instead of jumping in chunks.
+- **Sparkle bumped from 2.8.1 to 2.9.3.** Picks up the two high-severity security fixes shipped in 2.9.2 (delta-update symlink-attack mitigation and appcast connection validation) and the 2.9.3 fix for initial-install failure on apps whose bundle ID ends in `.app` — directly affects `com.speechdock.app`.
+
+### Fixed
+- **ElevenLabs STT WebSocket parameters updated to match current API.** Replaced the deprecated `sample_rate` + `encoding` query params with `audio_format=pcm_16000`; the older form was silently ignored by recent server deployments and was on the deprecation track.
+- **ElevenLabs STT now surfaces previously-silenced server errors.** Ten error event types (`auth_error`, `quota_exceeded`, `rate_limited`, `queue_overflow`, `resource_exhausted`, `session_time_limit_exceeded`, `chunk_size_exceeded`, `transcriber_error`, etc.) were falling into `default: break` with no user-visible feedback. They are now reported through the standard error delegate path. Two advisory events (`insufficient_audio_activity`, `commit_throttled`) are logged but no longer fatal.
+
 ## [0.1.35] - 2026-05-15
 
 ### Changed

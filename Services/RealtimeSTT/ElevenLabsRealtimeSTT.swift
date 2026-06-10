@@ -123,11 +123,24 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             model = "scribe_v2_realtime"
         }
 
+        // ElevenLabs replaced the old `sample_rate` + `encoding` query params with
+        // a unified `audio_format` (e.g. `pcm_16000`, `pcm_8000`, `ulaw_8000`).
+        // The old params were silently ignored by the server in some recent
+        // deployments; switching here keeps the connection forward-compatible.
+        let audioFormat: String
+        switch Int(sampleRate) {
+        case 8000:  audioFormat = "pcm_8000"
+        case 16000: audioFormat = "pcm_16000"
+        case 24000: audioFormat = "pcm_24000"
+        case 44100: audioFormat = "pcm_44100"
+        case 48000: audioFormat = "pcm_48000"
+        default:    audioFormat = "pcm_16000"  // safe fallback matching our sampleRate=16000
+        }
+
         var urlComponents = URLComponents(string: "wss://api.elevenlabs.io/v1/speech-to-text/realtime")!
         urlComponents.queryItems = [
             URLQueryItem(name: "model_id", value: model),
-            URLQueryItem(name: "sample_rate", value: "\(Int(sampleRate))"),
-            URLQueryItem(name: "encoding", value: "pcm_s16le"),
+            URLQueryItem(name: "audio_format", value: audioFormat),
             URLQueryItem(name: "include_language_detection", value: "true")
         ]
 
@@ -328,13 +341,30 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                 delegate?.realtimeSTT(self, didReceivePartialResult: committedText)
             }
 
-        case "error", "invalid_request":
-            let errorMessage = json["error"] as? String ?? json["message"] as? String ?? "Unknown error"
+        case "error", "invalid_request",
+             "auth_error", "quota_exceeded", "rate_limited",
+             "queue_overflow", "resource_exhausted",
+             "session_time_limit_exceeded", "chunk_size_exceeded",
+             "transcriber_error":
+            // Fatal — surface to user and stop. These were previously silently
+            // dropped via `default: break` despite being real failure signals.
+            let errorMessage = json["error"] as? String
+                ?? json["message"] as? String
+                ?? "ElevenLabs STT: \(messageType)"
+            dprint("ElevenLabsRealtimeSTT: Fatal event \(messageType) — \(errorMessage)")
             delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.apiError(errorMessage))
             stopListening()
 
+        case "insufficient_audio_activity", "commit_throttled":
+            // Non-fatal advisory events. Log so we can see them in the dev console
+            // but don't disrupt the recording — these typically self-resolve as
+            // more audio arrives.
+            dprint("ElevenLabsRealtimeSTT: advisory \(messageType): \(jsonString.prefix(200))")
+
         default:
-            break
+            #if DEBUG
+            dprint("ElevenLabsRealtimeSTT: Unhandled event type: \(messageType)")
+            #endif
         }
     }
 

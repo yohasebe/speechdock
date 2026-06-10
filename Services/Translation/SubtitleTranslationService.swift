@@ -32,16 +32,20 @@ final class SubtitleTranslationService {
     /// Allows user to see error message before auto-clearing
     private let errorResetDelay: UInt64 = 3_000_000_000  // 3 seconds
 
-    /// Default debounce interval for unknown providers (nanoseconds)
-    private let defaultDebounceInterval: UInt64 = 800_000_000  // 800ms
+    /// Default debounce interval for unknown providers (nanoseconds).
+    /// Tightened after the v0.1.34 model refresh — current Flash/Mini/Fast LLMs
+    /// have ~300–800 ms typical translation latency, so debounce + API latency
+    /// stays under ~1 s end-to-end. Combined with the queue pattern (see
+    /// `pendingTranslationText`), the user-visible delay between speech and
+    /// translated subtitle now tracks API latency rather than debounce.
+    private let defaultDebounceInterval: UInt64 = 400_000_000  // 400ms
 
     /// Debounce intervals by provider (nanoseconds)
-    /// Shorter intervals for faster providers, longer for API-based ones
     private let debounceIntervals: [TranslationProvider: UInt64] = [
-        .macOS: 300_000_000,   // 300ms - fast on-device processing
-        .gemini: 600_000_000,  // 600ms - moderate API latency
-        .openAI: 800_000_000,  // 800ms - higher API latency
-        .grok: 800_000_000     // 800ms - higher API latency
+        .macOS: 200_000_000,   // 200ms - instant on-device processing
+        .gemini: 350_000_000,  // 350ms - Gemini 3.1 Flash Lite (~300-500ms API)
+        .openAI: 400_000_000,  // 400ms - GPT-5.4 Mini (~500-1000ms API)
+        .grok: 350_000_000     // 350ms - Grok 4.1 Fast non-reasoning (~300-700ms API)
     ]
 
     /// Maximum context segments to include for LLM translation
@@ -67,6 +71,13 @@ final class SubtitleTranslationService {
 
     /// Task for pause-based confirmation check
     private var pauseCheckTask: Task<Void, Never>?
+
+    /// Latest text waiting to be translated while a previous translation is in
+    /// flight. When the in-flight translation completes and this differs from
+    /// what was just translated, we immediately fire another translation pass.
+    /// Replaces the old "skip while translating" behavior which dropped updates
+    /// for the entire 1–2 s an API call took.
+    private var pendingTranslationText: String?
 
     /// Current translator instance
     private var translator: ContextualTranslator?
@@ -137,6 +148,7 @@ final class SubtitleTranslationService {
         debounceTask = nil
         pauseCheckTask?.cancel()
         pauseCheckTask = nil
+        pendingTranslationText = nil
         translator?.cancel()
         // Keep cache for potential reuse
     }
@@ -228,10 +240,13 @@ final class SubtitleTranslationService {
             return
         }
 
-        // Prevent concurrent translations
+        // If another translation is in flight, queue this one as the latest
+        // pending request instead of dropping it. When the in-flight call
+        // completes, the wrapping pass will pick this up and fire again so the
+        // displayed translation tracks the speech with minimal delay.
         guard appState.subtitleTranslationState != .translating else {
-            dprint("SubtitleTranslation: Skipping - already translating")
-
+            pendingTranslationText = text
+            dprint("SubtitleTranslation: In-flight — queued latest as pending (\(text.count) chars)")
             return
         }
 
@@ -282,7 +297,19 @@ final class SubtitleTranslationService {
             appState.subtitleTranslationState = .idle
             dprint("SubtitleTranslation: Success → '\(translated.prefix(40))...'")
 
-
+            // Drain queued pending translation if newer text arrived while this
+            // call was in flight. Fire-and-forget — the recursive call will
+            // re-enter the same in-flight check and either run or re-queue.
+            if let pending = pendingTranslationText, pending != text {
+                pendingTranslationText = nil
+                dprint("SubtitleTranslation: Draining queued pending translation")
+                Task { [weak self, weak appState] in
+                    guard let self = self, let appState = appState else { return }
+                    await self.translateFullText(pending, appState: appState)
+                }
+            } else {
+                pendingTranslationText = nil
+            }
         } catch {
             dprint("SubtitleTranslation: Error: \(error)")
 
@@ -290,6 +317,10 @@ final class SubtitleTranslationService {
             let errorMessage = error.localizedDescription
             appState.subtitleTranslationState = .error(errorMessage)
             // Don't set subtitleTranslatedText to original - let displayText fallback handle it
+
+            // Drop any pending request so we don't immediately retry into the
+            // same failure.
+            pendingTranslationText = nil
 
             // Reset error state after delay
             let resetDelay = errorResetDelay
