@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.37] - 2026-07-02
+
+### Added
+- **macOS native STT: language models now download automatically.** When you pick a language whose SpeechAnalyzer model isn't installed yet, SpeechDock requests the download via `AssetInventory` and shows "[Downloading language model...]" until it's ready, instead of failing opaquely and requiring a manual download. Locale support is validated upfront with a clear error for unsupported languages, and the analyzer is prewarmed (`prepareToAnalyze`) to shorten first-result latency.
+
+### Changed
+- **ElevenLabs STT segments finalize faster.** The session now pins `commit_strategy=vad` explicitly and shortens the VAD silence threshold from the API default 1.5 s to 0.8 s for microphone input (0.5 s for system-audio capture), bringing transcript finalization in line with the other providers.
+- ElevenLabs STT: added handlers for the `input_error` and `unaccepted_terms` server events (surfaced as errors instead of being silently ignored); removed the `invalid_request` event name, which no longer exists in the API.
+
+### Internal
+- Build warnings reduced from 115 to 8: NSLock usage in async contexts migrated to `withLock {}` across the four WebSocket STT providers (Swift 6 readiness), `@preconcurrency` imports for Vision/AVFAudio, deprecated API replacements (`supportedRecognitionLanguages`, `activateIgnoringOtherApps`), and misc unused-variable fixes. The remaining 7 `CGWindowListCreateImage` deprecation warnings are deliberately retained while the app supports macOS 14 (the replacement rect-capture API requires macOS 15+); rationale documented in `ScreenCaptureService.swift`.
+- Release workflow now downloads Sparkle 2.9.3 for `sign_update`, matching the framework version embedded in the app since v0.1.36.
+- Verified against macOS 26.5.2 (25F84) and Xcode 26.6: clean build, no new warnings, all 198 tests pass. (26.5.2 is a security-only update with no API changes.)
+
 ## [0.1.36] - 2026-06-10
 
 ### Changed
