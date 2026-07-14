@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.38] - 2026-07-14
+
+### Fixed
+- **Gemini translation was broken and is now restored.** The default Gemini translation model `gemini-3.1-flash-lite-preview` was shut down by Google on 2026-05-25, so translating with the Gemini provider had been failing (404) since then. Switched to the GA model id `gemini-3.1-flash-lite`. `gemini-3.1-pro-preview` (the accuracy option) remains valid.
+
+### Changed
+- **Grok translation migrated ahead of model retirement.** `grok-4-1-fast-non-reasoning` / `grok-4-1-fast-reasoning` retire on 2026-08-15. Moved to the undated `grok-4.20-non-reasoning` (default) and `grok-4.20-reasoning` aliases — undated so they aren't affected when the underlying dated snapshots roll over. Saved selections of the old ids auto-migrate to the new default.
+- **Grok TTS voices expanded from 5 to 26.** Added the 21 flagship voices xAI released on 2026-07-06 (Carina, Zagan, Helix, Orion, Luna, Iris, Altair, Zenith, Perseus, Helios, Lux, Kepler, Rigel, Cosmo, Celeste, Ursa, Sirius, Lumen, Castor, Naksh, Atlas), all multilingual. The original five (Eve, Ara, Rex, Sal, Leo) remain and stay the default.
+
 ## [0.1.37] - 2026-07-02
 
 ### Added

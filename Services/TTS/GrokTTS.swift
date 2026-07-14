@@ -145,12 +145,35 @@ final class GrokTTS: NSObject, TTSService {
 
     func availableVoices() -> [TTSVoice] {
         // Voice IDs are case-insensitive on the API side; we emit lowercase canonical form.
+        // Original 5 (upgraded 2026-07) plus the 21 flagship voices added 2026-07-06,
+        // for 26 total. All support 25+ languages.
         [
             TTSVoice(id: "eve", name: "Eve (Energetic)", language: "multi", isDefault: true),
             TTSVoice(id: "ara", name: "Ara (Warm)", language: "multi"),
             TTSVoice(id: "rex", name: "Rex (Confident)", language: "multi"),
             TTSVoice(id: "sal", name: "Sal (Smooth)", language: "multi"),
-            TTSVoice(id: "leo", name: "Leo (Authoritative)", language: "multi")
+            TTSVoice(id: "leo", name: "Leo (Authoritative)", language: "multi"),
+            TTSVoice(id: "carina", name: "Carina", language: "multi"),
+            TTSVoice(id: "zagan", name: "Zagan", language: "multi"),
+            TTSVoice(id: "helix", name: "Helix", language: "multi"),
+            TTSVoice(id: "orion", name: "Orion", language: "multi"),
+            TTSVoice(id: "luna", name: "Luna", language: "multi"),
+            TTSVoice(id: "iris", name: "Iris", language: "multi"),
+            TTSVoice(id: "altair", name: "Altair", language: "multi"),
+            TTSVoice(id: "zenith", name: "Zenith", language: "multi"),
+            TTSVoice(id: "perseus", name: "Perseus", language: "multi"),
+            TTSVoice(id: "helios", name: "Helios", language: "multi"),
+            TTSVoice(id: "lux", name: "Lux", language: "multi"),
+            TTSVoice(id: "kepler", name: "Kepler", language: "multi"),
+            TTSVoice(id: "rigel", name: "Rigel", language: "multi"),
+            TTSVoice(id: "cosmo", name: "Cosmo", language: "multi"),
+            TTSVoice(id: "celeste", name: "Celeste", language: "multi"),
+            TTSVoice(id: "ursa", name: "Ursa", language: "multi"),
+            TTSVoice(id: "sirius", name: "Sirius", language: "multi"),
+            TTSVoice(id: "lumen", name: "Lumen", language: "multi"),
+            TTSVoice(id: "castor", name: "Castor", language: "multi"),
+            TTSVoice(id: "naksh", name: "Naksh", language: "multi"),
+            TTSVoice(id: "atlas", name: "Atlas", language: "multi")
         ]
     }
 
