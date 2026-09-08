@@ -92,22 +92,26 @@ jobs:
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          # Get DMG filename and info
-          DMG_FILE=$(ls SpeechDock-*.dmg)
+          # Get DMG filename and info (head -1 guards against multiple matches)
+          DMG_FILE=$(ls SpeechDock-*.dmg | head -1)
           DMG_SIZE=$(stat -f%z "$DMG_FILE")
           VERSION=$(cat VERSION)
           PUB_DATE=$(date -R)
 
           # Create temporary file with private key
-          echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.txt
+          # trap ensures the key is removed even if sign_update fails
+          SPARKLE_KEY_FILE=$(mktemp /tmp/sparkle_key.XXXXXX)
+          trap 'rm -f "$SPARKLE_KEY_FILE"' EXIT
+          echo "$SPARKLE_PRIVATE_KEY" > "$SPARKLE_KEY_FILE"
 
           # Sign the DMG - extract just the signature value (without attribute name)
-          RAW_SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f /tmp/sparkle_key.txt | head -1)
+          RAW_SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f "$SPARKLE_KEY_FILE" | head -1)
           # Extract the base64 signature from: sparkle:edSignature="..." length="..."
           SIGNATURE=$(echo "$RAW_SIGNATURE" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
 
           # Clean up key file
-          rm /tmp/sparkle_key.txt
+          rm -f "$SPARKLE_KEY_FILE"
+          trap - EXIT
 
           # Update appcast.xml
           cat > appcast.xml << EOF
