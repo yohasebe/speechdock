@@ -220,6 +220,19 @@ jobs:
           git commit -m "Update SpeechDock to v${VERSION}"
           git push
 
+      - name: Verify Homebrew Cask update
+        run: |
+          if [ "${{ steps.homebrew.outcome }}" != "success" ]; then
+            echo "::error::Homebrew Cask update FAILED (outcome: ${{ steps.homebrew.outcome }})."
+            echo "The GitHub Release and appcast.xml were published, but the Homebrew tap"
+            echo "(yohasebe/homebrew-speechdock) was NOT updated, so 'brew upgrade' users are"
+            echo "stuck on the previous version. Most likely cause: an expired or invalid"
+            echo "HOMEBREW_TAP_TOKEN secret. Regenerate the PAT (repo scope) and update the"
+            echo "repository secret, then update Casks/speechdock.rb manually for this release."
+            exit 1
+          fi
+          echo "Homebrew Cask updated successfully."
+
       - name: Cleanup keychain
         if: always()
         run: |
