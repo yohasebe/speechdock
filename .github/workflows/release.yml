@@ -162,17 +162,31 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Homebrew Cask
+        id: homebrew
+        # Do not fail the whole release if only the tap update fails — the DMG,
+        # appcast, and GitHub Release are already published by this point. But
+        # the outcome is surfaced by the "Verify Homebrew Cask update" step
+        # below so a failure (e.g. an expired HOMEBREW_TAP_TOKEN) is never
+        # silently swallowed.
         continue-on-error: true
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "::error::HOMEBREW_TAP_TOKEN secret is empty or unset."
+            exit 1
+          fi
           DMG_FILE=$(ls SpeechDock-*.dmg)
           VERSION=$(cat VERSION)
           SHA256=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
 
           # Clone homebrew-speechdock repo
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/yohasebe/homebrew-speechdock.git" /tmp/homebrew-speechdock
+          # Pass the token via an HTTP header so it never appears in the
+          # clone URL, remote config, or git error messages
+          git clone https://github.com/yohasebe/homebrew-speechdock.git /tmp/homebrew-speechdock
           cd /tmp/homebrew-speechdock
+          git config http.https://github.com/.extraheader \
+            "AUTHORIZATION: basic $(echo -n "x-access-token:${HOMEBREW_TAP_TOKEN}" | base64)"
 
           # Update cask file
           cat > Casks/speechdock.rb << CASKEOF
