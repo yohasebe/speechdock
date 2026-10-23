@@ -7,8 +7,11 @@ final class GeminiSTTClient: STTAPIClient {
         self.apiKeyManager = apiKeyManager
     }
 
+    /// Gemini's limit for a request with inline data, prompt included.
+    static let maxInlineRequestBytes = 20_000_000
+
     private func endpoint(for model: STTModel) -> String {
-        "https://generativelanguage.googleapis.com/v1alpha/models/\(model.rawValue):generateContent"
+        "https://generativelanguage.googleapis.com/v1beta/models/\(model.rawValue):generateContent"
     }
 
     func transcribe(
@@ -46,17 +49,28 @@ final class GeminiSTTClient: STTAPIClient {
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        let body = try JSONSerialization.data(withJSONObject: requestBody)
+        // Inline data is limited by the size of the whole request.
+        guard body.count <= Self.maxInlineRequestBytes else {
+            throw STTError.apiError("Audio is too large for Gemini (\(body.count / 1_000_000) MB request; limit 20 MB)")
+        }
+        request.httpBody = body
         request.timeoutInterval = 60
 
         let (data, _) = try await STTAPIHelper.performRequest(request, providerName: "Gemini")
 
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        // Join every text part (a response may split text across parts); skip thought parts.
         guard let candidates = json?["candidates"] as? [[String: Any]],
               let content = candidates.first?["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let text = parts.first?["text"] as? String else {
+              let parts = content["parts"] as? [[String: Any]] else {
+            throw STTError.emptyResponse
+        }
+        let text = parts.filter { ($0["thought"] as? Bool) != true }
+            .compactMap { $0["text"] as? String }
+            .joined()
+        guard !text.isEmpty else {
             throw STTError.emptyResponse
         }
 

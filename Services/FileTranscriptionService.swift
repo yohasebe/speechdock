@@ -128,7 +128,7 @@ final class FileTranscriptionService {
         case .openAI:
             return .whisper1  // whisper-1 is best for file transcription
         case .gemini:
-            return .gemini25Flash
+            return .gemini38Flash
         case .elevenLabs:
             return .scribeV2
         case .grok, .macOS:

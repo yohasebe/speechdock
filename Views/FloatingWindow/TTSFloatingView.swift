@@ -1355,11 +1355,30 @@ struct TTSVoiceSelector: View {
         .onChange(of: appState.selectedTTSProvider) { _, _ in
             loadVoices()
         }
+        // Voices fetched after the panel opened (e.g. once a 1Password
+        // reference is read) replace the built-in list shown so far.
+        .onReceive(NotificationCenter.default.publisher(for: TTSVoiceCache.didUpdateNotification)) { notification in
+            if notification.object as? TTSProvider == appState.selectedTTSProvider { loadVoices() }
+        }
+        // A 1Password reference read later (Settings, Reload, first use) makes
+        // the key readable, which the launch refresh could not use.
+        .onChange(of: APIKeyChangeSignal.shared.revision) { _, _ in
+            fetchVoicesIfNeeded()
+        }
+    }
+
+    /// Fetches voices if a key is already readable (no approval is asked);
+    /// the cache update notification then reloads this list.
+    private func fetchVoicesIfNeeded() {
+        guard appState.selectedTTSProvider == .elevenLabs,
+              TTSVoiceCache.shared.isCacheExpired(for: .elevenLabs) else { return }
+        Task { await ElevenLabsTTS.fetchAndCacheVoices() }
     }
 
     private func loadVoices() {
         let service = TTSFactory.makeService(for: appState.selectedTTSProvider)
         availableVoices = service.availableVoices()
+        fetchVoicesIfNeeded()
 
         // If current voice is not in the list, select the default or first voice
         if !availableVoices.contains(where: { $0.id == appState.selectedTTSVoice }) {

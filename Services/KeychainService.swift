@@ -10,7 +10,13 @@ enum KeychainError: Error {
 
 /// Thread-safe keychain service for storing sensitive data
 final class KeychainService {
+    /// The development build keeps its own items, so it never reads (and
+    /// prompts for) the keys the released app saved.
+    #if DEBUG
+    private let service = "com.speechdock.apikeys.dev"
+    #else
     private let service = "com.speechdock.apikeys"
+    #endif
 
     /// Lock for thread-safe keychain access
     private let lock = NSLock()

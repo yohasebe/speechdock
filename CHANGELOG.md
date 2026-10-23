@@ -11,7 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API key fields and environment variables accept 1Password references (`op://vault/item/field`), read with the 1Password CLI when Settings opens or a key is first needed. Only the reference is stored; the value stays in memory.
 
 ### Changed
+- Gemini real-time transcription uses Gemini 3.5 Transcribe Live (default) or Gemini 3.8 Live; the previous Live models are retired by Google on November 17, 2026. Gemini file transcription uses Gemini 3.8 Flash, since Gemini 2.5 is no longer available to new users.
 - Grok uses `XAI_API_KEY`. The older `GROK_API_KEY` is still read; saving a Grok key in Settings stores it under the new name and removes the old item.
+
+### Fixed
+- ElevenLabs text-to-speech sends the selected language as an ISO 639-1 code, so choosing a language takes effect with Flash v2.5 and Eleven v3.
+- ElevenLabs real-time transcription no longer drops a phrase spoken again (such as "yes" twice); each committed segment is added once whether it is reported once or twice.
+- Gemini file transcription accepts files up to 14 MB, so the Base64-encoded request stays within Gemini's 20 MB limit, and reads every text part of the response.
+- The text-to-speech panel's ElevenLabs voice list updates when voices are fetched after it opens, and voices are fetched once a 1Password reference has been read, instead of showing a voice ID or the built-in list.
 
 ## [0.1.39] - 2026-09-27
 

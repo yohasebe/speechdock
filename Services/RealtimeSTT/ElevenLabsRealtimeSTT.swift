@@ -31,9 +31,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
     // Accumulated committed text (ElevenLabs resets partial transcripts after each commit)
     private var committedText: String = ""
-    // Last committed segment - deduplication compares only against this, so that
-    // re-spoken phrases (e.g. "はい") that appeared earlier in history are not discarded
-    private var lastCommittedSegment: String = ""
+    // Decides which committed events add a new segment (see CommittedSegmentCounter)
+    private var committedSegments = CommittedSegmentCounter()
     // Current partial text (not yet committed) - needed to preserve on stop
     private var currentPartialText: String = ""
 
@@ -62,7 +61,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
         // Reset accumulated text
         committedText = ""
-        lastCommittedSegment = ""
+        committedSegments = CommittedSegmentCounter()
         currentPartialText = ""
 
         // Connect WebSocket
@@ -343,7 +342,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         }
     }
 
-    private func parseTranscriptionMessage(_ jsonString: String) {
+    func parseTranscriptionMessage(_ jsonString: String) {  // internal for tests
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let messageType = json["message_type"] as? String else {
@@ -374,6 +373,15 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
             }
 
         case "committed_transcript", "committed_transcript_with_timestamps":
+            // A segment may arrive twice, as committed_transcript and as
+            // committed_transcript_with_timestamps (possibly after the next
+            // segment's partial). The second copy changes nothing: not the text,
+            // not the partial in progress, not the stop wait. Judged by event
+            // counts, not text, so a phrase spoken again is kept.
+            guard committedSegments.isNewSegment(messageType: messageType) else {
+                dprint("ElevenLabsRealtimeSTT: Skipped second copy of a committed segment")
+                return
+            }
             finalResponseReceived = true
             if let text = json["text"] as? String, !text.isEmpty {
                 #if DEBUG
@@ -385,20 +393,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
                 dprint("ElevenLabsRealtimeSTT: Current committedText: '\(committedText.suffix(100))...'")
                 #endif
 
-                // Deduplicate: ElevenLabs sometimes resends previously committed text.
-                // Compare only against the most recent committed segment — searching the
-                // whole history would wrongly discard genuinely re-spoken phrases.
-                if committedText.isEmpty {
-                    committedText = text
-                    lastCommittedSegment = text
-                } else if text == lastCommittedSegment || lastCommittedSegment.hasSuffix(text) {
-                    dprint("ElevenLabsRealtimeSTT: Skipped duplicate committed text")
-
-                } else {
-                    // Only append if this text is genuinely new
-                    committedText += " " + text
-                    lastCommittedSegment = text
-                }
+                committedText = committedText.isEmpty ? text : committedText + " " + text
 
                 // Clear partial text since it's now committed
                 currentPartialText = ""
@@ -578,5 +573,25 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
         [
             RealtimeSTTModelInfo(id: "scribe_v2_realtime", name: "Scribe v2 Realtime", description: "~150ms latency streaming", isDefault: true)
         ]
+    }
+}
+
+/// ElevenLabs may report each committed segment twice: as `committed_transcript`
+/// and, with language detection or timestamps on, as
+/// `committed_transcript_with_timestamps`, possibly after the next segment's
+/// plain event. An event adds a segment only when its kind has now been seen
+/// more often than the other kind; otherwise it is the second copy of a
+/// segment already added. When only one kind arrives, every event adds one.
+struct CommittedSegmentCounter {
+    private var plain = 0
+    private var timestamped = 0
+
+    mutating func isNewSegment(messageType: String) -> Bool {
+        if messageType == "committed_transcript_with_timestamps" {
+            timestamped += 1
+            return timestamped > plain
+        }
+        plain += 1
+        return plain > timestamped
     }
 }

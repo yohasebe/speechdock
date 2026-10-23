@@ -4,6 +4,8 @@ import Foundation
 @MainActor
 final class TTSVoiceCache {
     static let shared = TTSVoiceCache()
+    /// Posted after a provider's voices are saved; `object` is the TTSProvider.
+    static let didUpdateNotification = Notification.Name("ttsVoiceCacheDidUpdate")
 
     private let defaults = UserDefaults.standard
     private let cacheKeyPrefix = "ttsVoiceCache_"
@@ -83,6 +85,7 @@ final class TTSVoiceCache {
             let data = try JSONEncoder().encode(cached)
             defaults.set(data, forKey: key)
             defaults.set(Date().timeIntervalSince1970, forKey: timestampKey)
+            NotificationCenter.default.post(name: Self.didUpdateNotification, object: provider)
         } catch {
             dprint("TTSVoiceCache: Failed to cache voices for \(provider.rawValue): \(error)")
 

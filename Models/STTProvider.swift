@@ -22,7 +22,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI:
             return [.gpt4oMiniTranscribe, .whisper1]
         case .gemini:
-            return [.gemini25Flash]
+            return [.gemini38Flash]
         case .elevenLabs:
             return [.scribeV2]
         case .grok:
@@ -44,7 +44,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI:
             return "Enables STT (GPT-4o Mini Transcribe, Whisper), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
         case .gemini:
-            return "Enables STT (Gemini 2.5 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this."
+            return "Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this."
         case .elevenLabs:
             return "Enables STT (Scribe v2) and TTS (Eleven v3). Optional — macOS built-in works without this."
         case .grok:
@@ -59,7 +59,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
     case whisper1 = "whisper-1"
 
     // Gemini models
-    case gemini25Flash = "gemini-2.5-flash"
+    case gemini38Flash = "gemini-3.8-flash"
 
     // ElevenLabs models
     case scribeV2 = "scribe_v2"
@@ -73,7 +73,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .gpt4oMiniTranscribe: return "GPT-4o Mini Transcribe"
         case .whisper1: return "Whisper-1"
-        case .gemini25Flash: return "Gemini 2.5 Flash"
+        case .gemini38Flash: return "Gemini 3.8 Flash"
         case .scribeV2: return "Scribe v2"
         case .grokSTT: return "Grok STT"
         }
@@ -83,7 +83,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .gpt4oMiniTranscribe, .whisper1:
             return .openAI
-        case .gemini25Flash:
+        case .gemini38Flash:
             return .gemini
         case .scribeV2:
             return .elevenLabs

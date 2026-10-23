@@ -166,7 +166,9 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI:
             return 25  // Whisper API limit
         case .gemini:
-            return 20  // Gemini inline data limit
+            // The 20 MB inline limit covers the whole request, and Base64
+            // grows audio by 4/3: 14 MiB of audio is about 19.6 MB encoded.
+            return 14
         case .elevenLabs:
             return 25  // Scribe v2 limit
         case .macOS:
@@ -208,7 +210,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI:
             return NSLocalizedString("Whisper API (max 25MB)", comment: "File transcription description")
         case .gemini:
-            return NSLocalizedString("Gemini API (max 20MB)", comment: "File transcription description")
+            return NSLocalizedString("Gemini API (max 14MB)", comment: "File transcription description")
         case .elevenLabs:
             return NSLocalizedString("Scribe v2 (max 25MB, ~2h audio)", comment: "File transcription description")
         case .grok:

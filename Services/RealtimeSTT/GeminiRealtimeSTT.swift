@@ -6,7 +6,7 @@ import Foundation
 final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "gemini-2.5-flash-native-audio-preview-12-2025"
+    var selectedModel: String = GeminiRealtimeSTT.transcribeModelId
     var selectedLanguage: String = ""  // "" = Auto (Gemini auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
@@ -18,8 +18,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     private var audioEngine: AVAudioEngine?
     private var webSocketTask: URLSessionWebSocketTask?
     private var finishingWebSocketTask: URLSessionWebSocketTask?
-    private var connectionGeneration = UUID()
-    private var finalResponseReceived = false
+    private(set) var connectionGeneration = UUID()  // read by tests
     private var urlSession: URLSession?
 
     private let apiKeyManager = APIKeyManager.shared
@@ -32,6 +31,12 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
     // Accumulated transcription text
     private var accumulatedText: String = ""
+    /// The transcribe model's speculative text for the segment in progress.
+    /// Replaced by each interim update and cleared when the segment is finalized.
+    private var pendingInterimText: String = ""
+    /// How long a stop keeps receiving after the end of audio. Nothing signals
+    /// that the last input transcription has arrived, so the whole interval is used.
+    static let stopGraceInterval: TimeInterval = 1.5
 
     // Audio level monitoring
     private let audioLevelMonitor = AudioLevelMonitor.shared
@@ -70,6 +75,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
         // Reset state
         accumulatedText = ""
+        pendingInterimText = ""
         isSetupComplete = false
         isWebSocketConnected = false
         audioStartTime = nil
@@ -122,15 +128,27 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
-        finalResponseReceived = false
         let message: [String: Any] = ["realtimeInput": ["audioStreamEnd": true]]
         if let data = try? JSONSerialization.data(withJSONObject: message),
            let text = String(data: data, encoding: .utf8) {
             try? await task.send(.string(text))
         }
-        let deadline = Date().addingTimeInterval(1.5)
-        while !finalResponseReceived, generation == connectionGeneration, Date() < deadline, !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 25_000_000)
+        await receiveUntilStopGraceEnds(generation: generation)
+    }
+
+    /// Keeps receiving for the stop grace interval, then closes the connection
+    /// unless it was stopped or replaced meanwhile. Input transcription is not
+    /// ordered with turnComplete and has no completion signal, so a quiet period
+    /// does not mean the last audio has been transcribed.
+    /// `now` and `sleep` are replaceable for tests.
+    func receiveUntilStopGraceEnds(
+        generation: UUID,
+        now: @MainActor () -> Date = { Date() },
+        sleep: @MainActor (UInt64) async -> Void = { try? await Task.sleep(nanoseconds: $0) }
+    ) async {
+        let deadline = now().addingTimeInterval(Self.stopGraceInterval)
+        while generation == connectionGeneration, now() < deadline, !Task.isCancelled {
+            await sleep(25_000_000)
         }
         guard generation == connectionGeneration else { return }
         stopListening()
@@ -163,9 +181,12 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         urlSession = nil
         isWebSocketConnected = false
 
-        // Send final result if there's any text
-        if !accumulatedText.isEmpty {
-            delegate?.realtimeSTT(self, didReceiveFinalResult: accumulatedText)
+        // Send final result if there's any text. An interim tail that never
+        // got its final segment is kept as shown rather than silently dropped.
+        let finalText = textIncludingInterim
+        pendingInterimText = ""
+        if !finalText.isEmpty {
+            delegate?.realtimeSTT(self, didReceiveFinalResult: finalText)
         }
 
         if isListening {
@@ -192,10 +213,19 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         sendAudioBuffer(buffer)
     }
 
+    /// The speech-to-text Live model. Unlike voice models it answers in TEXT,
+    /// sends speculative `interimInputTranscription` while the speaker talks,
+    /// and a finalized `inputTranscription` segment when speech settles.
+    static let transcribeModelId = "gemini-3.5-transcribe-live"
+
+    private var usesTranscribeModel: Bool {
+        (selectedModel.isEmpty ? defaultModelId : selectedModel) == Self.transcribeModelId
+    }
+
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "gemini-2.5-flash-native-audio-preview-12-2025", name: "Gemini 2.5 Flash Native Audio", description: "Native audio with transcription support", isDefault: true),
-            RealtimeSTTModelInfo(id: "gemini-3.1-flash-live-preview", name: "Gemini 3.1 Flash Live", description: "Real-time audio model (preview)")
+            RealtimeSTTModelInfo(id: Self.transcribeModelId, name: "Gemini 3.5 Transcribe Live", description: "Streaming speech-to-text", isDefault: true),
+            RealtimeSTTModelInfo(id: "gemini-3.8-live", name: "Gemini 3.8 Live", description: "Voice model; transcribes its audio input")
         ]
     }
 
@@ -267,21 +297,38 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             - Output only the transcription, no explanations.
             """
 
-        // For transcription-only mode, use AUDIO modality with inputAudioTranscription enabled
-        let setup: [String: Any] = [
-            "setup": [
-                "model": "models/\(model)",
-                "generationConfig": [
-                    "responseModalities": ["AUDIO"]
-                ],
-                "systemInstruction": [
-                    "parts": [
-                        ["text": systemInstructionText]
-                    ]
-                ],
-                "inputAudioTranscription": [:]
+        let setup: [String: Any]
+        if usesTranscribeModel {
+            // Speech-to-text model: TEXT modality; the transcription config
+            // carries the language (BCP-47; empty list = auto-detect).
+            var transcription: [String: Any] = [:]
+            if !selectedLanguage.isEmpty {
+                transcription["languageCodes"] = [selectedLanguage]
+            }
+            setup = [
+                "setup": [
+                    "model": "models/\(model)",
+                    "generationConfig": ["responseModalities": ["TEXT"]],
+                    "inputAudioTranscription": transcription
+                ]
             ]
-        ]
+        } else {
+            // Voice model: AUDIO modality with input transcription enabled
+            setup = [
+                "setup": [
+                    "model": "models/\(model)",
+                    "generationConfig": [
+                        "responseModalities": ["AUDIO"]
+                    ],
+                    "systemInstruction": [
+                        "parts": [
+                            ["text": systemInstructionText]
+                        ]
+                    ],
+                    "inputAudioTranscription": [:]
+                ]
+            ]
+        }
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: setup),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
@@ -332,6 +379,8 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
     private func handleUnexpectedDisconnection() async {
         let generation = connectionGeneration
+        // The old connection's interim text will not be finalized by the next one.
+        keepInterimAcrossConnection()
         guard !isIntentionallyStopping, reconnectAttempts < maxReconnectAttempts else {
             if isListening {
                 // Send accumulated text before reporting error so it's not lost
@@ -401,7 +450,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         }
     }
 
-    private func parseMessage(_ jsonString: String) {
+    func parseMessage(_ jsonString: String) {  // internal for tests
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             dprint("GeminiRealtimeSTT: Failed to parse message: \(jsonString.prefix(200))")
@@ -425,10 +474,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         // Check for input transcription at top level
         if let inputTranscription = json["inputTranscription"] as? [String: Any],
            let text = inputTranscription["text"] as? String, !text.isEmpty {
-            appendTranscriptionText(text)
-            dprint("GeminiRealtimeSTT: Transcription (top-level): '\(text)' -> accumulated: '\(accumulatedText.suffix(100))'")
-
-            delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
+            receiveFinalTranscription(text)
             return
         }
 
@@ -437,18 +483,20 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             dprint("GeminiRealtimeSTT: serverContent keys: \(serverContent.keys)")
 
 
-            // Check for inputTranscription in serverContent
+            // Finalized input transcription: replaces the interim text of its segment.
             if let inputTranscription = serverContent["inputTranscription"] as? [String: Any],
                let text = inputTranscription["text"] as? String, !text.isEmpty {
-                appendTranscriptionText(text)
-                dprint("GeminiRealtimeSTT: Transcription (serverContent): '\(text)'")
-
-                delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
+                receiveFinalTranscription(text)
+            }
+            // Speculative text for the segment in progress (transcribe model),
+            // handled independently: a message may carry both.
+            if let interim = serverContent["interimInputTranscription"] as? [String: Any],
+               let text = interim["text"] as? String {
+                pendingInterimText = text
+                delegate?.realtimeSTT(self, didReceivePartialResult: textIncludingInterim)
             }
 
-            // Check for turnComplete to send final result
             if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
-                finalResponseReceived = true
                 dprint("GeminiRealtimeSTT: Turn complete")
 
             }
@@ -697,6 +745,27 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     /// Append transcription text - Gemini sends incremental fragments
+    /// A finalized segment: appended, replacing the interim text of its segment.
+    private func receiveFinalTranscription(_ text: String) {
+        appendTranscriptionText(text)
+        pendingInterimText = ""
+        dprint("GeminiRealtimeSTT: Transcription: '\(text)'")
+        delegate?.realtimeSTT(self, didReceivePartialResult: accumulatedText)
+    }
+
+    /// Keeps the interim text shown before a connection ends as finalized text.
+    /// A new connection's segments are new audio and must not replace it.
+    func keepInterimAcrossConnection() {  // internal for tests
+        accumulatedText = textIncludingInterim
+        pendingInterimText = ""
+    }
+
+    /// Finalized text followed by the pending interim text, if any.
+    private var textIncludingInterim: String {
+        guard !pendingInterimText.isEmpty else { return accumulatedText }
+        return accumulatedText + joinedFragment(pendingInterimText, after: accumulatedText, wholeSegment: true)
+    }
+
     private func appendTranscriptionText(_ newText: String) {
         guard !newText.isEmpty else { return }
 
@@ -707,10 +776,26 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         dprint("  - accumulatedText before: '\(accumulatedText.suffix(80))'")
         #endif
 
+        let processedText = joinedFragment(newText, after: accumulatedText, wholeSegment: usesTranscribeModel)
+
+        // Skip if processed text is empty (was just whitespace)
+        guard !processedText.isEmpty else { return }
+
+        accumulatedText += processedText
+        dprint("  - processedText: '\(processedText)'")
+        dprint("  - accumulatedText after: '\(accumulatedText.suffix(80))'")
+
+    }
+
+    /// `newText` as it should be appended to `existing`. CJK text carries no
+    /// inter-word spaces. Voice models send fragments that bring their own
+    /// leading space; whole segments (the transcribe model's finals, and any
+    /// interim text) get a space between two non-CJK segments.
+    private func joinedFragment(_ newText: String, after existing: String, wholeSegment: Bool) -> String {
         var processedText = newText
 
         // Check if we're in CJK context (accumulated text ends with CJK or new text contains CJK)
-        let lastCharIsCJK = accumulatedText.last.map { isCJKCharacter($0) } ?? false
+        let lastCharIsCJK = existing.last.map { isCJKCharacter($0) } ?? false
         let newTextHasCJK = containsCJKCharacters(newText)
 
         if newTextHasCJK {
@@ -720,15 +805,11 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
             // Previous text ended with CJK - remove leading spaces from this fragment
             // This handles cases where Gemini sends " " as a separate fragment
             processedText = newText.replacingOccurrences(of: "^\\s+", with: "", options: .regularExpression)
+        } else if wholeSegment, let last = existing.last, !last.isWhitespace,
+                  let first = processedText.first, !first.isWhitespace {
+            processedText = " " + processedText
         }
-
-        // Skip if processed text is empty (was just whitespace)
-        guard !processedText.isEmpty else { return }
-
-        accumulatedText += processedText
-        dprint("  - processedText: '\(processedText)'")
-        dprint("  - accumulatedText after: '\(accumulatedText.suffix(80))'")
-
+        return processedText
     }
 
     /// Check if a single character is CJK

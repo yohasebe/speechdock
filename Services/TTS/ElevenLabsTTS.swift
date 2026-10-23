@@ -134,14 +134,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
             ]
         ]
 
-        // Add language_code only for models that support it (Flash v2.5).
-        // eleven_v3 does NOT support language_code parameter.
-        let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
-        if supportsLanguageCode,
-           !selectedLanguage.isEmpty,
-           let langCode = LanguageCode(rawValue: selectedLanguage),
-           let elevenLabsCode = langCode.toElevenLabsTTSCode() {
-            body["language_code"] = elevenLabsCode
+        if let languageCode = Self.languageCodeParameter(modelId: modelId, selectedLanguage: selectedLanguage) {
+            body["language_code"] = languageCode
         }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -268,14 +262,8 @@ final class ElevenLabsTTS: NSObject, TTSService {
             "voice_settings": voiceSettings
         ]
 
-        // Add language_code only for models that support it (Flash v2.5).
-        // eleven_v3 does NOT support language_code parameter.
-        let supportsLanguageCode = modelId.contains("v2") || modelId.contains("multilingual")
-        if supportsLanguageCode,
-           !selectedLanguage.isEmpty,
-           let langCode = LanguageCode(rawValue: selectedLanguage),
-           let elevenLabsCode = langCode.toElevenLabsTTSCode() {
-            body["language_code"] = elevenLabsCode
+        if let languageCode = Self.languageCodeParameter(modelId: modelId, selectedLanguage: selectedLanguage) {
+            body["language_code"] = languageCode
         }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -375,10 +363,26 @@ final class ElevenLabsTTS: NSObject, TTSService {
     // MARK: - Voice Fetching
 
     /// Fetch voices from ElevenLabs API and update cache
+    /// The `language_code` to send, or nil for Auto. The text-to-speech API
+    /// takes ISO 639-1 codes (the LanguageCode raw values) and ignores a code
+    /// a model does not support; multilingual_v2 models reject the parameter.
+    nonisolated static func languageCodeParameter(modelId: String, selectedLanguage: String) -> String? {
+        guard !modelId.hasPrefix("eleven_multilingual_v2"),
+              let language = LanguageCode(rawValue: selectedLanguage),
+              language != .auto else { return nil }
+        return language.rawValue
+    }
+
+    /// Shares voice requests between the launch refresh, Settings and the panel.
+    private static let voiceFetches = VoiceFetchCoordinator(
+        request: { await requestVoices(apiKey: $0) },
+        store: { TTSVoiceCache.shared.cacheVoices($0, for: .elevenLabs) })
+
     /// - Parameter readingReference: read a 1Password reference if needed.
     ///   False for the background refresh at launch, so starting the app
     ///   never asks for 1Password approval.
     static func fetchAndCacheVoices(readingReference: Bool = false) async {
+        // Each caller gets the key its own way; requests for the same key are shared.
         let key = readingReference
             ? await APIKeyManager.shared.apiKey(for: .elevenLabs)
             : APIKeyManager.shared.getAPIKey(for: .elevenLabs)
@@ -387,11 +391,15 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
             return
         }
+        await voiceFetches.fetch(apiKey: apiKey)
+    }
 
+    /// The account's voices, or nil when the request fails.
+    private static func requestVoices(apiKey: String) async -> [TTSVoice]? {
         guard let url = URL(string: "https://api.elevenlabs.io/v1/voices") else {
             dprint("ElevenLabs: Invalid voices endpoint URL")
 
-            return
+            return nil
         }
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
@@ -404,14 +412,14 @@ final class ElevenLabsTTS: NSObject, TTSService {
                   httpResponse.statusCode == 200 else {
                 dprint("ElevenLabs: Failed to fetch voices")
 
-                return
+                return nil
             }
 
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let voicesArray = json["voices"] as? [[String: Any]] else {
                 dprint("ElevenLabs: Invalid voices response format")
 
-                return
+                return nil
             }
 
             var voices: [TTSVoice] = []
@@ -439,16 +447,11 @@ final class ElevenLabsTTS: NSObject, TTSService {
                 ))
             }
 
-            if !voices.isEmpty {
-                await MainActor.run {
-                    TTSVoiceCache.shared.cacheVoices(voices, for: .elevenLabs)
-                }
-                dprint("ElevenLabs: Cached \(voices.count) voices")
-
-            }
+            dprint("ElevenLabs: Fetched \(voices.count) voices")
+            return voices.isEmpty ? nil : voices
         } catch {
             dprint("ElevenLabs: Error fetching voices: \(error)")
-
+            return nil
         }
     }
 
@@ -474,5 +477,36 @@ final class ElevenLabsTTS: NSObject, TTSService {
 
         // Then convert WAV to M4A using AudioConverter
         return await AudioConverter.convertToAAC(inputData: wavData, inputExtension: "wav")
+    }
+}
+
+/// Runs one voice request per API key at a time. Callers with the key of a
+/// request in progress wait for it; another key starts its own request, and
+/// only a result for the most recently requested key is stored, so a replaced
+/// key's late response does not overwrite the current one.
+@MainActor
+final class VoiceFetchCoordinator {
+    private let request: (String) async -> [TTSVoice]?
+    private let store: ([TTSVoice]) -> Void
+    private var inFlight: [String: Task<Void, Never>] = [:]
+    private var latestKey: String?
+
+    init(request: @escaping (String) async -> [TTSVoice]?, store: @escaping ([TTSVoice]) -> Void) {
+        self.request = request
+        self.store = store
+    }
+
+    func fetch(apiKey: String) async {
+        latestKey = apiKey
+        if let current = inFlight[apiKey] {
+            await current.value
+            return
+        }
+        let task = Task {
+            if let voices = await request(apiKey), latestKey == apiKey { store(voices) }
+        }
+        inFlight[apiKey] = task
+        await task.value
+        if inFlight[apiKey] == task { inFlight[apiKey] = nil }
     }
 }

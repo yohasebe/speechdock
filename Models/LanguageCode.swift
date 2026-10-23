@@ -141,39 +141,6 @@ enum LanguageCode: String, CaseIterable, Identifiable {
         }
         return nil
     }
-
-    /// Convert to ElevenLabs TTS language code (ISO 639-2/3 format)
-    func toElevenLabsTTSCode() -> String? {
-        guard self != .auto else { return nil }
-        let mapping: [LanguageCode: String] = [
-            .english: "eng",
-            .japanese: "jpn",
-            .chinese: "cmn",
-            .korean: "kor",
-            .spanish: "spa",
-            .french: "fra",
-            .german: "deu",
-            .italian: "ita",
-            .portuguese: "por",
-            .russian: "rus",
-            .arabic: "ara",
-            .hindi: "hin",
-            .dutch: "nld",
-            .polish: "pol",
-            .turkish: "tur",
-            .indonesian: "ind",
-            .vietnamese: "vie",
-            .thai: "tha",
-            .bengali: "ben",
-            .gujarati: "guj",
-            .kannada: "kan",
-            .malayalam: "mal",
-            .marathi: "mar",
-            .tamil: "tam",
-            .telugu: "tel"
-        ]
-        return mapping[self]
-    }
 }
 
 // MARK: - Provider-specific language support

@@ -35,6 +35,12 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 
 キーそのものの代わりに、欄（または環境変数）に `op://Private/OpenAI/credential` のような 1Password の参照を書けます。SpeechDock は [1Password CLI](https://developer.1password.com/docs/cli/)（`op`）で読み込みます。`op` は `PATH`、`/opt/homebrew/bin`、`/usr/local/bin` から探します。
 
+準備（SpeechDock を使う Mac ごとに必要です。1Password の設定が同期されても CLI は同期されません）:
+
+1. CLI を入れます。1Password アプリとは別のもので、アプリだけでは足りません: `brew install --cask 1password-cli`
+2. 1Password アプリの **設定** > **開発者** で **1Password CLI と連携** をオンにします。SpeechDock はこの連携を通して参照を読みます。オフのままだと、たいてい「サインインしていません」で失敗します。
+3. キーを表示せずに参照を確かめるには、ターミナルで `op read "op://Private/OpenAI/credential" >/dev/null && echo OK` を実行します。
+
 - キーチェーンに保存されるのは参照だけです。読み込んだ値は SpeechDock の終了までメモリにだけ置き、ディスクやログには書きません。
 - 参照は、**設定** > **APIキー** を開いたときか、キーが初めて必要になったときに、まとめて読み込みます（承認は 1 回）。ログイン時などの起動だけでは承認を求めません。
 - 読み込めなかったとき（op が無い、サインインしていない、承認しなかった、項目が無い）は、そのプロバイダはキー未設定として扱い、設定画面に理由を表示します。**1Password から読み直す** で再試行できます。承認しなかった場合は、このボタンを押すまで再び求めません。
@@ -49,7 +55,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 | プロバイダ | モデル | 特徴 |
 |----------|--------|----------|
 | **OpenAI** | GPT Realtime Whisper、GPT-4o Mini Transcribe、Whisper | ストリーミングdelta（Whisper）、高精度、100以上の言語 |
-| **Google Gemini** | Gemini 2.5 Flash Native Audio、Gemini 3.1 Flash Live | マルチモーダル、高速 |
+| **Google Gemini** | Gemini 3.5 Transcribe Live、Gemini 3.8 Live | ストリーミング文字起こし。ファイルの文字起こしは Gemini 3.8 Flash |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
 
@@ -103,7 +109,7 @@ TTS再生を任意の音声出力デバイス（スピーカー、ヘッドフ�
 |----------|---------|----------|--------------|-----|
 | **macOS**（26+） | MP3、WAV、M4A、AAC、AIFF、FLAC、MP4 | 100 MB | 無制限 | SpeechAnalyzer（必要に応じてシステム音声認識へ切り替え） |
 | **OpenAI** | MP3、WAV、M4A、FLAC、WebM、MP4 | 25 MB | 無制限 | Whisper |
-| **Gemini** | MP3、WAV、AAC、OGG、FLAC | 20 MB | 約10分 | generateContent |
+| **Gemini** | MP3、WAV、AAC、OGG、FLAC | 14 MB | 約10分 | generateContent |
 | **ElevenLabs** | MP3、WAV、M4A、OGG、FLAC | 25 MB | 約2時間 | Scribe v2 |
 
 **注意**: macOSのファイル文字起こしにはmacOS 26以降が必要です。APIキーは不要です。SpeechAnalyzer対応言語はデバイス上で処理し、代替の音声認識ではAppleのサーバーとインターネット接続を使用する場合があります。

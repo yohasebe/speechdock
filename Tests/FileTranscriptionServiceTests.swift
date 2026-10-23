@@ -36,7 +36,11 @@ final class FileTranscriptionServiceTests: XCTestCase {
     }
 
     func testMaxFileSizeMB_Gemini() {
-        XCTAssertEqual(RealtimeSTTProvider.gemini.maxFileSizeMB, 20)
+        XCTAssertEqual(RealtimeSTTProvider.gemini.maxFileSizeMB, 14)
+        // The largest allowed file still fits Gemini's 20 MB inline request once Base64-encoded.
+        let maxBytes = RealtimeSTTProvider.gemini.maxFileSizeMB * 1024 * 1024
+        let encoded = (maxBytes + 2) / 3 * 4
+        XCTAssertLessThan(encoded + 64 * 1024, GeminiSTTClient.maxInlineRequestBytes)
     }
 
     func testMaxFileSizeMB_ElevenLabs() {

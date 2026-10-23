@@ -165,7 +165,7 @@
 
 /* File Transcription Descriptions */
 "Whisper API (max 25MB)" = "Whisper API (max. 25 MB)";
-"Gemini API (max 20MB)" = "Gemini API (max. 20 MB)";
+"Gemini API (max 14MB)" = "Gemini API (max. 14 MB)";
 "Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (max. 25 MB, ~2 Std. Audio)";
 "Realtime only" = "Nur Echtzeit";
 "Apple Speech (offline, max 500MB)" = "Apple Speech (offline, max. 500 MB)";

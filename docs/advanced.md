@@ -33,6 +33,12 @@ API keys are securely stored in macOS Keychain. Alternatively, you can set envir
 
 Instead of the key itself, a field (or an environment variable) can hold a 1Password secret reference such as `op://Private/OpenAI/credential`. SpeechDock reads it with the [1Password CLI](https://developer.1password.com/docs/cli/) (`op`), found on your `PATH`, in `/opt/homebrew/bin` or in `/usr/local/bin`.
 
+Setup, on each Mac that runs SpeechDock (the CLI is not synced with your 1Password settings):
+
+1. Install the CLI. It is separate from the 1Password app, which alone is not enough: `brew install --cask 1password-cli`
+2. In the 1Password app, turn on **Settings** > **Developer** > **Integrate with 1Password CLI**. SpeechDock reads references through this integration; when it is off, reading usually fails as "not signed in".
+3. To check a reference without showing the key, run in a terminal: `op read "op://Private/OpenAI/credential" >/dev/null && echo OK`
+
 - Only the reference is stored in the Keychain. The value it reads to stays in SpeechDock's memory until it quits and is never written to disk or logs.
 - All references are read together, with one approval, when **Settings** > **API Keys** opens or when a key is first needed. Starting SpeechDock (for example at login) does not ask for approval.
 - If a reference cannot be read (op not installed, not signed in, approval declined, item not found), that provider is treated as having no key, and Settings shows the reason. Use **Reload from 1Password** to try again; a declined approval is not asked again until you do.
@@ -47,7 +53,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 | Provider | Models | Features |
 |----------|--------|----------|
 | **OpenAI** | GPT Realtime Whisper, GPT-4o Mini Transcribe, Whisper | Streaming deltas (Whisper), high accuracy, 100+ languages |
-| **Google Gemini** | Gemini 2.5 Flash Native Audio, Gemini 3.1 Flash Live | Multimodal, fast |
+| **Google Gemini** | Gemini 3.5 Transcribe Live, Gemini 3.8 Live | Streaming speech-to-text; file transcription uses Gemini 3.8 Flash |
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |
 
@@ -101,7 +107,7 @@ Transcribe pre-recorded audio files. Available with cloud STT providers and macO
 |----------|---------|----------|--------------|-----|
 | **macOS** (26+) | MP3, WAV, M4A, AAC, AIFF, FLAC, MP4 | 100 MB | No limit | SpeechAnalyzer; system recognition fallback |
 | **OpenAI** | MP3, WAV, M4A, FLAC, WebM, MP4 | 25 MB | Unlimited | Whisper |
-| **Gemini** | MP3, WAV, AAC, OGG, FLAC | 20 MB | ~10 min | generateContent |
+| **Gemini** | MP3, WAV, AAC, OGG, FLAC | 14 MB | ~10 min | generateContent |
 | **ElevenLabs** | MP3, WAV, M4A, OGG, FLAC | 25 MB | ~2 hours | Scribe v2 |
 
 **Note**: macOS file transcription requires macOS 26 or later and no API key. SpeechAnalyzer processes supported languages on-device; fallback recognition may use Apple’s servers and require an internet connection.
