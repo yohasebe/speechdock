@@ -16,6 +16,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
     var vadSilenceDuration: TimeInterval = 3.0
 
     private var audioEngine: AVAudioEngine?
+    private var configurationObserver: AudioEngineConfigurationObserver?
     private var webSocketTask: URLSessionWebSocketTask?
     private var finishingWebSocketTask: URLSessionWebSocketTask?
     private(set) var connectionGeneration = UUID()  // read by tests
@@ -127,6 +128,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         isListening = false
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        configurationObserver = nil
         audioEngine = nil
         let message: [String: Any] = ["realtimeInput": ["audioStreamEnd": true]]
         if let data = try? JSONSerialization.data(withJSONObject: message),
@@ -163,6 +165,7 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
         // Stop audio engine
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        configurationObserver = nil
         audioEngine = nil
         audioConverter = nil
         outputFormat = nil
@@ -569,6 +572,9 @@ final class GeminiRealtimeSTT: NSObject, RealtimeSTTService {
 
         audioEngine.prepare()
         try audioEngine.start()
+        configurationObserver = AudioEngineConfigurationObserver(engine: audioEngine) { [weak self] in
+            self?.stopAfterAudioConfigurationChange(of: self?.audioEngine)
+        }
     }
 
     /// Convert buffer to PCM data with optional resampling

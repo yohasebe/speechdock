@@ -546,3 +546,4 @@
 "1Password: read when first used" = "1Password：首次使用时读取";
 "Use the form op://vault/item/field" = "请使用 op://保险库/项目/字段 的格式";
 "1Password CLI (op) could not be verified" = "无法验证 1Password CLI（op）的签名";
+"The audio input changed, so recording stopped. Start recording again." = "音频输入已更改，录音已停止。请重新开始录音。";

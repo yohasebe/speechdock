@@ -86,6 +86,22 @@ final class FloatingMicButtonTests: XCTestCase {
                       "HUD should not be visible after hide()")
     }
 
+    func testFinishingKeepsAnErrorHUDButClosesTheTranscriptionHUD() {
+        let buttonFrame = NSRect(x: 100, y: 100, width: 48, height: 48)
+        let hud = FloatingMicTextHUD.shared
+
+        hud.showError("The audio input changed", near: buttonFrame)
+        hud.hideUnlessShowingError()
+        XCTAssertTrue(hud.isVisible, "An error stays until it times out or is replaced")
+        XCTAssertTrue(hud.isShowingError)
+
+        // A new recording replaces the error with the transcription HUD
+        hud.show(near: buttonFrame)
+        XCTAssertFalse(hud.isShowingError)
+        hud.hideUnlessShowingError()
+        XCTAssertFalse(hud.isVisible)
+    }
+
     // MARK: - HotKeyService Quick Transcription Tests
 
     func testQuickTranscriptionKeyComboDefault() {

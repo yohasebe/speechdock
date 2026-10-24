@@ -28,6 +28,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     var vadSilenceDuration: TimeInterval = 0.5  // 500ms
 
     private var audioEngine: AVAudioEngine?
+    private var configurationObserver: AudioEngineConfigurationObserver?
     private var webSocketTask: URLSessionWebSocketTask?
     private var finishingWebSocketTask: URLSessionWebSocketTask?
     private var connectionGeneration = UUID()
@@ -182,6 +183,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         // Stop audio engine immediately so we don't keep streaming after user stops
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        configurationObserver = nil
         audioEngine = nil
         audioConverter = nil
         outputFormat = nil
@@ -672,6 +674,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
 
         audioEngine.prepare()
         try audioEngine.start()
+        configurationObserver = AudioEngineConfigurationObserver(engine: audioEngine) { [weak self] in
+            self?.stopAfterAudioConfigurationChange(of: self?.audioEngine)
+        }
     }
 
     /// Convert buffer to PCM data with optional resampling.

@@ -161,9 +161,11 @@ final class AudioInputManager {
         // If system default, don't set anything (use default behavior)
         guard device.id != 0 else { return }
 
-        // Selecting the device that is already the default input stops the
-        // engine's input tap from receiving buffers (macOS 27), so leave it as is
-        guard device.id != defaultInputDeviceID() else { return }
+        // On macOS 27, selecting the device that is already the default input
+        // stops the engine's input tap from receiving buffers, so leave it as is.
+        // The engine then follows the default input; a later change of the
+        // default stops it (see AudioEngineConfigurationObserver).
+        if #available(macOS 27, *), device.id == defaultInputDeviceID() { return }
 
         let audioUnit = audioEngine.inputNode.audioUnit
         guard let audioUnit = audioUnit else {
@@ -223,5 +225,26 @@ enum AudioInputError: LocalizedError {
         case .failedToSetDevice(let status):
             return "Failed to set audio device (error: \(status))"
         }
+    }
+}
+
+/// Calls `handler` on the main actor when `engine` posts a configuration change,
+/// such as the default input device switching while recording. The engine may
+/// have stopped by then. The observation ends when this object is released.
+final class AudioEngineConfigurationObserver {
+    private let token: NSObjectProtocol
+
+    init(engine: AVAudioEngine, handler: @escaping @MainActor @Sendable () -> Void) {
+        token = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { handler() }
+        }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(token)
     }
 }

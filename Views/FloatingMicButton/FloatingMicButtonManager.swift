@@ -282,6 +282,8 @@ final class FloatingMicButtonManager {
     }
 
     private var finishRecordingTask: Task<String, Never>?
+    /// Why the recording being finished failed, kept so finishing ends in the error state
+    private var finishingErrorMessage: String?
 
     func stopRecording() {
         _ = beginFinishingRecording()
@@ -311,7 +313,10 @@ final class FloatingMicButtonManager {
         appState.recordingStartTime = nil
 
         let task = Task { @MainActor [self] in
-            defer { finishRecordingTask = nil }
+            defer {
+                finishRecordingTask = nil
+                finishingErrorMessage = nil
+            }
             let finalText: String
             if let service {
                 finalText = await STTFinalization.finish(service, initialText: initialText)
@@ -326,9 +331,9 @@ final class FloatingMicButtonManager {
                     object: finalText + "\n(Pasting...)")
                 insertFinalText(finalText)
             } else {
-                FloatingMicTextHUD.shared.hide()
+                FloatingMicTextHUD.shared.hideUnlessShowingError()
             }
-            appState.transcriptionState = .idle
+            appState.transcriptionState = finishingErrorMessage.map { .error($0) } ?? .idle
             appState.currentTranscription = ""
             lastInsertedPartialText = ""
             isUsingDirectInsertion = false
@@ -394,7 +399,7 @@ final class FloatingMicButtonManager {
             // Keep text on clipboard so user doesn't lose it
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
-            FloatingMicTextHUD.shared.hide()
+            FloatingMicTextHUD.shared.hideUnlessShowingError()
             showTargetAppClosedAlert(appName: targetApp.localizedName)
             return
         }
@@ -410,7 +415,7 @@ final class FloatingMicButtonManager {
                 // Activation failed — app may have closed between check and activate
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
-                FloatingMicTextHUD.shared.hide()
+                FloatingMicTextHUD.shared.hideUnlessShowingError()
                 showTargetAppClosedAlert(appName: targetApp.localizedName)
                 return
             }
@@ -430,7 +435,7 @@ final class FloatingMicButtonManager {
                             logger.warning("Paste failed, text preserved on clipboard")
 
                         }
-                        FloatingMicTextHUD.shared.hide()
+                        FloatingMicTextHUD.shared.hideUnlessShowingError()
                     }
                 }
             }
@@ -450,7 +455,7 @@ final class FloatingMicButtonManager {
                         logger.warning("Paste failed, text preserved on clipboard")
 
                     }
-                    FloatingMicTextHUD.shared.hide()
+                    FloatingMicTextHUD.shared.hideUnlessShowingError()
                 }
             }
         }
@@ -831,6 +836,8 @@ extension FloatingMicButtonManager: RealtimeSTTDelegate {
         appState.transcriptionState = .error(error.localizedDescription)
         let frame = buttonWindow?.frame
         stopRecording()
+        // Only a finishing in progress ends in this error; none means nothing to finish
+        if finishRecordingTask != nil { finishingErrorMessage = error.localizedDescription }
         if let frame { FloatingMicTextHUD.shared.showError(error.localizedDescription, near: frame) }
     }
 

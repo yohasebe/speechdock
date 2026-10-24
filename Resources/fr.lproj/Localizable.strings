@@ -547,3 +547,4 @@
 "1Password: read when first used" = "1Password : lue à la première utilisation";
 "Use the form op://vault/item/field" = "Utilisez la forme op://coffre/élément/champ";
 "1Password CLI (op) could not be verified" = "Impossible de vérifier 1Password CLI (op)";
+"The audio input changed, so recording stopped. Start recording again." = "L’entrée audio a changé, l’enregistrement a donc été arrêté. Relancez l’enregistrement.";

@@ -577,7 +577,15 @@ final class AppState {
 
     // Expose hotKeyService for settings UI
     private(set) var hotKeyService: HotKeyService?
-    var realtimeSTTService: RealtimeSTTService?  // Internal for FloatingMicButtonManager access
+    var realtimeSTTService: RealtimeSTTService? {  // Internal for FloatingMicButtonManager access
+        didSet {
+            if let realtimeSTTService { resultSourceSTTService = realtimeSTTService }
+        }
+    }
+    /// The session started last. Its trailing results still arrive after it is
+    /// stopped and `realtimeSTTService` is cleared; results from earlier sessions
+    /// are ignored.
+    private weak var resultSourceSTTService: RealtimeSTTService?
     private var isLoadingPreferences = false  // Flag to prevent saving during load
     private var savePreferencesWorkItem: DispatchWorkItem?  // Debounce coalescing for savePreferences
     private var willTerminateObserver: NSObjectProtocol?  // Flushes pending preference save on quit
@@ -2366,7 +2374,14 @@ extension AppState: HotKeyServiceDelegate {
 // MARK: - RealtimeSTTDelegate
 
 extension AppState: RealtimeSTTDelegate {
+    /// Whether a result from `service` may update the transcription: only the
+    /// session started last, even after it has been stopped
+    private func acceptsResult(from service: RealtimeSTTService) -> Bool {
+        resultSourceSTTService === service
+    }
+
     func realtimeSTT(_ service: RealtimeSTTService, didReceivePartialResult text: String) {
+        guard acceptsResult(from: service) else { return }
         // Update current transcription (View handles accumulation)
         currentTranscription = text
         // Store session transcription for subtitle display (current session only)
@@ -2382,6 +2397,7 @@ extension AppState: RealtimeSTTDelegate {
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didReceiveFinalResult text: String) {
+        guard acceptsResult(from: service) else { return }
         // Update current transcription (View handles accumulation)
         currentTranscription = text
         // Store session transcription for subtitle display (current session only)
@@ -2407,6 +2423,9 @@ extension AppState: RealtimeSTTDelegate {
     }
 
     func realtimeSTT(_ service: RealtimeSTTService, didFailWithError error: Error) {
+        // Only the current session's failure ends the recording; a session that
+        // has already been stopped or replaced must not tear down a newer one
+        guard realtimeSTTService === service else { return }
 
         // Tear down the recording session exactly as stopRecording() does.
         // Without this, a mid-recording STT failure leaves `isRecording` true

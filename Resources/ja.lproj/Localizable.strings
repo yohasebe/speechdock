@@ -562,3 +562,4 @@
 "1Password: read when first used" = "1Password: 初めて使うときに読み込み";
 "Use the form op://vault/item/field" = "op://保管庫/項目/フィールド の形で入力してください";
 "1Password CLI (op) could not be verified" = "1Password CLI（op）の署名を確認できません";
+"The audio input changed, so recording stopped. Start recording again." = "音声の入力が変わったため、録音を停止しました。もう一度録音を開始してください。";

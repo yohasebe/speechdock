@@ -562,3 +562,4 @@
 "1Password: read when first used" = "1Password: read when first used";
 "Use the form op://vault/item/field" = "Use the form op://vault/item/field";
 "1Password CLI (op) could not be verified" = "1Password CLI (op) could not be verified";
+"The audio input changed, so recording stopped. Start recording again." = "The audio input changed, so recording stopped. Start recording again.";

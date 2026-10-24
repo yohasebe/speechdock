@@ -44,6 +44,7 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
     // MARK: - Audio Components
 
     private var audioEngine: AVAudioEngine?
+    private var configurationObserver: AudioEngineConfigurationObserver?
 
     // Serial audio buffer pipeline. The tap/processAudioBuffer enqueue buffers
     // into this stream and a single consumer task converts and forwards them to
@@ -230,6 +231,7 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
         // Stop audio engine
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        configurationObserver = nil
         audioEngine = nil
         audioLevelMonitor.stop()
 
@@ -366,6 +368,9 @@ final class SpeechAnalyzerSTT: NSObject, RealtimeSTTService {
         // Start audio engine
         audioEngine.prepare()
         try audioEngine.start()
+        configurationObserver = AudioEngineConfigurationObserver(engine: audioEngine) { [weak self] in
+            self?.stopAfterAudioConfigurationChange(of: self?.audioEngine)
+        }
     }
 
     private func addToPreBuffer(_ buffer: AVAudioPCMBuffer) {

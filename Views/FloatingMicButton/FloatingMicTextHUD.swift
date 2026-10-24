@@ -117,6 +117,13 @@ final class FloatingMicTextHUD {
         }
     }
 
+    /// Close the HUD when a recording finishes, but leave an error on screen
+    /// until it times out or a new recording replaces it
+    func hideUnlessShowingError() {
+        guard !isShowingError else { return }
+        hide()
+    }
+
     func hide() {
         autoHideTask?.cancel()
         autoHideTask = nil

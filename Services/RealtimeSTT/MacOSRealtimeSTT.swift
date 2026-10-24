@@ -20,6 +20,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var audioEngine: AVAudioEngine?
+    private var configurationObserver: AudioEngineConfigurationObserver?
 
     private var lastTranscription = ""
 
@@ -121,6 +122,9 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
             // Start audio engine
             audioEngine.prepare()
             try audioEngine.start()
+            configurationObserver = AudioEngineConfigurationObserver(engine: audioEngine) { [weak self] in
+                self?.stopAfterAudioConfigurationChange(of: self?.audioEngine)
+            }
         }
         // For external source, audio will be fed via processAudioBuffer()
 
@@ -260,6 +264,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
                 sessionRestartTimer = nil
                 audioEngine?.stop()
                 audioEngine?.inputNode.removeTap(onBus: 0)
+                configurationObserver = nil
                 audioLevelMonitor.stop()
 
                 isListening = false
@@ -367,6 +372,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
         sessionRestartTimer?.invalidate()
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        configurationObserver = nil
         audioEngine = nil
         finalResponseReceived = false
         recognitionRequest?.endAudio()
@@ -396,6 +402,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
 
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        configurationObserver = nil
         audioLevelMonitor.stop()
 
         recognitionRequest?.endAudio()

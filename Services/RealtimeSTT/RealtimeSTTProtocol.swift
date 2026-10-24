@@ -52,6 +52,19 @@ struct RealtimeSTTModelInfo: Identifiable, Hashable {
 extension RealtimeSTTService {
     func finishListening() async { stopListening() }
 
+    /// End a session whose microphone engine stopped after an audio configuration
+    /// change, instead of staying in a silent recording. A change that leaves the
+    /// engine running is ignored. The error is reported at once, while the delegate
+    /// still owns this session; trailing results may follow it.
+    func stopAfterAudioConfigurationChange(of engine: AVAudioEngine?) {
+        guard isListening, let engine, !engine.isRunning else { return }
+        dprint("\(type(of: self)): audio engine stopped after a configuration change")
+        stopListening()
+        delegate?.realtimeSTT(self, didFailWithError: RealtimeSTTError.audioError(
+            NSLocalizedString("The audio input changed, so recording stopped. Start recording again.",
+                              comment: "Recording stopped because the audio device configuration changed")))
+    }
+
     /// Returns the default model ID from availableModels() (single source of truth)
     var defaultModelId: String {
         availableModels().first(where: { $0.isDefault })?.id

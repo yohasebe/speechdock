@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The AppleScript `save audio` command writes the format named by the file extension. `.m4a`, `.wav`, `.aiff` and `.caf` are converted when the provider produces another format; `.mp3` from a provider that does not produce MP3, or an unknown extension, is reported as an error. Previously the provider's own format was written under any name.
-- Real-time transcription receives audio again on macOS 27 when the selected input device is also the system default input; selecting that device explicitly left the input silent, with no error.
+- Real-time transcription receives audio again on macOS 27 when the selected input device is also the system default input; selecting that device explicitly left the input silent, with no error. Earlier macOS versions still select the device explicitly.
+- Real-time transcription ends the recording when a change of audio devices stops the microphone (for example, when the default input switches), keeping the text so far or asking you to start again, instead of continuing as a silent recording.
+- Trailing results from a stopped recording no longer overwrite a recording started right after it, and an error from a stopped recording no longer ends the new one.
 - ElevenLabs text-to-speech sends the selected language as an ISO 639-1 code, so choosing a language takes effect with Flash v2.5 and Eleven v3.
 - ElevenLabs real-time transcription no longer drops a phrase spoken again (such as "yes" twice); each committed segment is added once whether it is reported once or twice.
 - OpenAI file transcription no longer offers AAC and AIFF files, which the OpenAI API rejects; the chooser, drop area and format list show only formats it accepts.
