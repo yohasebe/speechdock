@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.40] - 2026-10-24
 
 ### Added
 - API key fields and environment variables accept 1Password references (`op://vault/item/field`), read with the 1Password CLI when Settings opens or a key is first needed. Only the reference is stored; the value stays in memory.
