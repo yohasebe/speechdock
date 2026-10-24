@@ -161,6 +161,10 @@ final class AudioInputManager {
         // If system default, don't set anything (use default behavior)
         guard device.id != 0 else { return }
 
+        // Selecting the device that is already the default input stops the
+        // engine's input tap from receiving buffers (macOS 27), so leave it as is
+        guard device.id != defaultInputDeviceID() else { return }
+
         let audioUnit = audioEngine.inputNode.audioUnit
         guard let audioUnit = audioUnit else {
             throw AudioInputError.audioUnitNotFound
@@ -179,6 +183,26 @@ final class AudioInputManager {
         guard status == noErr else {
             throw AudioInputError.failedToSetDevice(status)
         }
+    }
+
+    /// Current system default input device, or nil if it cannot be read
+    private func defaultInputDeviceID() -> AudioDeviceID? {
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            &size,
+            &deviceID
+        )
+        return status == noErr ? deviceID : nil
     }
 
     /// Get device by UID
