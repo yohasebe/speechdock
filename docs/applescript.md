@@ -72,7 +72,7 @@ end tell
 
 - Text must be at least 5 characters
 - The parent directory must exist
-- File format depends on the TTS provider (typically MP3 or M4A)
+- The file extension sets the format: `.m4a`, `.wav`, `.aiff` and `.caf` work with every provider, and `.mp3` only with providers that produce MP3 (OpenAI, ElevenLabs and Grok)
 - This command blocks until synthesis is complete
 
 ### translate

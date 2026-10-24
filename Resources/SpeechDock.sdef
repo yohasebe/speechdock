@@ -50,7 +50,7 @@
             <cocoa class="SpeechDock.ResumeSpeakingCommand"/>
         </command>
 
-        <command name="save audio" code="SDckSvAu" description="Synthesize text to an audio file using the current TTS provider.">
+        <command name="save audio" code="SDckSvAu" description="Synthesize text to an audio file using the current TTS provider. The file extension sets the format: .m4a, .wav, .aiff or .caf with any provider, .mp3 with providers that produce MP3.">
             <cocoa class="SpeechDock.SaveAudioCommand"/>
             <direct-parameter type="text" description="The text to synthesize."/>
             <parameter name="to file" code="SvPa" type="text" description="The file path to save the audio to.">

@@ -160,6 +160,15 @@ class SaveAudioCommand: NSScriptCommand {
             return nil
         }
 
+        // MP3 is only written as the provider produced it; checked again once the format is known
+        let requestedExtension = (expandedPath as NSString).pathExtension.lowercased()
+        guard requestedExtension.isEmpty || requestedExtension == "mp3"
+                || AudioConverter.writableExtensions.contains(requestedExtension) else {
+            setAppleScriptError(.ttsSavePathInvalid,
+                message: "Cannot save audio as .\(requestedExtension). Use .mp3, .m4a, .wav, .aiff or .caf.")
+            return nil
+        }
+
         suspendExecution()
 
         Task { @MainActor in
@@ -207,8 +216,34 @@ class SaveAudioCommand: NSScriptCommand {
                     return
                 }
 
+                let sourceExtension = saveService.audioFileExtension
+                let outputData: Data
+                switch AudioConverter.savePlan(sourceExtension: sourceExtension, requestedExtension: requestedExtension) {
+                case .writeAsIs:
+                    outputData = audioData
+                case .convert:
+                    let converted = await Task.detached {
+                        AudioConverter.convert(audioData, from: sourceExtension, to: requestedExtension)
+                    }.value
+                    guard let converted, !converted.isEmpty else {
+                        saveService.clearAudioCache()
+                        self.setAppleScriptError(.ttsSaveFailed, message: "Failed to convert the audio to .\(requestedExtension).")
+                        self.resumeExecution(withResult: nil)
+                        return
+                    }
+                    outputData = converted
+                case .unsupported:
+                    saveService.clearAudioCache()
+                    let usable = ([sourceExtension] + ["m4a", "wav", "aiff", "caf"].filter { $0 != sourceExtension })
+                        .map { "." + $0 }.joined(separator: ", ")
+                    self.setAppleScriptError(.ttsSavePathInvalid,
+                        message: "\(provider.rawValue) produces .\(sourceExtension) audio, which cannot be saved as .\(requestedExtension). Use one of \(usable).")
+                    self.resumeExecution(withResult: nil)
+                    return
+                }
+
                 let fileURL = URL(fileURLWithPath: expandedPath)
-                try audioData.write(to: fileURL)
+                try outputData.write(to: fileURL)
 
                 saveService.clearAudioCache()
                 self.resumeExecution(withResult: expandedPath)

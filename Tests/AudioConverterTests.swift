@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import SpeechDock
 
@@ -213,5 +214,50 @@ final class AudioConverterTests: XCTestCase {
         let blockAlignBytes = wavData[32..<34]
         let blockAlign = blockAlignBytes.withUnsafeBytes { $0.load(as: UInt16.self).littleEndian }
         XCTAssertEqual(blockAlign, 2, "BlockAlign should be 2 for mono 16-bit")
+    }
+
+    // MARK: - Saving in a Requested Format
+
+    func testSavePlan() {
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "mp3", requestedExtension: "mp3"), .writeAsIs)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "m4a", requestedExtension: "M4A"), .writeAsIs)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "aiff", requestedExtension: "aif"), .writeAsIs)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "mp3", requestedExtension: ""), .writeAsIs)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "mp3", requestedExtension: "wav"), .convert)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "m4a", requestedExtension: "aiff"), .convert)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "wav", requestedExtension: "caf"), .convert)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "mp3", requestedExtension: "m4a"), .convert)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "m4a", requestedExtension: "mp3"), .unsupported)
+        XCTAssertEqual(AudioConverter.savePlan(sourceExtension: "mp3", requestedExtension: "ogg"), .unsupported)
+    }
+
+    func testConvertWritesRequestedContainer() throws {
+        // 0.25 s of a 440 Hz tone at 24 kHz
+        let sampleRate = 24000
+        var pcm = Data()
+        for n in 0..<(sampleRate / 4) {
+            let sample = Int16(8000 * sin(2 * Double.pi * 440 * Double(n) / Double(sampleRate)))
+            pcm.append(contentsOf: withUnsafeBytes(of: sample.littleEndian) { Array($0) })
+        }
+        let wav = AudioConverter.createWAVFromPCM(pcm, sampleRate: UInt32(sampleRate))
+
+        let expectations: [(ext: String, offset: Int, tag: String)] = [
+            ("aiff", 0, "FORM"), ("caf", 0, "caff"), ("m4a", 4, "ftyp"), ("wav", 0, "RIFF")
+        ]
+        for (ext, offset, tag) in expectations {
+            let converted = try XCTUnwrap(AudioConverter.convert(wav, from: "wav", to: ext), ext)
+            XCTAssertEqual(String(data: converted[offset..<offset + 4], encoding: .ascii), tag, ext)
+
+            // The result decodes to about the same duration
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("converted_\(UUID().uuidString).\(ext)")
+            try converted.write(to: url)
+            defer { try? FileManager.default.removeItem(at: url) }
+            let file = try AVAudioFile(forReading: url)
+            XCTAssertEqual(Double(file.length) / file.fileFormat.sampleRate, 0.25, accuracy: 0.05, ext)
+        }
+    }
+
+    func testConvertReturnsNilForUndecodableInput() {
+        XCTAssertNil(AudioConverter.convert(Data("not audio".utf8), from: "wav", to: "aiff"))
     }
 }

@@ -214,4 +214,78 @@ enum AudioConverter {
             }
         }
     }
+
+    // MARK: - Saving in a Requested Format
+
+    /// How audio in one format is saved to a file with a given extension
+    enum SavePlan: Equatable {
+        case writeAsIs
+        case convert
+        case unsupported
+    }
+
+    /// Extensions `convert(_:from:to:)` can write
+    static let writableExtensions: Set<String> = ["wav", "aiff", "aif", "caf", "m4a"]
+
+    /// Decide how audio produced as `sourceExtension` is saved as `requestedExtension`.
+    /// An empty requested extension keeps the source format.
+    static func savePlan(sourceExtension: String, requestedExtension: String) -> SavePlan {
+        let source = sourceExtension.lowercased()
+        let requested = requestedExtension.lowercased()
+        let aiff: Set<String> = ["aiff", "aif"]
+        if requested.isEmpty || requested == source || (aiff.contains(requested) && aiff.contains(source)) {
+            return .writeAsIs
+        }
+        return writableExtensions.contains(requested) ? .convert : .unsupported
+    }
+
+    /// Re-encode audio data into the format named by `outputExtension`
+    /// (WAV, AIFF and CAF as 16-bit PCM, M4A as AAC)
+    static func convert(_ data: Data, from inputExtension: String, to outputExtension: String) -> Data? {
+        let tempDir = FileManager.default.temporaryDirectory
+        let inputURL = tempDir.appendingPathComponent("convert_input_\(UUID().uuidString).\(inputExtension)")
+        let outputURL = tempDir.appendingPathComponent("convert_output_\(UUID().uuidString).\(outputExtension.lowercased())")
+        defer {
+            try? FileManager.default.removeItem(at: inputURL)
+            try? FileManager.default.removeItem(at: outputURL)
+        }
+
+        do {
+            try data.write(to: inputURL)
+            try copyAudio(from: inputURL, to: outputURL, outputExtension: outputExtension.lowercased())
+            return try Data(contentsOf: outputURL)
+        } catch {
+            dprint("AudioConverter: Conversion to \(outputExtension) failed: \(error)")
+            return nil
+        }
+    }
+
+    /// Read every frame of `inputURL` and write it to `outputURL`. The output file
+    /// is finalized when its AVAudioFile is released at the end of this function.
+    private static func copyAudio(from inputURL: URL, to outputURL: URL, outputExtension: String) throws {
+        let input = try AVAudioFile(forReading: inputURL)
+        let format = input.processingFormat
+        var settings: [String: Any] = [
+            AVSampleRateKey: format.sampleRate,
+            AVNumberOfChannelsKey: format.channelCount
+        ]
+        if outputExtension == "m4a" {
+            settings[AVFormatIDKey] = kAudioFormatMPEG4AAC
+        } else {
+            settings[AVFormatIDKey] = kAudioFormatLinearPCM
+            settings[AVLinearPCMBitDepthKey] = 16
+            settings[AVLinearPCMIsFloatKey] = false
+            settings[AVLinearPCMIsBigEndianKey] = outputExtension == "aiff" || outputExtension == "aif"
+        }
+        let output = try AVAudioFile(forWriting: outputURL, settings: settings,
+                                     commonFormat: format.commonFormat, interleaved: format.isInterleaved)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 8192) else {
+            throw NSError(domain: "AudioConverter", code: -1)
+        }
+        while input.framePosition < input.length {
+            try input.read(into: buffer)
+            if buffer.frameLength == 0 { break }
+            try output.write(from: buffer)
+        }
+    }
 }

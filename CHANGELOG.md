@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Grok uses `XAI_API_KEY`. The older `GROK_API_KEY` is still read; saving a Grok key in Settings stores it under the new name and removes the old item.
 
 ### Fixed
+- The AppleScript `save audio` command writes the format named by the file extension. `.m4a`, `.wav`, `.aiff` and `.caf` are converted when the provider produces another format; `.mp3` from a provider that does not produce MP3, or an unknown extension, is reported as an error. Previously the provider's own format was written under any name.
 - Real-time transcription receives audio again on macOS 27 when the selected input device is also the system default input; selecting that device explicitly left the input silent, with no error.
 - ElevenLabs text-to-speech sends the selected language as an ISO 639-1 code, so choosing a language takes effect with Flash v2.5 and Eleven v3.
 - ElevenLabs real-time transcription no longer drops a phrase spoken again (such as "yes" twice); each committed segment is added once whether it is reported once or twice.
