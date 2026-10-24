@@ -35,7 +35,6 @@ final class FileTranscriptionService {
     static let shared = FileTranscriptionService()
 
     /// Supported audio file extensions (union of all providers)
-    private let supportedExtensions = Set(AudioFileSupport.extensions)
 
     private init() {}
 
@@ -101,8 +100,8 @@ final class FileTranscriptionService {
 
         // Check extension
         let fileExtension = url.pathExtension.lowercased()
-        guard supportedExtensions.contains(fileExtension) else {
-            throw FileTranscriptionError.unsupportedFormat(fileExtension, supportedFormats: AudioFileSupport.formatHint)
+        guard AudioFileSupport.accepts(url, for: provider) else {
+            throw FileTranscriptionError.unsupportedFormat(fileExtension, supportedFormats: AudioFileSupport.formatHint(for: provider))
         }
 
         // Check file size against provider-specific limit
@@ -126,14 +125,14 @@ final class FileTranscriptionService {
     private func defaultModel(for provider: RealtimeSTTProvider) -> STTModel {
         switch provider {
         case .openAI:
-            return .whisper1  // whisper-1 is best for file transcription
+            return .gptTranscribe
         case .gemini:
             return .gemini38Flash
         case .elevenLabs:
             return .scribeV2
         case .grok, .macOS:
             // These don't support file transcription
-            return .whisper1
+            return .gptTranscribe
         }
     }
 

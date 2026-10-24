@@ -211,7 +211,7 @@ final class FileTranscriptionServiceTests: XCTestCase {
 
     @MainActor
     func testValidateFile_AllSupportedExtensions() async throws {
-        let supportedExtensions = ["mp3", "wav", "m4a", "aac", "aiff", "webm", "ogg", "flac", "mp4"]
+        let supportedExtensions = ["mp3", "wav", "m4a", "webm", "ogg", "flac", "mp4"]
         let tempDir = FileManager.default.temporaryDirectory
         let service = FileTranscriptionService.shared
 
@@ -223,5 +223,22 @@ final class FileTranscriptionServiceTests: XCTestCase {
             XCTAssertNoThrow(try service.validateFile(tempFile, for: .openAI),
                            "Extension .\(ext) should be supported")
         }
+    }
+
+    @MainActor
+    func testValidateFile_AIFFRejectedOnlyForOpenAI() throws {
+        let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent("test.aiff")
+        try "test".write(to: tempFile, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempFile) }
+
+        let service = FileTranscriptionService.shared
+        XCTAssertThrowsError(try service.validateFile(tempFile, for: .openAI)) { error in
+            guard case FileTranscriptionError.unsupportedFormat(let format, let supportedFormats) = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+            XCTAssertEqual(format, "aiff")
+            XCTAssertFalse(supportedFormats.components(separatedBy: ", ").contains("AIFF"))
+        }
+        XCTAssertNoThrow(try service.validateFile(tempFile, for: .gemini))
     }
 }

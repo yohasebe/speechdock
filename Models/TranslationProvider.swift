@@ -49,7 +49,7 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .macOS: return "System"
         case .openAI: return "gpt-5.4-mini"
-        case .gemini: return "gemini-3.1-flash-lite"
+        case .gemini: return "gemini-3.5-flash-lite"
         case .grok: return "grok-4.20-non-reasoning"
         }
     }
@@ -62,13 +62,11 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
         case .openAI:
             return [
                 TranslationModelInfo(id: "gpt-5.4-mini", name: "GPT-5.4 Mini", isDefault: true),
-                TranslationModelInfo(id: "gpt-5.4-nano", name: "GPT-5.4 Nano", isDefault: false)
+                TranslationModelInfo(id: "gpt-6-luna", name: "GPT-6 Luna", isDefault: false)
             ]
         case .gemini:
-            // gemini-3.1-flash-lite-preview was shut down 2026-05-25; the GA id drops
-            // the -preview suffix. gemini-3.1-pro-preview remains valid (no shutdown).
             return [
-                TranslationModelInfo(id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite", isDefault: true),
+                TranslationModelInfo(id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", isDefault: true),
                 TranslationModelInfo(id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", isDefault: false)
             ]
         case .grok:

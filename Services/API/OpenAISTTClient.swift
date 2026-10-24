@@ -34,23 +34,10 @@ final class OpenAISTTClient: STTAPIClient {
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n")
         body.append("\(model.rawValue)\r\n")
 
-        // Add response_format field
-        let responseFormat = model == .whisper1 ? "verbose_json" : "json"
-        body.append("--\(boundary)\r\n")
-        body.append("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n")
-        body.append("\(responseFormat)\r\n")
-
-        // Add include[] for logprobs (non-whisper models)
-        if model != .whisper1 {
-            body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"include[]\"\r\n\r\n")
-            body.append("logprobs\r\n")
-        }
-
-        // Add language if specified
+        // gpt-transcribe takes a list of language hints instead of `language`
         if let lang = language, lang != "auto" {
             body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n")
+            body.append("Content-Disposition: form-data; name=\"languages[]\"\r\n\r\n")
             body.append("\(lang)\r\n")
         }
 
@@ -71,41 +58,22 @@ final class OpenAISTTClient: STTAPIClient {
 
         let json = try JSONDecoder().decode(OpenAITranscriptionResponse.self, from: data)
 
-        let confidence: Double?
-        if let logprobs = json.logprobs, !logprobs.isEmpty {
-            let avgLogprob = logprobs.map { $0.logprob }.reduce(0, +) / Double(logprobs.count)
-            confidence = exp(avgLogprob)
-        } else if let segments = json.segments, !segments.isEmpty {
-            let avgLogprob = segments.map { $0.avgLogprob }.reduce(0, +) / Double(segments.count)
-            confidence = exp(avgLogprob)
-        } else {
-            confidence = nil
-        }
-
+        // gpt-transcribe reports no confidence; `languages` is empty when it
+        // could not tell.
         return TranscriptionResult(
             text: json.text.trimmingCharacters(in: .whitespacesAndNewlines),
-            confidence: confidence,
-            languageCode: json.language
+            confidence: nil,
+            languageCode: json.languages?.first?.code
         )
     }
 }
 
-private struct OpenAITranscriptionResponse: Decodable {
+struct OpenAITranscriptionResponse: Decodable {  // internal for tests
     let text: String
-    let language: String?
-    let logprobs: [LogprobEntry]?
-    let segments: [Segment]?
+    let languages: [DetectedLanguage]?
 
-    struct LogprobEntry: Decodable {
-        let logprob: Double
-    }
-
-    struct Segment: Decodable {
-        let avgLogprob: Double
-
-        enum CodingKeys: String, CodingKey {
-            case avgLogprob = "avg_logprob"
-        }
+    struct DetectedLanguage: Decodable {
+        let code: String
     }
 }
 

@@ -30,12 +30,23 @@ final class UsabilityRegressionTests: XCTestCase {
     func testAudioFileFormatsAreSharedByChooserAndDropValidation() {
         for ext in AudioFileSupport.extensions {
             let url = URL(fileURLWithPath: "/example." + ext.uppercased())
-            XCTAssertTrue(AudioFileSupport.accepts(url))
-            XCTAssertTrue(AudioFileSupport.formatHint.contains(ext.uppercased()))
+            XCTAssertTrue(AudioFileSupport.accepts(url, for: .gemini))
+            XCTAssertTrue(AudioFileSupport.formatHint(for: .gemini).contains(ext.uppercased()))
         }
-        XCTAssertTrue(AudioFileSupport.accepts(URL(fileURLWithPath: "/example.AIFF")))
-        XCTAssertTrue(AudioFileSupport.accepts(URL(fileURLWithPath: "/example.aif")))
-        XCTAssertFalse(AudioFileSupport.accepts(URL(fileURLWithPath: "/example.txt")))
+        XCTAssertTrue(AudioFileSupport.accepts(URL(fileURLWithPath: "/example.AIFF"), for: .gemini))
+        XCTAssertTrue(AudioFileSupport.accepts(URL(fileURLWithPath: "/example.aif"), for: .gemini))
+        XCTAssertFalse(AudioFileSupport.accepts(URL(fileURLWithPath: "/example.txt"), for: .gemini))
+    }
+
+    func testOpenAIFileFormatsExcludeWhatTheAPIRejects() {
+        for ext in ["aac", "aiff", "aif"] {
+            XCTAssertFalse(AudioFileSupport.accepts(URL(fileURLWithPath: "/example." + ext.uppercased()), for: .openAI))
+            XCTAssertFalse(AudioFileSupport.formatHint(for: .openAI).components(separatedBy: ", ").contains(ext.uppercased()))
+            XCTAssertFalse(AudioFileSupport.contentTypes(for: .openAI).contains { $0.preferredFilenameExtension == ext })
+        }
+        for ext in ["mp3", "wav", "m4a", "webm", "ogg", "flac", "mp4"] {
+            XCTAssertTrue(AudioFileSupport.accepts(URL(fileURLWithPath: "/example." + ext), for: .openAI))
+        }
     }
 
     func testCaptureCoordinatesOnDisplaysAboveAndLeftOfPrimary() {

@@ -9,11 +9,11 @@ import Foundation
 /// * `gpt-realtime-whisper` (default): emits continuous `.delta` events for live
 ///   partial transcripts. Server VAD is unsupported — we run client-side VAD on
 ///   `audioLevelMonitor` and send `input_audio_buffer.commit` when speech ends, which
-///   triggers `.completed` with the finalized segment. Lower latency than the
-///   gpt-4o-mini-transcribe family for live subtitle use.
-/// * `gpt-4o-mini-transcribe*` / `whisper-1`: also driven by client-side commit
-///   (server VAD explicitly disabled with `turn_detection: null`). Mostly emits
-///   `.completed` events per commit; less suited to live deltas but higher accuracy.
+///   triggers `.completed` with the finalized segment.
+/// * `gpt-live-transcribe` / `gpt-transcribe`: also driven by client-side commit
+///   (no server VAD: `turn_detection: null`), with language hints as `languages`.
+///   Live Transcribe streams deltas as speech arrives; Transcribe starts after
+///   each committed turn.
 @MainActor
 final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
@@ -63,9 +63,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     // Connection state tracking
     private var sessionCreated = false
 
-    // Client-side VAD (used because OpenAI's Realtime API requires manual commit for
-    // transcription-only sessions — server VAD is either unsupported on whisper or
-    // explicitly disabled to avoid 200ms auto-commits on the gpt-4o-mini family).
+    // Client-side VAD (used because none of the transcription models offered here
+    // supports server VAD; the session needs a manual commit per turn).
     /// Last time an above-threshold audio sample was observed (since last commit).
     private var lastAudioActivityTime: Date?
     /// Time the first audio of the current unfinalized segment was observed.
@@ -289,8 +288,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
             RealtimeSTTModelInfo(id: "gpt-realtime-whisper", name: "GPT Realtime Whisper", description: "Streaming deltas, lowest latency", isDefault: true),
-            RealtimeSTTModelInfo(id: "gpt-4o-mini-transcribe-2025-12-15", name: "GPT-4o Mini Transcribe (Dec 2025)", description: "Higher accuracy snapshot"),
-            RealtimeSTTModelInfo(id: "whisper-1", name: "Whisper", description: "OpenAI Whisper (full transcript on completion)")
+            RealtimeSTTModelInfo(id: "gpt-live-transcribe", name: "GPT Live Transcribe", description: "Streaming deltas as speech arrives"),
+            RealtimeSTTModelInfo(id: "gpt-transcribe", name: "GPT Transcribe", description: "Transcript after each pause")
         ]
     }
 
@@ -362,7 +361,9 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         // GA Realtime API: nested `audio.input` shape under `session.type: "transcription"`.
         var transcriptionConfig: [String: Any] = ["model": model]
         if !selectedLanguage.isEmpty {
-            transcriptionConfig["language"] = selectedLanguage
+            // gpt-live-transcribe and gpt-transcribe take a list instead of `language`.
+            transcriptionConfig[isWhisperRealtime ? "language" : "languages"] =
+                isWhisperRealtime ? selectedLanguage as Any : [selectedLanguage]
         }
 
         // Noise reduction: near_field assumes a microphone close to the speaker;
@@ -381,9 +382,8 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
         //   * gpt-realtime-whisper rejects ANY turn_detection value
         //     ("Turn detection is not supported for this transcription model").
         //     Omit the key entirely.
-        //   * gpt-4o-mini-transcribe / whisper-1 default to server VAD with
-        //     200ms silence — which auto-commits aggressively and clobbers our
-        //     own commit timing. Explicitly send `null` to disable.
+        //   * gpt-live-transcribe / gpt-transcribe: server VAD is not supported;
+        //     the commit timing is ours. Send `null`.
         if !isWhisperRealtime {
             audioInput["turn_detection"] = NSNull()
         }
@@ -755,8 +755,7 @@ final class OpenAIRealtimeSTT: NSObject, RealtimeSTTService {
     /// `input_audio_buffer.commit` so the server finalizes a transcript segment.
     /// Also force-commits when a single segment exceeds `maxSegmentDuration` to
     /// keep buffer growth bounded during long monologues.
-    /// (OpenAI's gpt-realtime-whisper rejects server VAD; gpt-4o-mini-transcribe's
-    /// default server VAD auto-commits every 200ms which we explicitly disable.)
+    /// (None of the offered transcription models supports server VAD.)
     private func updateClientVAD() {
         // Recover from a stuck commitInFlight if `.completed` was never received
         // (server stall, transient network error). Without this, the entire session

@@ -1884,10 +1884,10 @@ final class AppState {
         openPanel.canChooseDirectories = false
         openPanel.canChooseFiles = true
 
-        openPanel.allowedContentTypes = AudioFileSupport.contentTypes
+        openPanel.allowedContentTypes = AudioFileSupport.contentTypes(for: selectedRealtimeProvider)
 
         openPanel.title = NSLocalizedString("Select Audio File", comment: "Open panel title")
-        openPanel.message = AudioFileSupport.formatHint + "\n" + AudioFileSupport.limits(for: selectedRealtimeProvider)
+        openPanel.message = AudioFileSupport.formatHint(for: selectedRealtimeProvider) + "\n" + AudioFileSupport.limits(for: selectedRealtimeProvider)
 
         // Configure panel to appear above floating panels
         WindowLevelCoordinator.configureSavePanel(openPanel)

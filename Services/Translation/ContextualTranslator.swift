@@ -291,7 +291,6 @@ final class LLMContextualTranslator: ContextualTranslator {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // GPT-5 series uses reasoning_effort instead of temperature
         var body: [String: Any] = [
             "model": modelId,
             "messages": [
@@ -299,12 +298,7 @@ final class LLMContextualTranslator: ContextualTranslator {
             ]
         ]
 
-        if modelId.hasPrefix("gpt-5") {
-            // GPT-5.x (e.g. gpt-5.2, gpt-5.4-mini) supports "none"; bare gpt-5 family supports only "minimal".
-            body["reasoning_effort"] = modelId.contains("5.") ? "none" : "minimal"
-        } else {
-            body["temperature"] = 0.3
-        }
+        body.merge(LLMTranslation.openAISamplingParameters(model: modelId)) { $1 }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 

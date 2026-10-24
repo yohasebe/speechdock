@@ -138,20 +138,7 @@ final class LLMTranslation: TranslationServiceProtocol {
             ]
         ]
 
-        if self.model.hasPrefix("gpt-5") {
-            // GPT-5 family: no temperature support, use reasoning_effort instead
-            // gpt-5.2: supports "none" (default is already "none")
-            // gpt-5, gpt-5-mini, gpt-5-nano: lowest is "minimal"
-            if self.model.contains("5.") {
-                // gpt-5.1, gpt-5.2 etc. support "none"
-                requestBody["reasoning_effort"] = "none"
-            } else {
-                // gpt-5, gpt-5-mini, gpt-5-nano: lowest is "minimal"
-                requestBody["reasoning_effort"] = "minimal"
-            }
-        } else {
-            requestBody["temperature"] = 0.3
-        }
+        requestBody.merge(Self.openAISamplingParameters(model: self.model)) { $1 }
 
         guard let url = URL(string: endpoint) else {
             throw TranslationError.apiError("Invalid OpenAI API endpoint URL")
@@ -202,9 +189,9 @@ final class LLMTranslation: TranslationServiceProtocol {
 
         let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
 
-        // Gemini 3.x models think by default; set thinkingLevel="low" so Flash/Flash-Lite
-        // skip reasoning entirely (Pro always thinks regardless). Translation doesn't
-        // benefit from chain-of-thought and the latency cost is significant.
+        // Gemini 3.x models always think; use the lowest level the model accepts.
+        // Translation doesn't benefit from chain-of-thought and the latency cost
+        // is significant.
         let requestBody: [String: Any] = [
             "contents": [[
                 "parts": [
@@ -213,7 +200,7 @@ final class LLMTranslation: TranslationServiceProtocol {
             ]],
             "generationConfig": [
                 "temperature": 0.3,
-                "thinkingConfig": ["thinkingLevel": "low"]
+                "thinkingConfig": ["thinkingLevel": Self.geminiThinkingLevel(model: self.model)]
             ]
         ]
 
@@ -421,5 +408,23 @@ final class LLMTranslation: TranslationServiceProtocol {
         ]
 
         return mapping[nlLanguage]
+    }
+}
+
+extension LLMTranslation {
+    /// Reasoning models take `reasoning_effort` instead of `temperature`.
+    /// GPT-6 Luna and GPT-5.x accept "none"; the original GPT-5 family's lowest is
+    /// "minimal". Other GPT-6 models do not accept "none", so they get neither.
+    nonisolated static func openAISamplingParameters(model: String) -> [String: Any] {
+        if model.hasPrefix("gpt-6-luna") { return ["reasoning_effort": "none"] }
+        if model.hasPrefix("gpt-6") { return [:] }
+        if model.hasPrefix("gpt-5") { return ["reasoning_effort": model.contains("5.") ? "none" : "minimal"] }
+        return ["temperature": 0.3]
+    }
+
+    /// The lowest thinking level the offered models accept: 3.1 Pro starts at "low",
+    /// 3.5 Flash Lite at "minimal".
+    nonisolated static func geminiThinkingLevel(model: String) -> String {
+        model.contains("-pro") ? "low" : "minimal"
     }
 }

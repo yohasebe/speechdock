@@ -54,7 +54,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 
 | プロバイダ | モデル | 特徴 |
 |----------|--------|----------|
-| **OpenAI** | GPT Realtime Whisper、GPT-4o Mini Transcribe、Whisper | ストリーミングdelta（Whisper）、高精度、100以上の言語 |
+| **OpenAI** | GPT Realtime Whisper、GPT Live Transcribe、GPT Transcribe | ストリーミングdelta（Whisper）、高精度、100以上の言語 |
 | **Google Gemini** | Gemini 3.5 Transcribe Live、Gemini 3.8 Live | ストリーミング文字起こし。ファイルの文字起こしは Gemini 3.8 Flash |
 | **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
@@ -108,7 +108,7 @@ TTS再生を任意の音声出力デバイス（スピーカー、ヘッドフ�
 | プロバイダ | 形式 | 最大サイズ | 最大長 | API |
 |----------|---------|----------|--------------|-----|
 | **macOS**（26+） | MP3、WAV、M4A、AAC、AIFF、FLAC、MP4 | 100 MB | 無制限 | SpeechAnalyzer（必要に応じてシステム音声認識へ切り替え） |
-| **OpenAI** | MP3、WAV、M4A、FLAC、WebM、MP4 | 25 MB | 無制限 | Whisper |
+| **OpenAI** | MP3、WAV、M4A、FLAC、WebM、OGG、MP4 | 25 MB | 無制限 | GPT Transcribe |
 | **Gemini** | MP3、WAV、AAC、OGG、FLAC | 14 MB | 約10分 | generateContent |
 | **ElevenLabs** | MP3、WAV、M4A、OGG、FLAC | 25 MB | 約2時間 | Scribe v2 |
 
@@ -134,8 +134,8 @@ macOSのオンデバイス翻訳は約18言語をサポートしていますが�
 | プロバイダ | モデル | 備考 |
 |----------|--------|-------|
 | **macOS**（デフォルト） | System | オンデバイス、APIキー不要、macOS 26以降 |
-| **OpenAI** | GPT-5.4 Mini（デフォルト）、GPT-5.4 Nano | 高速、高品質 |
-| **Gemini** | Gemini 3.1 Flash Lite（デフォルト）、Gemini 3.1 Pro (Preview) | 高速、多言語対応 |
+| **OpenAI** | GPT-5.4 Mini（デフォルト）、GPT-6 Luna | 高速、高品質 |
+| **Gemini** | Gemini 3.5 Flash Lite（デフォルト）、Gemini 3.1 Pro (Preview) | 高速、多言語対応 |
 | **Grok** | Grok 4.20 Fast（デフォルト）、Grok 4.20 Fast (Reasoning) | 高速翻訳 |
 
 ### 翻訳プロバイダの切り替え
@@ -220,7 +220,7 @@ STTとTTSの両方で、すべてのクラウドプロバイダで言語選択�
 
 翻訳は本文の下の折りたたみ区画にまとめ、音声操作と分けています。設定画面は横幅を変更でき、モデル名の下に説明を表示します。Tab移動のフォーカス表示を維持しています。クイックマイクは支援技術による押下に対応し、初回にクリック・ドラッグの案内を表示します。「視差効果を減らす」では脈動を止めます。パネルには標準マテリアルを使い、「透明度を下げる」「コントラストを上げる」では不透明な背景にします。
 
-音声ファイルの文字起こしは既存の本文に追記し、認識結果が空なら本文を変えません。選択・ドロップの対応形式はMP3、WAV、M4A、AAC、AIFF/AIF、WebM、OGG、FLAC、MP4です。デコード可能な形式はプロバイダにも依存します。macOSのローカル処理は最大100 MB・長さの上限なしです。クラウドでは表示されたサイズ制限に従ってください。音声認識の初回言語モデル取得中はマイクを開始せず、本文とは別に進捗を表示し、取り消せます。
+音声ファイルの文字起こしは既存の本文に追記し、認識結果が空なら本文を変えません。選択・ドロップの対応形式はMP3、WAV、M4A、AAC、AIFF/AIF、WebM、OGG、FLAC、MP4です（OpenAIではAACとAIFF/AIFを除く）。デコード可能な形式はプロバイダにも依存します。macOSのローカル処理は最大100 MB・長さの上限なしです。クラウドでは表示されたサイズ制限に従ってください。音声認識の初回言語モデル取得中はマイクを開始せず、本文とは別に進捗を表示し、取り消せます。
 
 字幕の停止は録音だけを止め、本文を表示したままにします。字幕を消す場合は閉じる操作を使います。警告・保存画面は操作中の窓のシートとして表示し、画面構成が変わったときは窓を表示可能な範囲へ戻します。自動貼り付けを確認できない場合はコピー済みと案内し、テキストをクリップボードに残します。ショートカットの登録失敗やパネル内の重複は設定画面に表示します。
 

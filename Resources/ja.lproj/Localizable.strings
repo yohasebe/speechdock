@@ -164,7 +164,7 @@
 "Grok Voice Agent (low latency)" = "Grok Voice Agent（低レイテンシ）";
 
 /* File Transcription Descriptions */
-"Whisper API (max 25MB)" = "Whisper API（最大25MB）";
+"OpenAI API (max 25MB)" = "OpenAI API（最大25MB）";
 "Gemini API (max 14MB)" = "Gemini API（最大14MB）";
 "Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2（最大25MB、約2時間）";
 "Realtime only" = "リアルタイムのみ";
@@ -180,7 +180,6 @@
 /* Settings - Translation Provider Descriptions */
 "On-device, no API key" = "オンデバイス、APIキー不要";
 "Requires macOS 26+" = "macOS 26以降が必要です";
-"GPT-5 Nano (default), high quality" = "GPT-5 Nano（デフォルト）、高品質";
 "Gemini 3 Flash (default), high quality" = "Gemini 3 Flash（デフォルト）、高品質";
 "Grok 3 Fast, high quality" = "Grok 3 Fast、高品質";
 "Language" = "言語";

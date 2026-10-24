@@ -60,7 +60,7 @@ A menu bar app that makes STT and TTS accessible from anywhere on your Mac with 
 - **TTS integration** — Automatically read translated text
 
 ### Cloud Providers (Optional)
-- **OpenAI** — GPT Realtime Whisper / GPT-4o Mini Transcribe (STT), GPT-4o Mini TTS (Dec 2025) (TTS)
+- **OpenAI** — GPT Realtime Whisper / GPT Live Transcribe / GPT Transcribe (STT), GPT-4o Mini TTS (Dec 2025) (TTS)
 - **Google Gemini** — Gemini 3.5 Transcribe Live / 3.8 Live and Gemini 3.8 Flash for files (STT), Gemini 3.8 Flash / Flash-Lite TTS (TTS)
 - **ElevenLabs** — Scribe v2 (STT), Eleven v3 (TTS)
 - **Grok (xAI)** — Grok STT (STT), Grok TTS (TTS)

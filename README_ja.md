@@ -46,7 +46,7 @@
 | プロバイダ | モデル | APIキー |
 |----------|--------|---------|
 | **macOS Native** | System Default（macOS 26+ではSpeechAnalyzer） | 不要 |
-| **OpenAI** | GPT Realtime Whisper, GPT-4o Mini Transcribe, Whisper | 必要 |
+| **OpenAI** | GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe | 必要 |
 | **Google Gemini** | Gemini 3.5 Transcribe Live、Gemini 3.8 Live | 必要 |
 | **ElevenLabs** | Scribe v2 Realtime | 必要 |
 | **Grok** | Grok STT | 必要 |

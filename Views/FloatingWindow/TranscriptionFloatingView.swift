@@ -698,7 +698,7 @@ struct TranscriptionFloatingView: View {
                             .foregroundStyle(.secondary)
 
                             // Provider-specific limits
-                            Text(AudioFileSupport.formatHint + "\n" + AudioFileSupport.limits(for: provider))
+                            Text(AudioFileSupport.formatHint(for: provider) + "\n" + AudioFileSupport.limits(for: provider))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -794,19 +794,15 @@ struct TranscriptionFloatingView: View {
                         return
                     }
 
-                    // Check if it's an audio file
-                    let audioExtensions = AudioFileSupport.extensions
-                    let ext = url.pathExtension.lowercased()
-                    guard audioExtensions.contains(ext) else {
-                        Task { @MainActor in
-                            let formats = AudioFileSupport.formatHint
-                            showDropNotice(String(format: NSLocalizedString("Unsupported file format: .%@\n\nSupported formats: %@", comment: "File transcription error"), ext, formats))
-                        }
-                        return
-                    }
-
-                    // Start transcription on main thread
+                    // Check the format against the current provider and start
+                    // transcription on the main thread
                     Task { @MainActor in
+                        let sttProvider = appState.selectedRealtimeProvider
+                        guard AudioFileSupport.accepts(url, for: sttProvider) else {
+                            let formats = AudioFileSupport.formatHint(for: sttProvider)
+                            showDropNotice(String(format: NSLocalizedString("Unsupported file format: .%@\n\nSupported formats: %@", comment: "File transcription error"), url.pathExtension.lowercased(), formats))
+                            return
+                        }
                         appState.transcribeAudioFile(url)
                     }
                 }

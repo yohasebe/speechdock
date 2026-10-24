@@ -52,7 +52,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 
 | Provider | Models | Features |
 |----------|--------|----------|
-| **OpenAI** | GPT Realtime Whisper, GPT-4o Mini Transcribe, Whisper | Streaming deltas (Whisper), high accuracy, 100+ languages |
+| **OpenAI** | GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe | Streaming deltas (Whisper), high accuracy, 100+ languages |
 | **Google Gemini** | Gemini 3.5 Transcribe Live, Gemini 3.8 Live | Streaming speech-to-text; file transcription uses Gemini 3.8 Flash |
 | **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |
@@ -106,7 +106,7 @@ Transcribe pre-recorded audio files. Available with cloud STT providers and macO
 | Provider | Formats | Max Size | Max Duration | API |
 |----------|---------|----------|--------------|-----|
 | **macOS** (26+) | MP3, WAV, M4A, AAC, AIFF, FLAC, MP4 | 100 MB | No limit | SpeechAnalyzer; system recognition fallback |
-| **OpenAI** | MP3, WAV, M4A, FLAC, WebM, MP4 | 25 MB | Unlimited | Whisper |
+| **OpenAI** | MP3, WAV, M4A, FLAC, WebM, OGG, MP4 | 25 MB | Unlimited | GPT Transcribe |
 | **Gemini** | MP3, WAV, AAC, OGG, FLAC | 14 MB | ~10 min | generateContent |
 | **ElevenLabs** | MP3, WAV, M4A, OGG, FLAC | 25 MB | ~2 hours | Scribe v2 |
 
@@ -132,8 +132,8 @@ While macOS on-device translation supports ~18 languages, cloud providers offer:
 | Provider | Models | Notes |
 |----------|--------|-------|
 | **macOS** (default) | System | On-device, no API key, macOS 26+ |
-| **OpenAI** | GPT-5.4 Mini (default), GPT-5.4 Nano | Fast, high quality |
-| **Gemini** | Gemini 3.1 Flash Lite (default), Gemini 3.1 Pro (Preview) | Fast, multilingual |
+| **OpenAI** | GPT-5.4 Mini (default), GPT-6 Luna | Fast, high quality |
+| **Gemini** | Gemini 3.5 Flash Lite (default), Gemini 3.1 Pro (Preview) | Fast, multilingual |
 | **Grok** | Grok 4.20 Fast (default), Grok 4.20 Fast (Reasoning) | Fast translation |
 
 ### Switching Translation Provider
@@ -213,7 +213,7 @@ When using cloud providers:
 
 Translation is an optional, collapsible section below the text. Speech controls remain separate. Settings can be widened; model descriptions appear below their short names. Tab navigation keeps its focus indication. The quick microphone supports accessibility activation and shows a one-time click/drag hint; Reduce Motion disables its pulse. Panels use a system material, with opaque backgrounds when Reduce Transparency or Increase Contrast is enabled.
 
-File transcription appends to the existing draft. An empty recognition result leaves it unchanged. The chooser and drop areas accept MP3, WAV, M4A, AAC, AIFF/AIF, WebM, OGG, FLAC, and MP4; decoding still depends on the chosen provider. Local macOS transcription allows up to 100 MB with no duration limit. Cloud providers retain their displayed size limits. Speech recognition downloads its initial language model before opening the microphone, shows progress separately, and can be cancelled.
+File transcription appends to the existing draft. An empty recognition result leaves it unchanged. The chooser and drop areas accept MP3, WAV, M4A, AAC, AIFF/AIF, WebM, OGG, FLAC, and MP4, except AAC and AIFF/AIF with OpenAI; decoding still depends on the chosen provider. Local macOS transcription allows up to 100 MB with no duration limit. Cloud providers retain their displayed size limits. Speech recognition downloads its initial language model before opening the microphone, shows progress separately, and can be cancelled.
 
 Stopping subtitles keeps the overlay and its text visible. Use Close to remove it. Alerts and save dialogs attach to the active window. Window positions are fitted to connected displays after a display change. If an automatic paste cannot be confirmed, SpeechDock leaves the text on the clipboard and says so. Shortcut registration failures and duplicate panel shortcuts appear in Settings.
 

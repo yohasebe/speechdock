@@ -128,14 +128,14 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertEqual(models.count, 2)
         XCTAssertEqual(models[0].id, "gpt-5.4-mini")
         XCTAssertTrue(models[0].isDefault)
-        XCTAssertEqual(models[1].id, "gpt-5.4-nano")
+        XCTAssertEqual(models[1].id, "gpt-6-luna")
         XCTAssertFalse(models[1].isDefault)
     }
 
     func testTranslationModelInfo_Gemini() {
         let models = TranslationProvider.gemini.availableModels
         XCTAssertEqual(models.count, 2)
-        XCTAssertEqual(models[0].id, "gemini-3.1-flash-lite")
+        XCTAssertEqual(models[0].id, "gemini-3.5-flash-lite")
         XCTAssertTrue(models[0].isDefault)
         XCTAssertEqual(models[1].id, "gemini-3.1-pro-preview")
         XCTAssertFalse(models[1].isDefault)
@@ -159,17 +159,17 @@ final class TranslationServiceTests: XCTestCase {
 
     func testTranslationProvider_DefaultModelId() {
         XCTAssertEqual(TranslationProvider.openAI.defaultModelId, "gpt-5.4-mini")
-        XCTAssertEqual(TranslationProvider.gemini.defaultModelId, "gemini-3.1-flash-lite")
+        XCTAssertEqual(TranslationProvider.gemini.defaultModelId, "gemini-3.5-flash-lite")
         XCTAssertEqual(TranslationProvider.grok.defaultModelId, "grok-4.20-non-reasoning")
         XCTAssertEqual(TranslationProvider.macOS.defaultModelId, "system")
     }
 
     @MainActor
     func testTranslationFactory_MakeService_WithModel() {
-        let service = TranslationFactory.makeService(for: .openAI, model: "gpt-5.4-nano")
+        let service = TranslationFactory.makeService(for: .openAI, model: "gpt-6-luna")
         XCTAssertEqual(service.provider, .openAI)
         if let llmService = service as? LLMTranslation {
-            XCTAssertEqual(llmService.model, "gpt-5.4-nano")
+            XCTAssertEqual(llmService.model, "gpt-6-luna")
         } else {
             XCTFail("Expected LLMTranslation instance")
         }
@@ -179,10 +179,26 @@ final class TranslationServiceTests: XCTestCase {
     func testTranslationFactory_MakeService_DefaultModel() {
         let service = TranslationFactory.makeService(for: .gemini)
         if let llmService = service as? LLMTranslation {
-            XCTAssertEqual(llmService.model, "gemini-3.1-flash-lite")
+            XCTAssertEqual(llmService.model, "gemini-3.5-flash-lite")
         } else {
             XCTFail("Expected LLMTranslation instance")
         }
+    }
+
+    // MARK: - Request parameters
+
+    func testOpenAISamplingParameters() {
+        XCTAssertEqual(LLMTranslation.openAISamplingParameters(model: "gpt-6-luna")["reasoning_effort"] as? String, "none")
+        XCTAssertNil(LLMTranslation.openAISamplingParameters(model: "gpt-6-luna")["temperature"], "GPT-6 gets no temperature")
+        XCTAssertEqual(LLMTranslation.openAISamplingParameters(model: "gpt-5.4-mini")["reasoning_effort"] as? String, "none")
+        XCTAssertEqual(LLMTranslation.openAISamplingParameters(model: "gpt-5-mini")["reasoning_effort"] as? String, "minimal")
+        XCTAssertEqual(LLMTranslation.openAISamplingParameters(model: "gpt-4.1")["temperature"] as? Double, 0.3)
+        XCTAssertTrue(LLMTranslation.openAISamplingParameters(model: "gpt-6-astra").isEmpty, "only Luna accepts none")
+    }
+
+    func testGeminiThinkingLevelIsLowestAccepted() {
+        XCTAssertEqual(LLMTranslation.geminiThinkingLevel(model: "gemini-3.5-flash-lite"), "minimal")
+        XCTAssertEqual(LLMTranslation.geminiThinkingLevel(model: "gemini-3.1-pro-preview"), "low")
     }
 
     // MARK: - TranslationState Tests

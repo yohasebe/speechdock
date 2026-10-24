@@ -164,7 +164,7 @@
 "Grok Voice Agent (low latency)" = "Grok Voice Agent (niedrige Latenz)";
 
 /* File Transcription Descriptions */
-"Whisper API (max 25MB)" = "Whisper API (max. 25 MB)";
+"OpenAI API (max 25MB)" = "OpenAI API (max. 25 MB)";
 "Gemini API (max 14MB)" = "Gemini API (max. 14 MB)";
 "Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (max. 25 MB, ~2 Std. Audio)";
 "Realtime only" = "Nur Echtzeit";
@@ -180,7 +180,6 @@
 /* Settings - Translation Provider Descriptions */
 "On-device, no API key" = "Auf dem Gerät, kein API-Schlüssel";
 "Requires macOS 26+" = "Erfordert macOS 26+";
-"GPT-5 Nano (default), high quality" = "GPT-5 Nano (Standard), hohe Qualität";
 "Gemini 3 Flash (default), high quality" = "Gemini 3 Flash (Standard), hohe Qualität";
 "Grok 3 Fast, high quality" = "Grok 3 Fast, hohe Qualität";
 "Language" = "Sprache";

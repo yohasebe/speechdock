@@ -20,7 +20,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     var availableModels: [STTModel] {
         switch self {
         case .openAI:
-            return [.gpt4oMiniTranscribe, .whisper1]
+            return [.gptTranscribe]
         case .gemini:
             return [.gemini38Flash]
         case .elevenLabs:
@@ -34,7 +34,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         // Each provider always has at least one model defined in availableModels
         guard let model = availableModels.first else {
             // Fallback that should never be reached
-            return .gpt4oMiniTranscribe
+            return .gptTranscribe
         }
         return model
     }
@@ -42,7 +42,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     var footerDescription: String {
         switch self {
         case .openAI:
-            return "Enables STT (GPT-4o Mini Transcribe, Whisper), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
+            return "Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
         case .gemini:
             return "Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this."
         case .elevenLabs:
@@ -55,8 +55,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
 
 enum STTModel: String, CaseIterable, Identifiable, Codable {
     // OpenAI models
-    case gpt4oMiniTranscribe = "gpt-4o-mini-transcribe-2025-12-15"
-    case whisper1 = "whisper-1"
+    case gptTranscribe = "gpt-transcribe"
 
     // Gemini models
     case gemini38Flash = "gemini-3.8-flash"
@@ -71,8 +70,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
 
     var displayName: String {
         switch self {
-        case .gpt4oMiniTranscribe: return "GPT-4o Mini Transcribe"
-        case .whisper1: return "Whisper-1"
+        case .gptTranscribe: return "GPT Transcribe"
         case .gemini38Flash: return "Gemini 3.8 Flash"
         case .scribeV2: return "Scribe v2"
         case .grokSTT: return "Grok STT"
@@ -81,7 +79,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
 
     var provider: STTProvider {
         switch self {
-        case .gpt4oMiniTranscribe, .whisper1:
+        case .gptTranscribe:
             return .openAI
         case .gemini38Flash:
             return .gemini

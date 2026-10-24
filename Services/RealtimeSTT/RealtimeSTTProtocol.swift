@@ -164,7 +164,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     var maxFileSizeMB: Int {
         switch self {
         case .openAI:
-            return 25  // Whisper API limit
+            return 25  // OpenAI transcription API limit
         case .gemini:
             // The 20 MB inline limit covers the whole request, and Base64
             // grows audio by 4/3: 14 MiB of audio is about 19.6 MB encoded.
@@ -208,7 +208,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     var fileTranscriptionDescription: String {
         switch self {
         case .openAI:
-            return NSLocalizedString("Whisper API (max 25MB)", comment: "File transcription description")
+            return NSLocalizedString("OpenAI API (max 25MB)", comment: "File transcription description")
         case .gemini:
             return NSLocalizedString("Gemini API (max 14MB)", comment: "File transcription description")
         case .elevenLabs:
