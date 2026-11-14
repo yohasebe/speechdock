@@ -202,7 +202,7 @@ jobs:
             desc "Menu bar STT/TTS app for macOS with multiple provider support"
             homepage "https://github.com/yohasebe/speechdock"
 
-            depends_on macos: ">= :sonoma"
+            depends_on macos: :sonoma
 
             app "SpeechDock.app"
 
