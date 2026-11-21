@@ -10,14 +10,11 @@ options:
 packages:
   HotKey:
     url: https://github.com/soffes/HotKey
-    from: 0.2.1
+    revision: a3cf605d7a96f6ff50e04fcb6dea6e2613cfcbe4 # v0.2.1
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    # 2.9.3+: includes high-severity security fixes (delta-update symlink attack,
-    # appcast connection validation) shipped in 2.9.2, plus the 2.9.3 fix for
-    # initial-install failure on apps whose bundle ID ends in `.app` — directly
-    # affects com.speechdock.app.
-    from: 2.9.3
+    # Keep aligned with SPARKLE_VERSION in .github/workflows/release.yml.
+    revision: ab7d71291238df6e0492143b120c9b696a35f603 # 2.10.1
 
 targets:
   SpeechDock:

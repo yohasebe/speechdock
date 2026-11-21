@@ -13,19 +13,45 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Tracked files match the allow list
         run: ruby scripts/lint/check_tracked_paths.rb
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '26.0'
+      - name: Select Xcode
+        run: |
+          XCODE_APP=$(ls -d /Applications/Xcode_26.0*.app | sort -V | tail -1)
+          if [ -z "$XCODE_APP" ]; then
+            echo "::error::No Xcode 26.0 installation found on the runner."
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
 
-      - name: Get version
-        id: version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_OUTPUT
+      - name: Check the tag and the release state
+        # A tag must release the version it names, and a published release is
+        # never rebuilt: its DMG is what the update feed and the cask point at.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$(cat VERSION)"
+          if [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match VERSION ($TAG)."
+            exit 1
+          fi
+          STATE=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$TAG\") | if .draft then \"draft\" else \"published\" end")
+          case "$STATE" in
+            "") echo "No release for $TAG yet." ;;
+            draft)
+              echo "::error::A draft release for $TAG exists. Review and remove it, then run this job again."
+              exit 1
+              ;;
+            *)
+              echo "::error::A release for $TAG is already published. Release a new version instead of rebuilding this one."
+              exit 1
+              ;;
+          esac
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -87,12 +113,16 @@ jobs:
         # Keep aligned with the Sparkle framework version pinned in project.yml.
         # Used here only for the `sign_update` CLI that produces the EdDSA
         # signature embedded in appcast.xml.
+        env:
+          SPARKLE_VERSION: "2.10.1"
+          SPARKLE_SHA256: 1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27
         run: |
-          curl -L -o /tmp/Sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.9.3/Sparkle-2.9.3.tar.xz
+          curl -fL -o /tmp/Sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          echo "${SPARKLE_SHA256}  /tmp/Sparkle.tar.xz" | shasum -a 256 -c -
           mkdir -p /tmp/Sparkle
           tar -xf /tmp/Sparkle.tar.xz -C /tmp/Sparkle
 
-      - name: Sign DMG for Sparkle and update appcast
+      - name: Sign DMG for Sparkle and write appcast
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
@@ -109,13 +139,18 @@ jobs:
           echo "$SPARKLE_PRIVATE_KEY" > "$SPARKLE_KEY_FILE"
 
           # Sign the DMG - extract just the signature value (without attribute name)
-          RAW_SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f "$SPARKLE_KEY_FILE" | head -1)
+          RAW_SIGNATURE=$(/tmp/Sparkle/bin/sign_update "$DMG_FILE" -f "$SPARKLE_KEY_FILE")
           # Extract the base64 signature from: sparkle:edSignature="..." length="..."
-          SIGNATURE=$(echo "$RAW_SIGNATURE" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+          SIGNATURE=$(echo "$RAW_SIGNATURE" | head -1 | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
 
           # Clean up key file
           rm -f "$SPARKLE_KEY_FILE"
           trap - EXIT
+
+          if [ -z "$SIGNATURE" ]; then
+            echo "::error::sign_update produced no EdDSA signature for $DMG_FILE."
+            exit 1
+          fi
 
           # Update appcast.xml
           cat > appcast.xml << EOF
@@ -146,28 +181,83 @@ jobs:
           echo "Signature: $SIGNATURE"
           echo "Size: $DMG_SIZE bytes"
 
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$(cat VERSION)"
+          DMG_FILE=$(ls SpeechDock-*.dmg | head -1)
+          gh release create "$TAG" "$DMG_FILE" --verify-tag --generate-notes
+
+      - name: Verify the published DMG
+        # The update feed and the cask must only point at a DMG that users can
+        # download and that is byte-identical to the one signed above.
+        run: |
+          DMG_FILE=$(ls SpeechDock-*.dmg | head -1)
+          URL="https://github.com/yohasebe/speechdock/releases/download/v$(cat VERSION)/${DMG_FILE}"
+          EXPECTED=$(shasum -a 256 "$DMG_FILE")
+          EXPECTED=${EXPECTED%% *}
+          if ! [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Could not hash $DMG_FILE."
+            exit 1
+          fi
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL --connect-timeout 20 --max-time 300 -o "$RUNNER_TEMP/published.dmg" "$URL"; then
+              ACTUAL=$(shasum -a 256 "$RUNNER_TEMP/published.dmg")
+              ACTUAL=${ACTUAL%% *}
+              if [ "$ACTUAL" = "$EXPECTED" ]; then
+                echo "Published DMG matches the signed DMG ($EXPECTED)."
+                exit 0
+              fi
+              echo "::error::Published DMG differs from the signed DMG."
+              exit 1
+            fi
+            [ "$attempt" -lt 5 ] && sleep 10
+          done
+          echo "::error::Published DMG is not downloadable at $URL."
+          exit 1
+
       - name: Commit and push appcast.xml
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add appcast.xml
-          git commit -m "Update appcast.xml for v$(cat VERSION)"
-          git push origin HEAD:main
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v3
-        with:
-          files: SpeechDock-*.dmg
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Commit on top of the current main, which may have moved past the tag.
+          VERSION=$(cat VERSION)
+          MAIN_DIR="$RUNNER_TEMP/main"
+          for attempt in 1 2 3; do
+            git fetch --depth=1 origin main
+            git worktree remove --force "$MAIN_DIR" 2>/dev/null || true
+            git worktree add --detach "$MAIN_DIR" FETCH_HEAD
+            # Never move the feed back to an older version than it already serves.
+            CURRENT=$(sed -n 's/.*<sparkle:version>\(.*\)<\/sparkle:version>.*/\1/p' "$MAIN_DIR/appcast.xml" | head -1)
+            if [ -z "$CURRENT" ]; then
+              echo "::error::Could not read the version appcast.xml serves on main."
+              exit 1
+            fi
+            NEWEST=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
+            if [ "$NEWEST" != "$VERSION" ]; then
+              echo "::error::appcast.xml already serves $CURRENT, which is newer than $VERSION."
+              exit 1
+            fi
+            cp appcast.xml "$MAIN_DIR/appcast.xml"
+            git -C "$MAIN_DIR" config user.name "github-actions[bot]"
+            git -C "$MAIN_DIR" config user.email "github-actions[bot]@users.noreply.github.com"
+            git -C "$MAIN_DIR" add appcast.xml
+            if git -C "$MAIN_DIR" diff --cached --quiet; then
+              echo "appcast.xml on main already serves this release."
+              exit 0
+            fi
+            git -C "$MAIN_DIR" commit -m "Update appcast.xml for v${VERSION}"
+            if git -C "$MAIN_DIR" push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push failed; fetching main again before the next attempt."
+          done
+          echo "::error::Could not push appcast.xml to main."
+          exit 1
 
       - name: Update Homebrew Cask
         id: homebrew
         # Do not fail the whole release if only the tap update fails — the DMG,
-        # appcast, and GitHub Release are already published by this point. But
+        # GitHub Release, and appcast are already published by this point. But
         # the outcome is surfaced by the "Verify Homebrew Cask update" step
         # below so a failure (e.g. an expired HOMEBREW_TAP_TOKEN) is never
         # silently swallowed.
@@ -190,6 +280,18 @@ jobs:
           cd /tmp/homebrew-speechdock
           git config http.https://github.com/.extraheader \
             "AUTHORIZATION: basic $(echo -n "x-access-token:${HOMEBREW_TAP_TOKEN}" | base64)"
+
+          # Never move the cask back to an older version than it already serves.
+          CURRENT=$(sed -n 's/^ *version "\(.*\)"$/\1/p' Casks/speechdock.rb | head -1)
+          if [ -z "$CURRENT" ]; then
+            echo "::error::Could not read the version the cask serves."
+            exit 1
+          fi
+          NEWEST=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
+          if [ "$NEWEST" != "$VERSION" ]; then
+            echo "::notice::The cask already serves $CURRENT, which is newer than $VERSION. Nothing to update."
+            exit 0
+          fi
 
           # Update cask file
           cat > Casks/speechdock.rb << CASKEOF
@@ -220,6 +322,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Casks/speechdock.rb
+          if git diff --cached --quiet; then
+            echo "The cask already serves this release."
+            exit 0
+          fi
           git commit -m "Update SpeechDock to v${VERSION}"
           git push
 
@@ -231,7 +337,8 @@ jobs:
             echo "(yohasebe/homebrew-speechdock) was NOT updated, so 'brew upgrade' users are"
             echo "stuck on the previous version. Most likely cause: an expired or invalid"
             echo "HOMEBREW_TAP_TOKEN secret. Regenerate the PAT (repo scope) and update the"
-            echo "repository secret, then update Casks/speechdock.rb manually for this release."
+            echo "repository secret. Before editing Casks/speechdock.rb by hand, check the version"
+            echo "and sha256 it serves now, and leave it alone if it is this release or newer."
             exit 1
           fi
           echo "Homebrew Cask updated successfully."

@@ -439,21 +439,10 @@ namespace :release do
     puts "Creating release v#{version} via GitHub Actions..."
     puts ""
 
-    # Check if tag already exists
-    tag_exists = system("git rev-parse v#{version} >/dev/null 2>&1")
-    if tag_exists
-      puts "Tag v#{version} already exists."
-      print "Delete existing tag and recreate? [y/N]: "
-      answer = STDIN.gets.chomp.downcase
-      if answer == 'y'
-        sh "git tag -d v#{version}"
-        sh "git push origin :refs/tags/v#{version} 2>/dev/null || true"
-        # Delete existing release if any
-        system "gh release delete v#{version} --yes 2>/dev/null"
-      else
-        puts "Aborted."
-        exit 0
-      end
+    # A released version is never rebuilt: its DMG is what the update feed
+    # and the cask point at.
+    if system("git rev-parse v#{version} >/dev/null 2>&1")
+      abort "Tag v#{version} already exists. Bump VERSION and release a new version."
     end
 
     # Create and push tag
@@ -464,8 +453,8 @@ namespace :release do
     puts "Tag v#{version} pushed. GitHub Actions will:"
     puts "  1. Build the Release version"
     puts "  2. Create notarized DMG"
-    puts "  3. Update appcast.xml"
-    puts "  4. Create GitHub Release"
+    puts "  3. Create GitHub Release"
+    puts "  4. Update appcast.xml and the Homebrew Cask"
     puts ""
     puts "Monitor progress at:"
     puts "  https://github.com/yohasebe/speechdock/actions"
