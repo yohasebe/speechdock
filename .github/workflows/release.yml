@@ -126,10 +126,14 @@ jobs:
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          # Get DMG filename and info (head -1 guards against multiple matches)
-          DMG_FILE=$(ls SpeechDock-*.dmg | head -1)
-          DMG_SIZE=$(stat -f%z "$DMG_FILE")
+          # The feed, the release, and the cask all name the DMG by version.
           VERSION=$(cat VERSION)
+          DMG_FILE="SpeechDock-${VERSION}.dmg"
+          if [ ! -f "$DMG_FILE" ]; then
+            echo "::error::Expected $DMG_FILE, found: $(ls SpeechDock-*.dmg 2>/dev/null | tr '\n' ' ')"
+            exit 1
+          fi
+          DMG_SIZE=$(stat -f%z "$DMG_FILE")
           PUB_DATE=$(date -R)
 
           # Create temporary file with private key
@@ -186,14 +190,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v$(cat VERSION)"
-          DMG_FILE=$(ls SpeechDock-*.dmg | head -1)
+          DMG_FILE="SpeechDock-$(cat VERSION).dmg"
           gh release create "$TAG" "$DMG_FILE" --verify-tag --generate-notes
 
       - name: Verify the published DMG
         # The update feed and the cask must only point at a DMG that users can
         # download and that is byte-identical to the one signed above.
         run: |
-          DMG_FILE=$(ls SpeechDock-*.dmg | head -1)
+          DMG_FILE="SpeechDock-$(cat VERSION).dmg"
           URL="https://github.com/yohasebe/speechdock/releases/download/v$(cat VERSION)/${DMG_FILE}"
           EXPECTED=$(shasum -a 256 "$DMG_FILE")
           EXPECTED=${EXPECTED%% *}
@@ -209,7 +213,7 @@ jobs:
                 echo "Published DMG matches the signed DMG ($EXPECTED)."
                 exit 0
               fi
-              echo "::error::Published DMG differs from the signed DMG."
+              echo "::error::Published DMG differs from the signed DMG. Do not rerun this tag: bump VERSION and release a new version."
               exit 1
             fi
             [ "$attempt" -lt 5 ] && sleep 10
@@ -269,8 +273,8 @@ jobs:
             echo "::error::HOMEBREW_TAP_TOKEN secret is empty or unset."
             exit 1
           fi
-          DMG_FILE=$(ls SpeechDock-*.dmg)
           VERSION=$(cat VERSION)
+          DMG_FILE="SpeechDock-${VERSION}.dmg"
           SHA256=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
 
           # Clone homebrew-speechdock repo
