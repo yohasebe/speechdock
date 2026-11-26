@@ -69,6 +69,11 @@ final class StreamingAudioPlayer {
     /// Track total samples for progress calculation
     private var totalSamplesScheduled: Int64 = 0
 
+    /// Observes the engine being reconfigured (output device change, Bluetooth
+    /// profile switch). The engine stops then, and buffers scheduled with
+    /// `.dataPlayedBack` never report back, so playback would never finish.
+    private var configurationObserver: NSObjectProtocol?
+
     // MARK: - Initialization
 
     /// - Parameter preRollSeconds: audio to buffer before playback starts. The default
@@ -144,6 +149,17 @@ final class StreamingAudioPlayer {
         converterMixerNode = converterMixer
         timePitchNode = timePitch
         state = .playing
+
+        let token = generation
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.generation == token, self.state == .playing || self.state == .paused else { return }
+                dprint("StreamingAudioPlayer: Engine configuration changed; ending playback")
+                self.handlePlaybackComplete()
+            }
+        }
 
         // Note: onPlaybackStarted is now called after pre-roll buffering completes
         // to ensure the "Generating Audio..." message stays visible until actual audio plays
@@ -243,6 +259,7 @@ final class StreamingAudioPlayer {
     /// Stop playback and cleanup
     func stop() {
         generation = UUID()
+        removeConfigurationObserver()
         playerNode?.stop()
         audioEngine?.stop()
 
@@ -327,6 +344,7 @@ final class StreamingAudioPlayer {
         guard state != .idle && state != .finished else { return }
 
         state = .finished
+        removeConfigurationObserver()
 
         // Stop engine
         playerNode?.stop()
@@ -340,6 +358,11 @@ final class StreamingAudioPlayer {
 
         // Reset to idle for potential reuse
         state = .idle
+    }
+
+    private func removeConfigurationObserver() {
+        if let configurationObserver { NotificationCenter.default.removeObserver(configurationObserver) }
+        configurationObserver = nil
     }
 
     /// Set the output device for an AVAudioEngine
