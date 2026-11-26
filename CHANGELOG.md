@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The menu's microphone warning asks for access when it has never been requested, instead of opening System Settings, where SpeechDock is not listed until it has asked once.
 - The menu's permission warnings are shown in the selected language.
 - Subtitle translation no longer stops for good when a result arrives after translation was reset or its settings changed. Later lines were queued behind the finished request, so subtitles stayed untranslated until translation was turned off and on.
-- Streaming text-to-speech ends the current speech when the audio output changes (for example, a Bluetooth headset switching mode) instead of never reporting that it finished.
+- Streaming text-to-speech recovers when the audio output changes mid-speech (for example, a Bluetooth headset switching mode): the audio engine restarts, or the speech ends if it cannot, instead of never reporting that it finished. The selected output device is applied before the audio graph is built.
 - The macOS voice reads languages without a preset voice, such as Vietnamese, with an installed voice for that language (preferring Premium, then Enhanced) instead of the system voice.
 
 ## [0.1.40] - 2026-10-24

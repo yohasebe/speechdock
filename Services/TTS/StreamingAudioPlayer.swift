@@ -70,9 +70,17 @@ final class StreamingAudioPlayer {
     private var totalSamplesScheduled: Int64 = 0
 
     /// Observes the engine being reconfigured (output device change, Bluetooth
-    /// profile switch). The engine stops then, and buffers scheduled with
-    /// `.dataPlayedBack` never report back, so playback would never finish.
+    /// profile switch). If that stops the engine, buffers scheduled with
+    /// `.dataPlayedBack` never report back and playback would never finish.
+    /// Selecting a non-default device also posts it once just after start while
+    /// the engine keeps running, so the handler checks before acting.
     private var configurationObserver: NSObjectProtocol?
+
+    /// Buffers scheduled but not yet played back, in order, so they can be queued
+    /// again if the engine stops mid-stream (e.g. a Bluetooth device waking up).
+    private var unplayed: [(id: UUID, buffer: AVAudioPCMBuffer)] = []
+    /// Changes when the player node is reset, so callbacks from dropped buffers are ignored.
+    private var scheduleToken = UUID()
 
     // MARK: - Initialization
 
@@ -103,6 +111,8 @@ final class StreamingAudioPlayer {
 
         generation = UUID()
         // Reset state
+        unplayed.removeAll()
+        scheduleToken = UUID()
         pendingData = Data()
         scheduledBufferCount = 0
         completedBufferCount = 0
@@ -122,6 +132,12 @@ final class StreamingAudioPlayer {
         // Default is 8, using 16 for better voice quality during rate changes
         timePitch.overlap = 16
 
+        // Select the output device before wiring the graph, so formats are negotiated
+        // with that device rather than the system default.
+        if !outputDeviceUID.isEmpty {
+            try setOutputDevice(uid: outputDeviceUID, for: engine)
+        }
+
         engine.attach(player)
         engine.attach(converterMixer)
         engine.attach(timePitch)
@@ -135,11 +151,6 @@ final class StreamingAudioPlayer {
                                         channels: pcmFormat.channelCount) ?? pcmFormat
         engine.connect(converterMixer, to: timePitch, format: floatFormat)
         engine.connect(timePitch, to: engine.mainMixerNode, format: floatFormat)
-
-        // Set output device if specified
-        if !outputDeviceUID.isEmpty {
-            try setOutputDevice(uid: outputDeviceUID, for: engine)
-        }
 
         try engine.start()
         player.play()
@@ -155,9 +166,8 @@ final class StreamingAudioPlayer {
             forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, self.generation == token, self.state == .playing || self.state == .paused else { return }
-                dprint("StreamingAudioPlayer: Engine configuration changed; ending playback")
-                self.handlePlaybackComplete()
+                guard let self, self.generation == token else { return }
+                self.recoverFromConfigurationChange(token)
             }
         }
 
@@ -260,6 +270,7 @@ final class StreamingAudioPlayer {
     func stop() {
         generation = UUID()
         removeConfigurationObserver()
+        unplayed.removeAll()
         playerNode?.stop()
         audioEngine?.stop()
 
@@ -319,11 +330,18 @@ final class StreamingAudioPlayer {
         scheduledBufferCount += 1
         totalSamplesScheduled += Int64(frameCount)
 
-        // Schedule buffer with completion callback
+        let id = UUID()
+        unplayed.append((id, buffer))
+        enqueue(buffer, id: id, on: player)
+    }
+
+    private func enqueue(_ buffer: AVAudioPCMBuffer, id: UUID, on player: AVAudioPlayerNode) {
         let token = generation
+        let schedule = scheduleToken
         player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self, self.generation == token else { return }
+                guard let self, self.generation == token, self.scheduleToken == schedule else { return }
+                self.unplayed.removeAll { $0.id == id }
                 self.handleBufferCompleted()
             }
         }
@@ -345,6 +363,7 @@ final class StreamingAudioPlayer {
 
         state = .finished
         removeConfigurationObserver()
+        unplayed.removeAll()
 
         // Stop engine
         playerNode?.stop()
@@ -359,6 +378,40 @@ final class StreamingAudioPlayer {
         // Reset to idle for potential reuse
         state = .idle
     }
+
+    /// Gives the engine a moment to settle, then restarts it if it stopped; ends the
+    /// stream only if it cannot run again.
+    private func recoverFromConfigurationChange(_ token: UUID) {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let self, self.generation == token, self.state == .playing,
+                  let engine = self.audioEngine, let player = self.playerNode, !engine.isRunning else { return }
+            do {
+                // The stop dropped whatever was queued: reset the node and queue the
+                // unplayed buffers again (a partly played one restarts from its beginning).
+                self.scheduleToken = UUID()
+                player.stop()
+                try engine.start()
+                for item in self.unplayed { self.enqueue(item.buffer, id: item.id, on: player) }
+                player.play()
+                dprint("StreamingAudioPlayer: Engine restarted after configuration change; requeued \(self.unplayed.count) buffers")
+            } catch {
+                dprint("StreamingAudioPlayer: Engine could not restart; ending playback: \(error)")
+                self.handlePlaybackComplete()
+            }
+        }
+    }
+
+    #if DEBUG
+    /// Tests: stop the engine the way a device change does (queued buffers are lost and
+    /// never report back), then post the notice.
+    func simulateEngineInterruption() {
+        guard let engine = audioEngine else { return }
+        scheduleToken = UUID()  // Callbacks the manual stop triggers stand for the lost ones.
+        engine.stop()
+        NotificationCenter.default.post(name: .AVAudioEngineConfigurationChange, object: engine)
+    }
+    #endif
 
     private func removeConfigurationObserver() {
         if let configurationObserver { NotificationCenter.default.removeObserver(configurationObserver) }
