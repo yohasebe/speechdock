@@ -599,3 +599,4 @@
 "Capture interval" = "Capture interval";
 "Shorter is more responsive but uses more CPU. Applies the next time Live OCR starts." = "Shorter is more responsive but uses more CPU. Applies the next time Live OCR starts.";
 "Live OCR (%@) watches a screen region you select, such as a video's subtitle area, and reads each new line aloud, translated if you choose." = "Live OCR (%@) watches a screen region you select, such as a video's subtitle area, and reads each new line aloud, translated if you choose.";
+"Speech took too long; skipped to the next line" = "Speech took too long; skipped to the next line";

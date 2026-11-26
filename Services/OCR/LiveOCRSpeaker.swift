@@ -37,6 +37,10 @@ final class LiveOCRSpeaker: TTSDelegate {
     }()
     private var waiting: Line?
     private var playing: UUID?
+    private var watchdog: Task<Void, Never>?
+    /// A line still unfinished after this (stalled request or player) is abandoned,
+    /// so later lines are not held up behind it.
+    static let maxLineDuration: Duration = .seconds(20)
     private var lastQueued = ""
     /// Reports a speech failure, or nil once speech works again.
     var onError: ((String?) -> Void)?
@@ -71,6 +75,7 @@ final class LiveOCRSpeaker: TTSDelegate {
     }
 
     func stop() {
+        watchdog?.cancel()
         waiting?.audio?.cancel()
         waiting = nil
         playing = nil
@@ -82,6 +87,7 @@ final class LiveOCRSpeaker: TTSDelegate {
         guard playing == nil, let line = waiting else { return }
         waiting = nil
         playing = line.id
+        armWatchdog(for: line.id)
         let service = self.service
         Task { [weak self] in
             do {
@@ -102,8 +108,20 @@ final class LiveOCRSpeaker: TTSDelegate {
         }
     }
 
+    private func armWatchdog(for id: UUID) {
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            try? await Task.sleep(for: Self.maxLineDuration)
+            guard !Task.isCancelled, let self, self.playing == id else { return }
+            self.service.stop()
+            self.onError?(NSLocalizedString("Speech took too long; skipped to the next line", comment: "Live OCR"))
+            self.finish(id)
+        }
+    }
+
     private func finish(_ id: UUID) {
         guard playing == id else { return }
+        watchdog?.cancel()
         playing = nil
         playNextIfIdle()
         if playing == nil { onSpeakingChanged?(false) }

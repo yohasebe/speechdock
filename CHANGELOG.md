@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Live OCR subtitles (`Ctrl + Option + Shift + L`, or **Read Subtitles from Screen…** in the menu): watches a screen region, such as a video's subtitle area, and reads each new line aloud. Voices: the Text-to-Speech provider (optionally translating each line first), the macOS voice, or the Gemini Live interpreter, which translates and speaks in one streamed step. A compact bar shows the status and switches voice, language, translation, subtitle text and reading; the menu has a **Live Subtitles** section with the same controls. Settings > Subtitle sets the voice, on-screen language and capture interval.
+- Live OCR subtitles (`Ctrl + Option + Shift + L`, or **Read Subtitles from Screen…** in the menu): watches a screen region, such as a video's subtitle area, and reads each new line aloud. Voices: the Text-to-Speech provider (optionally translating each line first), the macOS voice, or the Gemini Live interpreter, which translates and speaks in one streamed step. A compact bar shows the status and switches voice, language, translation, subtitle text and reading; the menu has a **Live Subtitles** section with the same controls. Settings > Subtitle sets the voice, on-screen language and capture interval. A reply, line or screen capture that stalls is skipped after a timeout, so reading continues without restarting Live OCR.
 
 ### Fixed
 - Text-to-speech playback works when a specific audio output device is selected. Playback through AVAudioEngine failed to start (error -10868) with any selected device, including the built-in speakers.

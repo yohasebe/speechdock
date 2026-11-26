@@ -584,3 +584,4 @@
 "Capture interval" = "캡처 간격";
 "Shorter is more responsive but uses more CPU. Applies the next time Live OCR starts." = "짧을수록 반응이 빠르지만 CPU를 더 사용합니다. 다음에 실시간 OCR을 시작할 때 적용됩니다.";
 "Live OCR (%@) watches a screen region you select, such as a video's subtitle area, and reads each new line aloud, translated if you choose." = "실시간 OCR(%@)은 동영상 자막 영역처럼 선택한 화면 영역을 감시하고, 새 줄을 소리 내어 읽습니다. 원하면 먼저 번역합니다.";
+"Speech took too long; skipped to the next line" = "읽기가 너무 오래 걸려 다음 줄로 넘어갔습니다";

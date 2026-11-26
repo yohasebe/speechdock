@@ -584,3 +584,4 @@
 "Capture interval" = "Intervalle de capture";
 "Shorter is more responsive but uses more CPU. Applies the next time Live OCR starts." = "Plus court réagit plus vite mais utilise plus de CPU. S'applique au prochain démarrage de l'OCR en direct.";
 "Live OCR (%@) watches a screen region you select, such as a video's subtitle area, and reads each new line aloud, translated if you choose." = "L'OCR en direct (%@) surveille une zone de l'écran que vous choisissez, comme la zone des sous-titres d'une vidéo, et lit chaque nouvelle ligne, traduite si vous le souhaitez.";
+"Speech took too long; skipped to the next line" = "La lecture a pris trop de temps ; passage à la ligne suivante";

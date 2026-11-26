@@ -8,7 +8,8 @@ final class GeminiLiveInterpreterTests: XCTestCase {
     private var transcripts: [String] = []
     private var transcriptLines: [String] = []
 
-    private func makeInterpreter() -> GeminiLiveInterpreter {
+    private func makeInterpreter(maxGeneration: Duration = .seconds(10),
+                                 playbackGrace: Duration = .seconds(2)) -> GeminiLiveInterpreter {
         sent = []
         transcripts = []
         transcriptLines = []
@@ -17,7 +18,9 @@ final class GeminiLiveInterpreterTests: XCTestCase {
             configuration: .init(voice: "Zephyr", sourceLanguage: "English", targetLanguage: "Vietnamese",
                                  speed: 1, outputDeviceUID: ""),
             audio: audio,
-            sendOverride: { [unowned self] line in self.sent.append(line) }
+            sendOverride: { [unowned self] line in self.sent.append(line) },
+            maxGeneration: maxGeneration,
+            playbackGrace: playbackGrace
         )
         interpreter.onTranscript = { [unowned self] line, text in
             self.transcriptLines.append(line)
@@ -83,6 +86,32 @@ final class GeminiLiveInterpreterTests: XCTestCase {
         interpreter.enqueue("same")
         await settle()
         XCTAssertEqual(sent, ["same"])
+    }
+
+    func testReplyThatNeverCompletesDoesNotBlockLaterLines() async throws {
+        let interpreter = makeInterpreter(maxGeneration: .milliseconds(50))
+        interpreter.enqueue("one")
+        await settle()
+        interpreter.enqueue("two")  // Waits: "one" is still generating and never completes.
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(sent, ["one", "two"], "the stalled reply is abandoned and the next line goes out")
+    }
+
+    func testPlaybackThatNeverReportsItsEndDoesNotBlockLaterLines() async throws {
+        let interpreter = makeInterpreter(playbackGrace: .milliseconds(50))
+        interpreter.enqueue("one")
+        await settle()
+        interpreter.handleServerMessage(audioMessage([1, 1]))
+        interpreter.handleServerMessage(turnComplete)
+        interpreter.enqueue("two")
+        await settle()
+        interpreter.handleServerMessage(audioMessage([2, 2]))
+        interpreter.handleServerMessage(turnComplete)
+        XCTAssertEqual(audio.streams, 1, "line two is held behind line one")
+        // The fake player never calls onPlaybackFinished, like an engine stopped by a device change.
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(audio.streams, 2, "line one is cut and line two plays")
+        XCTAssertEqual(audio.appended.last, Data([2, 2]))
     }
 
     // MARK: - Helpers

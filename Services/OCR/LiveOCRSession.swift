@@ -1,6 +1,9 @@
 import AppKit
 import CoreGraphics
 import ScreenCaptureKit
+import os
+
+private let captureLog = Logger(subsystem: "com.speechdock.app", category: "LiveOCR")
 
 /// Continuously watches one screen region and reports its text as it changes.
 ///
@@ -96,7 +99,7 @@ final class LiveOCRSession {
         } catch {
             consecutiveFailures += 1
             filter = nil  // Rebuild the filter: displays or windows may have changed.
-            dprint("LiveOCR: capture failed (\(consecutiveFailures)): \(error.localizedDescription)")
+            captureLog.error("capture failed (\(self.consecutiveFailures)): \(error.localizedDescription, privacy: .public)")
             if consecutiveFailures >= 5 {
                 stop()
                 onFailure?(error)
@@ -114,7 +117,31 @@ final class LiveOCRSession {
     private func captureFrame() async throws -> CGImage {
         if filter == nil { try await prepareCapture() }
         guard let filter, let configuration else { throw ScreenCaptureService.CaptureError.captureFailed }
-        return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+        return try await Self.withTimeout(.seconds(2)) {
+            try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+        }
+    }
+
+    /// Runs `operation`, giving up after `limit`. A capture that never returns would
+    /// otherwise stall the loop, leaving the last subtitle on screen for good.
+    /// (Unlike a task group, this does not wait for an operation that ignores cancellation.)
+    private static func withTimeout<T>(_ limit: Duration, _ operation: @escaping () async throws -> T) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            var finished = false
+            let finish: @MainActor (Result<T, Error>) -> Void = { result in
+                guard !finished else { return }
+                finished = true
+                continuation.resume(with: result)
+            }
+            let work = Task { @MainActor in
+                do { finish(.success(try await operation())) } catch { finish(.failure(error)) }
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: limit)
+                work.cancel()
+                finish(.failure(ScreenCaptureService.CaptureError.captureFailed))
+            }
+        }
     }
 
     /// Builds the display filter once; a screenshot per tick then costs only the capture itself.

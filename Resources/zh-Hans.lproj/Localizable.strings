@@ -583,3 +583,4 @@
 "Capture interval" = "捕获间隔";
 "Shorter is more responsive but uses more CPU. Applies the next time Live OCR starts." = "间隔越短反应越快，但会占用更多 CPU。下次启动实时 OCR 时生效。";
 "Live OCR (%@) watches a screen region you select, such as a video's subtitle area, and reads each new line aloud, translated if you choose." = "实时 OCR（%@）会监视你选择的屏幕区域（例如视频的字幕区域），并朗读每一行新字幕，可选择先翻译。";
+"Speech took too long; skipped to the next line" = "朗读耗时过长，已跳到下一行";

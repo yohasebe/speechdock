@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let liveLog = Logger(subsystem: "com.speechdock.app", category: "LiveOCR")
 
 /// Streamed PCM output the interpreter plays into (StreamingAudioPlayer in the app).
 @MainActor
@@ -44,6 +47,10 @@ final class GeminiLiveInterpreter {
     static let defaultModel = "gemini-3.8-live"
     /// Speed-up while newer lines wait, so speech catches up with the video.
     static let catchUpFactor = 1.25
+    /// A reply not complete after this is abandoned and the session reopened.
+    private let maxGeneration: Duration
+    /// Grace after a line's audio should have ended before playback is cut.
+    private let playbackGrace: Duration
     private static let endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
 
     let configuration: Configuration
@@ -82,10 +89,19 @@ final class GeminiLiveInterpreter {
     private var transcripts: [Int: String] = [:]
     private var sourceLines: [Int: String] = [:]
 
+    // Watchdogs: a turn must never wait forever, or every later line queues behind it.
+    private var generationWatchdog: Task<Void, Never>?
+    private var playbackWatchdog: Task<Void, Never>?
+    private var playingBytes = 0
+
     init(configuration: Configuration,
          audio: LiveAudioOutput? = nil,
-         sendOverride: ((String) async throws -> Void)? = nil) {
+         sendOverride: ((String) async throws -> Void)? = nil,
+         maxGeneration: Duration = .seconds(10),
+         playbackGrace: Duration = .seconds(2)) {
         self.configuration = configuration
+        self.maxGeneration = maxGeneration
+        self.playbackGrace = playbackGrace
         // Live audio arrives faster than real time, so a short pre-roll is enough.
         self.audio = audio ?? StreamingAudioPlayer(preRollSeconds: 0.08)
         self.sendOverride = sendOverride
@@ -123,6 +139,8 @@ final class GeminiLiveInterpreter {
     }
 
     func stop() {
+        generationWatchdog?.cancel()
+        playbackWatchdog?.cancel()
         waiting = nil
         generatingTurn = nil
         playingTurn = nil
@@ -143,6 +161,8 @@ final class GeminiLiveInterpreter {
         generatingTurn = turn
         transcripts[turn] = ""
         sourceLines[turn] = line
+        liveLog.info("turn \(turn) sent (\(line.count) chars)")
+        armGenerationWatchdog(for: turn)
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -169,6 +189,7 @@ final class GeminiLiveInterpreter {
     private func receivedAudio(_ data: Data) {
         guard let turn = generatingTurn else { return }
         if playingTurn == turn {
+            playingBytes += data.count
             audio.appendData(data)
         } else if playingTurn == nil {
             startPlaying(turn, initial: data, complete: false)
@@ -190,9 +211,12 @@ final class GeminiLiveInterpreter {
     /// The reply for `turn` is complete (or was cut off / failed).
     private func turnFinishedGenerating(_ turn: Int) {
         guard generatingTurn == turn else { return }
+        generationWatchdog?.cancel()
         generatingTurn = nil
+        liveLog.info("turn \(turn) generated")
         if playingTurn == turn {
             audio.finishStream()
+            armPlaybackWatchdog(for: turn)
         } else if heldTurn?.id == turn {
             heldTurn?.complete = true
         } else {
@@ -203,7 +227,9 @@ final class GeminiLiveInterpreter {
 
     private func playbackFinished() {
         guard let finished = playingTurn else { return }
+        playbackWatchdog?.cancel()
         playingTurn = nil
+        liveLog.info("turn \(finished) played")
         forget(finished)
         if let held = heldTurn {
             heldTurn = nil
@@ -226,9 +252,41 @@ final class GeminiLiveInterpreter {
             return
         }
         playingTurn = turn
+        playingBytes = initial.count
         updatePlaybackRate()
         if !initial.isEmpty { audio.appendData(initial) }
-        if complete { audio.finishStream() }
+        if complete {
+            audio.finishStream()
+            armPlaybackWatchdog(for: turn)
+        }
+    }
+
+    private func armGenerationWatchdog(for turn: Int) {
+        generationWatchdog?.cancel()
+        generationWatchdog = Task { [weak self] in
+            try? await Task.sleep(for: self?.maxGeneration ?? .seconds(10))
+            guard !Task.isCancelled, let self, self.generatingTurn == turn else { return }
+            liveLog.error("turn \(turn): no reply within the limit; reopening the session")
+            self.onError?("Gemini Live did not answer in time; reconnecting")
+            self.disconnect()
+            self.turnFinishedGenerating(turn)
+        }
+    }
+
+    /// Called once a line's audio is complete: if playback hasn't reported the end by the
+    /// time it should have (plus a grace period), cut it so the next line can play.
+    private func armPlaybackWatchdog(for turn: Int) {
+        playbackWatchdog?.cancel()
+        let rate = max(0.25, configuration.speed)
+        let seconds = Double(playingBytes) / 48_000 / rate  // 24 kHz, 16-bit mono
+        let grace = playbackGrace
+        playbackWatchdog = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(Int(seconds * 1000)) + grace)
+            guard !Task.isCancelled, let self, self.playingTurn == turn else { return }
+            liveLog.error("turn \(turn): playback did not report its end; moving on")
+            self.audio.stop()
+            self.playbackFinished()
+        }
     }
 
     /// Normal speed, or faster while a newer line is already waiting behind this one.
