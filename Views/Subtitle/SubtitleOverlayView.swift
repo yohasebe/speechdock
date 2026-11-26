@@ -86,6 +86,14 @@ struct SubtitleOverlayView: View {
     }
 
     var body: some View {
+        if appState.isLiveOCRActive {
+            LiveOCROverlayView()
+        } else {
+            transcriptionOverlay
+        }
+    }
+
+    private var transcriptionOverlay: some View {
         ZStack {
             // Keep the transparent window content laid out even before text arrives.
             Color.white.opacity(0.001)

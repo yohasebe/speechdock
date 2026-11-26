@@ -78,6 +78,31 @@ final class GeminiTTS: NSObject, TTSService {
         // Prepare text for highlighting
         playbackController.prepareText(text)
 
+        let finalAudioData = try await fetchWAV(text: text, apiKey: apiKey)
+        try synthesis.check(generation)
+        let sourceExt = "wav"
+
+        // Convert to M4A (AAC) for smaller file size - await completion for Save Audio support
+        if let m4aData = await AudioConverter.convertToAAC(inputData: finalAudioData, inputExtension: sourceExt) {
+            try synthesis.check(generation)
+            lastAudioData = m4aData
+            _audioFileExtension = "m4a"
+        } else {
+            try synthesis.check(generation)
+            // Fallback to original format if conversion fails
+            lastAudioData = finalAudioData
+            _audioFileExtension = sourceExt
+        }
+
+        // Set initial playback rate from selectedSpeed
+        playbackController.setPlaybackRate(Float(selectedSpeed))
+
+        // Play the audio
+        try playbackController.playAudio(data: finalAudioData, fileExtension: sourceExt)
+    }
+
+    /// Requests speech for `text` and returns it as WAV data.
+    private func fetchWAV(text: String, apiKey: String) async throws -> Data {
         // Build API request
         // Pass the API key via the x-goog-api-key header instead of a URL query
         // parameter, so the key can't leak into error logs through the request URL
@@ -123,7 +148,6 @@ final class GeminiTTS: NSObject, TTSService {
 
         // Perform request with retry logic for transient errors
         let (data, _) = try await TTSAPIHelper.performRequest(request, providerName: "Gemini")
-        try synthesis.check(generation)
 
         // Parse JSON response
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -140,26 +164,7 @@ final class GeminiTTS: NSObject, TTSService {
 
         // Normalize each container separately before joining; embedded RIFF headers
         // would otherwise become audible samples in multi-part responses.
-        let finalAudioData = try GeminiTTSAudio.makeWAV(from: parts)
-        let sourceExt = "wav"
-
-        // Convert to M4A (AAC) for smaller file size - await completion for Save Audio support
-        if let m4aData = await AudioConverter.convertToAAC(inputData: finalAudioData, inputExtension: sourceExt) {
-            try synthesis.check(generation)
-            lastAudioData = m4aData
-            _audioFileExtension = "m4a"
-        } else {
-            try synthesis.check(generation)
-            // Fallback to original format if conversion fails
-            lastAudioData = finalAudioData
-            _audioFileExtension = sourceExt
-        }
-
-        // Set initial playback rate from selectedSpeed
-        playbackController.setPlaybackRate(Float(selectedSpeed))
-
-        // Play the audio
-        try playbackController.playAudio(data: finalAudioData, fileExtension: sourceExt)
+        return try GeminiTTSAudio.makeWAV(from: parts)
     }
 
     func pause() { playbackController.pause() }
@@ -229,4 +234,25 @@ final class GeminiTTS: NSObject, TTSService {
         0.5...2.0  // Local playback rate; exports retain their generated pace.
     }
 
+}
+
+// MARK: - Fetch ahead (live subtitles)
+
+extension GeminiTTS: PresynthesizingTTSService {
+    /// Fetches audio without touching playback, so it can overlap the current line.
+    func synthesize(text: String) async throws -> PreparedSpeech {
+        guard !text.isEmpty else { throw TTSError.noTextProvided }
+        guard let apiKey = await apiKeyManager.apiKey(for: .gemini) else {
+            throw TTSError.apiError(apiKeyManager.unavailableReason(for: .gemini))
+        }
+        selectedModel = GeminiTTSModels.resolvedID(selectedModel)
+        return PreparedSpeech(text: text, data: try await fetchWAV(text: text, apiKey: apiKey), fileExtension: "wav")
+    }
+
+    /// Plays straight away; skips the AAC conversion that only Save Audio needs.
+    func play(_ speech: PreparedSpeech) throws {
+        playbackController.prepareText(speech.text)
+        playbackController.setPlaybackRate(Float(selectedSpeed))
+        try playbackController.playAudio(data: speech.data, fileExtension: speech.fileExtension)
+    }
 }

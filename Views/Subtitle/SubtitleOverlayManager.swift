@@ -55,7 +55,8 @@ final class SubtitleOverlayManager {
         // Calculate height based on max lines + header + padding
         let lineHeight = appState.subtitleFontSize * 1.4
         let textAreaHeight = lineHeight * CGFloat(appState.subtitleMaxLines)
-        let windowHeight = textAreaHeight + 84  // header (24) + padding
+        // Live OCR stacks a control bar and an error line under the text box.
+        let windowHeight = textAreaHeight + (appState.isLiveOCRActive ? 130 : 84)  // header (24) + padding
         var windowFrame: NSRect
 
         if appState.subtitleUseCustomPosition {

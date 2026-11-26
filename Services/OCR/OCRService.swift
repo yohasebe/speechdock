@@ -45,11 +45,13 @@ enum OCRService {
     ///   - image: The image to recognize text from
     ///   - languages: Language codes to prioritize (e.g., ["ja", "en"])
     ///   - accuracy: Recognition accuracy level
+    ///   - minimumConfidence: Observations below this confidence (0-1) are dropped
     /// - Returns: Recognized text as a single string
     static func recognizeText(
         from image: CGImage,
         languages: [String] = ["ja", "en"],
-        accuracy: AccuracyLevel = .accurate
+        accuracy: AccuracyLevel = .accurate,
+        minimumConfidence: Float = 0
     ) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             let request = VNRecognizeTextRequest { request, error in
@@ -58,7 +60,8 @@ enum OCRService {
                     return
                 }
 
-                guard let observations = request.results as? [VNRecognizedTextObservation],
+                guard let observations = (request.results as? [VNRecognizedTextObservation])?
+                        .filter({ $0.confidence >= minimumConfidence }),
                       !observations.isEmpty else {
                     continuation.resume(throwing: OCRError.noTextFound)
                     return
@@ -75,7 +78,11 @@ enum OCRService {
 
             // Configure recognition request
             request.recognitionLevel = accuracy.vnLevel
-            request.recognitionLanguages = languages
+            if languages.isEmpty {
+                request.automaticallyDetectsLanguage = true
+            } else {
+                request.recognitionLanguages = languages
+            }
             request.usesLanguageCorrection = true
 
             // Perform recognition

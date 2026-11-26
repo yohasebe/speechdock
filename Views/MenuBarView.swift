@@ -253,6 +253,12 @@ struct MenuBarView: View {
             Divider()
                 .padding(.vertical, 4)
 
+            // MARK: - Live OCR Section
+            liveOCRSection
+
+            Divider()
+                .padding(.vertical, 4)
+
             // MARK: - Footer Actions
             VStack(spacing: 2) {
                 // Settings
@@ -334,6 +340,135 @@ struct MenuBarView: View {
         .onAppear {
             appState.updatePermissionStatus()
         }
+    }
+
+    // MARK: - Live OCR
+
+    /// Watch a screen region (e.g. a video's subtitles) and read it aloud.
+    @ViewBuilder
+    private var liveOCRSection: some View {
+        @Bindable var appState = appState
+        let ocrEnabled = appState.hasScreenRecordingPermission
+
+        HStack {
+            Text("Live Subtitles")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            if appState.isLiveOCRActive {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(appState.liveOCRIsSpeaking ? Color.green : Color.orange)
+                        .frame(width: 6, height: 6)
+                    Text(appState.liveOCRIsSpeaking ? LocalizedStringKey("Speaking") : LocalizedStringKey("Watching"))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 2)
+        .padding(.bottom, 2)
+
+        if !ocrEnabled {
+            permissionWarning(
+                icon: "rectangle.dashed.badge.record",
+                text: "Screen Recording is needed to read subtitles",
+                action: openScreenRecordingSettings
+            )
+        }
+
+        Button(action: {
+            StatusBarManager.shared.closePanel()
+            appState.toggleLiveOCR()
+        }) {
+            HStack {
+                Image(systemName: appState.isLiveOCRActive ? "stop.circle.fill" : "text.viewfinder")
+                    .foregroundColor(appState.isLiveOCRActive ? .red : (ocrEnabled ? .accentColor : .secondary))
+                    .frame(width: 20)
+                Text(appState.isLiveOCRActive ? LocalizedStringKey("Stop Live OCR") : LocalizedStringKey("Read Subtitles from Screen…"))
+                    .font(.callout)
+                    .foregroundColor(ocrEnabled ? .primary : .secondary)
+                Spacer()
+                shortcutBadge(appState.hotKeyService?.liveOCRKeyCombo.displayString ?? "\u{2303}\u{2325}\u{21E7}L")
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(MenuBarActionButtonStyle())
+
+        HStack {
+            Image(systemName: "waveform")
+                .foregroundColor(.accentColor)
+                .frame(width: 20)
+            Text("Voice")
+                .font(.callout)
+            Spacer()
+            Picker("Voice", selection: $appState.liveOCRVoice) {
+                Text("\(appState.selectedTTSProvider.rawValue) TTS").tag(LiveOCRVoice.textToSpeech)
+                Text("macOS voice").tag(LiveOCRVoice.macOS)
+                Text("Gemini Live").tag(LiveOCRVoice.geminiLive)
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+
+        if appState.liveOCRVoice == .geminiLive || appState.subtitleTranslationEnabled {
+            HStack {
+                Image(systemName: "globe")
+                    .foregroundColor(.accentColor)
+                    .frame(width: 20)
+                Text("Speak in")
+                    .font(.callout)
+                Spacer()
+                Picker("Speak in", selection: $appState.translationTargetLanguage) {
+                    ForEach(LanguageCode.allCases.filter { $0 != .auto }) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+        }
+
+        liveOCRToggleRow(icon: appState.liveOCRSpeakEnabled ? "speaker.wave.2.fill" : "speaker.slash",
+                         title: "Read Aloud", isOn: appState.liveOCRSpeakEnabled) {
+            appState.liveOCRSpeakEnabled.toggle()
+        }
+        liveOCRToggleRow(icon: appState.liveOCRShowText ? "captions.bubble.fill" : "captions.bubble",
+                         title: "Show Subtitle Text", isOn: appState.liveOCRShowText) {
+            appState.liveOCRShowText.toggle()
+        }
+        if appState.liveOCRVoice != .geminiLive {
+            liveOCRToggleRow(icon: "character.bubble", title: "Translate First",
+                             isOn: appState.subtitleTranslationEnabled) {
+                appState.subtitleTranslationEnabled.toggle()
+            }
+        }
+    }
+
+    private func liveOCRToggleRow(icon: String, title: LocalizedStringKey, isOn: Bool,
+                                  action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 20)
+                Text(title)
+                    .font(.callout)
+                Spacer()
+                Text(isOn ? LocalizedStringKey("On") : LocalizedStringKey("Off"))
+                    .font(.caption)
+                    .foregroundColor(isOn ? .accentColor : .secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(MenuBarActionButtonStyle())
     }
 
     // Shortcut badge view

@@ -86,7 +86,7 @@ final class AppState {
     private var currentSessionTranscription: String = ""
     /// Text to display in subtitle (only text from current recording session)
     var subtitleText: String {
-        return currentSessionTranscription
+        isLiveOCRActive ? liveOCRText : currentSessionTranscription
     }
     var recordingDuration: TimeInterval = 0  // Cumulative recording duration
     var recordingStartTime: Date?  // Internal for FloatingMicButtonManager access
@@ -233,6 +233,7 @@ final class AppState {
     /// Whether the STT language is the same as the translation target language.
     /// Returns false when STT language is Auto (unknown at config time).
     var isSTTLanguageSameAsTranslationTarget: Bool {
+        guard !isLiveOCRActive else { return false }  // Live OCR text is not in the STT language
         guard !selectedSTTLanguage.isEmpty else { return false }  // Auto
         return selectedSTTLanguage == translationTargetLanguage.rawValue
     }
@@ -410,6 +411,9 @@ final class AppState {
     var subtitleModeEnabled: Bool = false {
         didSet {
             guard !isLoadingPreferences else { return }
+            if !subtitleModeEnabled && oldValue && isLiveOCRActive {
+                stopLiveOCR()
+            }
             if !subtitleModeEnabled && oldValue {
                 // Clean up translation service when subtitle mode is disabled
                 SubtitleTranslationService.shared.reset()
@@ -539,8 +543,25 @@ final class AppState {
 
     // MARK: - Subtitle Translation Runtime State
 
+    /// The source text `subtitleTranslatedText` was translated from (set just before it)
+    var subtitleTranslatedSource: String = ""
+
     /// Translated subtitle text (updated by SubtitleTranslationService)
-    var subtitleTranslatedText: String = ""
+    var subtitleTranslatedText: String = "" {
+        didSet {
+            // Skip a translation that lands after its line left the screen: speaking it would put
+            // speech further behind, and the newer line's translation is on its way.
+            if isLiveOCRActive && subtitleTranslationEnabled && subtitleTranslatedText != oldValue
+                && isCurrentLiveOCRTranslation {
+                liveOCRSpeaker?.enqueue(subtitleTranslatedText)
+            }
+        }
+    }
+
+    /// Whether the latest translation belongs to the line Live OCR shows now.
+    var isCurrentLiveOCRTranslation: Bool {
+        subtitleTranslatedSource.trimmingCharacters(in: .whitespacesAndNewlines) == liveOCRText
+    }
 
     /// Current state of subtitle translation
     var subtitleTranslationState: SubtitleTranslationState = .idle
@@ -574,6 +595,65 @@ final class AppState {
 
     // MARK: - OCR
     let ocrCoordinator = OCRCoordinator()
+
+    // MARK: - Live OCR (continuous subtitle reading)
+
+    /// Whether a screen region is being watched and shown as subtitles
+    private(set) var isLiveOCRActive = false
+    /// Whether the user is currently picking the region to watch
+    private(set) var isSelectingLiveOCRRegion = false
+    /// Latest stable text read from the watched region
+    private(set) var liveOCRText = ""
+    private var liveOCRSession: LiveOCRSession?
+    private var liveOCRSpeaker: LiveOCRSpeaker?
+    private var liveOCRInterpreter: GeminiLiveInterpreter?
+    /// Gemini Live's translation of the line now on screen ("" until it arrives)
+    private(set) var liveOCRInterpretedText = ""
+    /// Whether a subtitle line is being read aloud right now
+    private(set) var liveOCRIsSpeaking = false
+    /// Whether lines go through Gemini Live, which translates as it speaks
+    var usesLiveOCRInterpreter: Bool { liveOCRInterpreter != nil }
+    private var liveOCRSelectionOverlay: RegionSelectionOverlay?
+
+    /// Read each new subtitle aloud (the translation when translation is on)
+    var liveOCRSpeakEnabled: Bool = UserDefaults.standard.object(forKey: "liveOCRSpeakEnabled") as? Bool ?? true {
+        didSet {
+            if persistsPreferences { UserDefaults.standard.set(liveOCRSpeakEnabled, forKey: "liveOCRSpeakEnabled") }
+            restartLiveOCRVoice()
+        }
+    }
+
+    /// Show the recognized (or translated) text in the overlay; speech works either way
+    var liveOCRShowText: Bool = UserDefaults.standard.object(forKey: "liveOCRShowText") as? Bool ?? false {
+        didSet { if persistsPreferences { UserDefaults.standard.set(liveOCRShowText, forKey: "liveOCRShowText") } }
+    }
+
+    /// Voice that reads live subtitles (default: follow Text-to-Speech settings)
+    var liveOCRVoice: LiveOCRVoice = AppState.storedLiveOCRVoice() {
+        didSet {
+            if persistsPreferences { UserDefaults.standard.set(liveOCRVoice.rawValue, forKey: "liveOCRVoice") }
+            restartLiveOCRVoice()
+        }
+    }
+
+    private static func storedLiveOCRVoice() -> LiveOCRVoice {
+        let defaults = UserDefaults.standard
+        if let raw = defaults.string(forKey: "liveOCRVoice"), let voice = LiveOCRVoice(rawValue: raw) { return voice }
+        return defaults.bool(forKey: "liveOCRUseSystemVoice") ? .macOS : .textToSpeech  // Earlier setting
+    }
+
+    /// Last speech failure while reading live subtitles (nil when speech works)
+    private(set) var liveOCRSpeechError: String?
+
+    /// Seconds between captures of the watched region
+    var liveOCRInterval: Double = UserDefaults.standard.object(forKey: "liveOCRInterval") as? Double ?? 0.15 {
+        didSet { if persistsPreferences { UserDefaults.standard.set(liveOCRInterval, forKey: "liveOCRInterval") } }
+    }
+
+    /// Vision language code of the on-screen text ("" = automatic)
+    var liveOCRLanguage: String = UserDefaults.standard.string(forKey: "liveOCRLanguage") ?? "en-US" {
+        didSet { if persistsPreferences { UserDefaults.standard.set(liveOCRLanguage, forKey: "liveOCRLanguage") } }
+    }
 
     // Expose hotKeyService for settings UI
     private(set) var hotKeyService: HotKeyService?
@@ -722,7 +802,7 @@ final class AppState {
 
     func hideSubtitleMode() {
         guard subtitleModeEnabled else { return }
-        stopRecording()
+        if isLiveOCRActive { stopLiveOCR() } else { stopRecording() }
         subtitleModeEnabled = false
     }
 
@@ -756,6 +836,7 @@ final class AppState {
             "toggleSTT": { [weak self] in self?.toggleRecording() },
             "toggleTTS": { [weak self] in self?.toggleTTS() },
             "ocr": { [weak self] in self?.startOCR() },
+            "liveOCR": { [weak self] in self?.toggleLiveOCR() },
             "subtitle": { [weak self] in self?.toggleSubtitleMode() },
             "quickTranscription": { [weak self] in self?.toggleQuickTranscription() },
         ]
@@ -825,6 +906,7 @@ final class AppState {
     /// Start recording (can be called from panel button or auto-start)
     func startRecording() {
         guard !isProcessing && !isRecording && transcriptionState != .preparing else { return }
+        if isLiveOCRActive { stopLiveOCR() }
         let feature: PermissionFeature = selectedAudioInputSourceType == .microphone ? .microphoneRecording : .systemAudioRecording
         guard PermissionService.shared.ensureAccess(for: feature) else { return }
 
@@ -1606,6 +1688,151 @@ final class AppState {
         ocrCoordinator.cancel()
     }
 
+    // MARK: - Live OCR Methods
+
+    func toggleLiveOCR() {
+        if isLiveOCRActive || isSelectingLiveOCRRegion { stopLiveOCR() } else { startLiveOCR() }
+    }
+
+    /// Let the user drag a region, then keep reading it into the subtitle overlay.
+    /// Public for AppleScript access
+    func startLiveOCR() {
+        guard !isLiveOCRActive, !isSelectingLiveOCRRegion,
+              PermissionService.shared.ensureAccess(for: .ocr) else { return }
+        if showFloatingWindow || isRecording || transcriptionState == .preparing {
+            cancelRecording()
+        }
+        if showTTSWindow || ttsState == .speaking || ttsState == .paused || ttsState == .loading {
+            closeTTSWindow()
+        }
+
+        isSelectingLiveOCRRegion = true
+        let overlay = RegionSelectionOverlay()
+        overlay.onSelectionComplete = { [weak self] rect in
+            self?.liveOCRSelectionOverlay = nil
+            self?.isSelectingLiveOCRRegion = false
+            self?.beginLiveOCR(in: rect)
+        }
+        overlay.onCancel = { [weak self] in
+            self?.liveOCRSelectionOverlay = nil
+            self?.isSelectingLiveOCRRegion = false
+        }
+        liveOCRSelectionOverlay = overlay
+        overlay.beginSelection()
+    }
+
+    func stopLiveOCR() {
+        if isSelectingLiveOCRRegion {
+            liveOCRSelectionOverlay?.endSelection()
+            liveOCRSelectionOverlay = nil
+            isSelectingLiveOCRRegion = false
+        }
+        guard isLiveOCRActive else { return }
+        liveOCRSession?.stop()
+        liveOCRSession = nil
+        isLiveOCRActive = false
+        restartLiveOCRVoice()  // Inactive now, so this only tears the voice down.
+        liveOCRText = ""
+        liveOCRInterpretedText = ""
+        SubtitleTranslationService.shared.invalidate(appState: self)
+        subtitleModeEnabled = false
+    }
+
+    private func beginLiveOCR(in rect: CGRect) {
+        let session = LiveOCRSession(region: rect, interval: liveOCRInterval,
+                                     languages: liveOCRLanguage.isEmpty ? [] : [liveOCRLanguage])
+        session.onTextChanged = { [weak self] text in self?.handleLiveOCRText(text) }
+        session.onFailure = { [weak self] error in
+            dprint("LiveOCR stopped: \(error.localizedDescription)")
+            self?.stopLiveOCR()
+        }
+        liveOCRText = ""
+        isLiveOCRActive = true
+        SubtitleTranslationService.shared.reset()
+        subtitleTranslatedText = ""
+        liveOCRInterpretedText = ""
+        restartLiveOCRVoice()
+        liveOCRSession = session
+        subtitleModeEnabled = true
+        session.start()
+    }
+
+    private func handleLiveOCRText(_ text: String) {
+        guard isLiveOCRActive else { return }
+        liveOCRText = text
+        // Show the new line right away; its translation replaces it when ready,
+        // rather than the previous line's translation lingering until then.
+        liveOCRInterpretedText = ""
+        if let interpreter = liveOCRInterpreter {
+            // Pick up voice, language or speed changes made since it started.
+            if interpreter.configuration != liveOCRInterpreterConfiguration { restartLiveOCRVoice() }
+            liveOCRInterpreter?.enqueue(text)
+        } else if subtitleTranslationEnabled {
+            Task { await SubtitleTranslationService.shared.processTextUpdate(text, isFinal: true, appState: self) }
+        } else {
+            liveOCRSpeaker?.enqueue(text)
+        }
+    }
+
+    /// Tears down the current voice and, while Live OCR runs with speech on, starts the chosen one.
+    private func restartLiveOCRVoice() {
+        liveOCRSpeaker?.stop()
+        liveOCRSpeaker = nil
+        liveOCRInterpreter?.stop()
+        liveOCRInterpreter = nil
+        liveOCRSpeechError = nil
+        liveOCRIsSpeaking = false
+        guard isLiveOCRActive, liveOCRSpeakEnabled else { return }
+        if liveOCRVoice == .geminiLive {
+            let interpreter = GeminiLiveInterpreter(configuration: liveOCRInterpreterConfiguration)
+            interpreter.onTranscript = { [weak self] line, translation in
+                // Only the line still on screen; older lines' translations would show stale text.
+                guard let self, line == self.liveOCRText else { return }
+                self.liveOCRInterpretedText = translation
+            }
+            interpreter.onError = { [weak self] message in self?.liveOCRSpeechError = message }
+            interpreter.onSpeakingChanged = { [weak self] speaking in self?.liveOCRIsSpeaking = speaking }
+            liveOCRInterpreter = interpreter
+            interpreter.prepare()
+        } else {
+            liveOCRSpeaker = makeLiveOCRSpeaker()
+        }
+    }
+
+    private var liveOCRInterpreterConfiguration: GeminiLiveInterpreter.Configuration {
+        // Gemini voice names are shared with Gemini TTS; other providers' voices are not.
+        let voice = selectedTTSProvider == .gemini && !selectedTTSVoice.isEmpty ? selectedTTSVoice.capitalized : "Zephyr"
+        let source = liveOCRLanguage.isEmpty
+            ? "the original language"
+            : Locale(identifier: "en").localizedString(forIdentifier: liveOCRLanguage) ?? liveOCRLanguage
+        return .init(voice: voice, sourceLanguage: source,
+                     targetLanguage: translationTargetLanguage.englishName,
+                     speed: selectedTTSSpeed, outputDeviceUID: selectedAudioOutputDeviceUID)
+    }
+
+    private func makeLiveOCRSpeaker() -> LiveOCRSpeaker {
+        let speaker = LiveOCRSpeaker { [unowned self] in
+            let service: TTSService
+            if liveOCRVoice == .macOS || selectedTTSProvider == .macOS {
+                service = ttsServiceFactory(.macOS)
+                // A provider voice ID means nothing to macOS; an empty voice
+                // lets it pick one matching the language of each line.
+                service.selectedVoice = selectedTTSProvider == .macOS ? selectedTTSVoice : ""
+            } else {
+                service = ttsServiceFactory(selectedTTSProvider)
+                service.selectedVoice = selectedTTSVoice
+                if !selectedTTSModel.isEmpty { service.selectedModel = selectedTTSModel }
+                if !selectedTTSLanguage.isEmpty { service.selectedLanguage = selectedTTSLanguage }
+            }
+            service.selectedSpeed = selectedTTSSpeed
+            service.audioOutputDeviceUID = selectedAudioOutputDeviceUID
+            return service
+        }
+        speaker.onError = { [weak self] message in self?.liveOCRSpeechError = message }
+        speaker.onSpeakingChanged = { [weak self] speaking in self?.liveOCRIsSpeaking = speaking }
+        return speaker
+    }
+
     // MARK: - Translation Methods
 
     /// Translate text to target language
@@ -2349,6 +2576,12 @@ extension AppState: HotKeyServiceDelegate {
     nonisolated func ocrHotKeyPressed() {
         Task { @MainActor in
             self.startOCR()
+        }
+    }
+
+    nonisolated func liveOCRHotKeyPressed() {
+        Task { @MainActor in
+            self.toggleLiveOCR()
         }
     }
 

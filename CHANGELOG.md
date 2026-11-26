@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Live OCR subtitles (`Ctrl + Option + Shift + L`, or **Read Subtitles from Screen…** in the menu): watches a screen region, such as a video's subtitle area, and reads each new line aloud. Voices: the Text-to-Speech provider (optionally translating each line first), the macOS voice, or the Gemini Live interpreter, which translates and speaks in one streamed step. A compact bar shows the status and switches voice, language, translation, subtitle text and reading; the menu has a **Live Subtitles** section with the same controls. Settings > Subtitle sets the voice, on-screen language and capture interval.
+
+### Fixed
+- Text-to-speech playback works when a specific audio output device is selected. Playback through AVAudioEngine failed to start (error -10868) with any selected device, including the built-in speakers.
+- Subtitle translation with Gemini no longer waits for the model to think before answering, which added seconds to each line; it now uses the minimal thinking level like other Gemini translations.
+- The menu's microphone warning asks for access when it has never been requested, instead of opening System Settings, where SpeechDock is not listed until it has asked once.
+- The menu's permission warnings are shown in the selected language.
+- The macOS voice reads languages without a preset voice, such as Vietnamese, with an installed voice for that language (preferring Premium, then Enhanced) instead of the system voice.
+
 ## [0.1.40] - 2026-10-24
 
 ### Added

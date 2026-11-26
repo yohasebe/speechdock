@@ -61,6 +61,22 @@ protocol TTSService: AnyObject {
     var useStreamingMode: Bool { get set }
 }
 
+/// Audio fetched ahead of time, ready to play.
+struct PreparedSpeech {
+    let text: String
+    let data: Data
+    let fileExtension: String
+}
+
+/// A provider whose network synthesis can run ahead of playback, so the next
+/// line can be fetched while the current one is still playing.
+@MainActor
+protocol PresynthesizingTTSService: TTSService {
+    func synthesize(text: String) async throws -> PreparedSpeech
+    /// Plays prepared audio, reporting through the delegate like `speak`.
+    func play(_ speech: PreparedSpeech) throws
+}
+
 /// Represents a TTS model option
 struct TTSModelInfo: Identifiable, Hashable {
     let id: String

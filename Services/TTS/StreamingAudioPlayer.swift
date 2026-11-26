@@ -54,7 +54,7 @@ final class StreamingAudioPlayer {
     /// Pre-roll buffer threshold: accumulate this much data before starting playback
     /// This prevents buffer underrun from network latency variations
     /// 24000 samples/sec * 2 bytes/sample * 0.4 sec = 19200 bytes (~400ms of audio)
-    private let preRollBufferBytes = 19200
+    private let preRollBufferBytes: Int
 
     /// Flag indicating whether pre-roll buffering is complete
     private var preRollComplete = false
@@ -71,7 +71,12 @@ final class StreamingAudioPlayer {
 
     // MARK: - Initialization
 
-    init() {
+    /// - Parameter preRollSeconds: audio to buffer before playback starts. The default
+    ///   absorbs network jitter for HTTP streaming; a source that streams faster than
+    ///   real time (Gemini Live) can start sooner.
+    init(preRollSeconds: Double = 0.4) {
+        // 24 kHz × 2 bytes per sample
+        preRollBufferBytes = max(2400, Int(48000 * preRollSeconds))
         // OpenAI PCM format: 24kHz, 16-bit signed integer, mono, little-endian
         // Note: AVAudioFormat uses native endianness, but OpenAI sends little-endian
         // On Apple Silicon (and Intel), native is little-endian, so this works directly
@@ -162,6 +167,12 @@ final class StreamingAudioPlayer {
                     let chunk = pendingData.prefix(minBufferBytes)
                     scheduleBuffer(from: Data(chunk))
                     pendingData.removeFirst(minBufferBytes)
+                }
+                // Start with everything buffered, even a partial chunk: with a short
+                // pre-roll, waiting for a full chunk would undo the shorter start.
+                if !pendingData.isEmpty {
+                    scheduleBuffer(from: pendingData)
+                    pendingData = Data()
                 }
                 // Notify that actual playback is starting (after pre-roll buffer is scheduled)
                 onPlaybackStarted?()

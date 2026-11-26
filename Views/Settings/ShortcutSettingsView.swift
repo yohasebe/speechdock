@@ -6,6 +6,7 @@ struct ShortcutSettingsView: View {
     @State private var sttKeyCombo: KeyCombo = .sttDefault
     @State private var ttsKeyCombo: KeyCombo = .ttsDefault
     @State private var ocrKeyCombo: KeyCombo = .ocrDefault
+    @State private var liveOCRKeyCombo: KeyCombo = .liveOCRDefault
     @State private var subtitleKeyCombo: KeyCombo = .subtitleDefault
     @State private var shortcutHUDKeyCombo: KeyCombo = .shortcutHUDDefault
     @State private var quickTranscriptionKeyCombo: KeyCombo = .quickTranscriptionDefault
@@ -38,6 +39,11 @@ struct ShortcutSettingsView: View {
                     ShortcutRecorderView(title: NSLocalizedString("OCR Region to TTS", comment: "Hotkey"), keyCombo: $ocrKeyCombo)
                         .onChange(of: ocrKeyCombo) { _, newValue in
                             appState.hotKeyService?.ocrKeyCombo = newValue
+                        }
+
+                    ShortcutRecorderView(title: NSLocalizedString("Toggle Live OCR Subtitles", comment: "Hotkey"), keyCombo: $liveOCRKeyCombo)
+                        .onChange(of: liveOCRKeyCombo) { _, newValue in
+                            appState.hotKeyService?.liveOCRKeyCombo = newValue
                         }
 
                     ShortcutRecorderView(title: NSLocalizedString("Toggle Subtitle Mode", comment: "Hotkey"), keyCombo: $subtitleKeyCombo)
@@ -103,12 +109,14 @@ struct ShortcutSettingsView: View {
                         sttKeyCombo = .sttDefault
                         ttsKeyCombo = .ttsDefault
                         ocrKeyCombo = .ocrDefault
+                        liveOCRKeyCombo = .liveOCRDefault
                         subtitleKeyCombo = .subtitleDefault
                         shortcutHUDKeyCombo = .shortcutHUDDefault
                         quickTranscriptionKeyCombo = .quickTranscriptionDefault
                         appState.hotKeyService?.sttKeyCombo = .sttDefault
                         appState.hotKeyService?.ttsKeyCombo = .ttsDefault
                         appState.hotKeyService?.ocrKeyCombo = .ocrDefault
+                        appState.hotKeyService?.liveOCRKeyCombo = .liveOCRDefault
                         appState.hotKeyService?.subtitleKeyCombo = .subtitleDefault
                         appState.hotKeyService?.shortcutHUDKeyCombo = .shortcutHUDDefault
                         appState.hotKeyService?.quickTranscriptionKeyCombo = .quickTranscriptionDefault
@@ -127,6 +135,7 @@ struct ShortcutSettingsView: View {
                 sttKeyCombo = service.sttKeyCombo
                 ttsKeyCombo = service.ttsKeyCombo
                 ocrKeyCombo = service.ocrKeyCombo
+                liveOCRKeyCombo = service.liveOCRKeyCombo
                 subtitleKeyCombo = service.subtitleKeyCombo
                 shortcutHUDKeyCombo = service.shortcutHUDKeyCombo
                 quickTranscriptionKeyCombo = service.quickTranscriptionKeyCombo

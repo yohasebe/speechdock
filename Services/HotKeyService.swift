@@ -8,6 +8,7 @@ protocol HotKeyServiceDelegate: AnyObject {
     func hotKeyPressed()
     func ttsHotKeyPressed()
     func ocrHotKeyPressed()
+    func liveOCRHotKeyPressed()
     func subtitleHotKeyPressed()
     func shortcutHUDHotKeyPressed()
     func quickTranscriptionHotKeyPressed()
@@ -19,6 +20,7 @@ final class HotKeyService {
     private var sttHotKey: RegisteredHotKey?
     private var ttsHotKey: RegisteredHotKey?
     private var ocrHotKey: RegisteredHotKey?
+    private var liveOCRHotKey: RegisteredHotKey?
     private var subtitleHotKey: RegisteredHotKey?
     private var shortcutHUDHotKey: RegisteredHotKey?
     private var quickTranscriptionHotKey: RegisteredHotKey?
@@ -43,6 +45,14 @@ final class HotKeyService {
     }
 
     var ocrKeyCombo: KeyCombo {
+        didSet {
+            guard !isLoadingShortcuts else { return }
+            saveShortcuts()
+            registerAllHotKeys()
+        }
+    }
+
+    var liveOCRKeyCombo: KeyCombo {
         didSet {
             guard !isLoadingShortcuts else { return }
             saveShortcuts()
@@ -79,6 +89,7 @@ final class HotKeyService {
         self.sttKeyCombo = KeyCombo.sttDefault
         self.ttsKeyCombo = KeyCombo.ttsDefault
         self.ocrKeyCombo = KeyCombo.ocrDefault
+        self.liveOCRKeyCombo = KeyCombo.liveOCRDefault
         self.subtitleKeyCombo = KeyCombo.subtitleDefault
         self.shortcutHUDKeyCombo = KeyCombo.shortcutHUDDefault
         self.quickTranscriptionKeyCombo = KeyCombo.quickTranscriptionDefault
@@ -136,6 +147,17 @@ final class HotKeyService {
         }
     }
 
+    func registerLiveOCRHotKey() {
+        liveOCRHotKey = nil
+        liveOCRHotKey = RegisteredHotKey(keyCode: liveOCRKeyCombo.key.carbonKeyCode, modifiers: liveOCRKeyCombo.modifiers.carbonFlags)
+        if let status = liveOCRHotKey?.status, status != 0 {
+            registrationErrors["Live OCR"] = String(format: NSLocalizedString("Shortcut could not be registered (error %d). Choose another combination.", comment: "Hotkey registration error"), status)
+        } else { registrationErrors.removeValue(forKey: "Live OCR") }
+        liveOCRHotKey?.keyDownHandler = { [weak self] in
+            self?.delegate?.liveOCRHotKeyPressed()
+        }
+    }
+
     func registerSubtitleHotKey() {
         // Remove existing hotkey
         subtitleHotKey = nil
@@ -188,6 +210,7 @@ final class HotKeyService {
         registerHotKey()
         registerTTSHotKey()
         registerOCRHotKey()
+        registerLiveOCRHotKey()
         registerSubtitleHotKey()
         registerShortcutHUDHotKey()
         registerQuickTranscriptionHotKey()
@@ -197,6 +220,7 @@ final class HotKeyService {
         sttHotKey = nil
         ttsHotKey = nil
         ocrHotKey = nil
+        liveOCRHotKey = nil
         subtitleHotKey = nil
         shortcutHUDHotKey = nil
         quickTranscriptionHotKey = nil
@@ -229,6 +253,12 @@ final class HotKeyService {
            let ocrModifiers = defaults.object(forKey: "ocrModifiers") as? UInt,
            let key = Key(carbonKeyCode: ocrKeyCode) {
             ocrKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: ocrModifiers))
+        }
+
+        if let keyCode = defaults.object(forKey: "liveOCRKeyCode") as? UInt32,
+           let modifiers = defaults.object(forKey: "liveOCRModifiers") as? UInt,
+           let key = Key(carbonKeyCode: keyCode) {
+            liveOCRKeyCombo = KeyCombo(key: key, modifiers: NSEvent.ModifierFlags(rawValue: modifiers))
         }
 
         // Load Subtitle shortcut
@@ -267,6 +297,9 @@ final class HotKeyService {
         // Save OCR shortcut
         defaults.set(ocrKeyCombo.key.carbonKeyCode, forKey: "ocrKeyCode")
         defaults.set(ocrKeyCombo.modifiers.rawValue, forKey: "ocrModifiers")
+
+        defaults.set(liveOCRKeyCombo.key.carbonKeyCode, forKey: "liveOCRKeyCode")
+        defaults.set(liveOCRKeyCombo.modifiers.rawValue, forKey: "liveOCRModifiers")
 
         // Save Subtitle shortcut
         defaults.set(subtitleKeyCombo.key.carbonKeyCode, forKey: "subtitleKeyCode")
@@ -315,6 +348,7 @@ struct KeyCombo: Equatable {
     static let sttDefault = KeyCombo(key: .space, modifiers: [.command, .shift])
     static let ttsDefault = KeyCombo(key: .t, modifiers: [.control, .option])
     static let ocrDefault = KeyCombo(key: .o, modifiers: [.control, .option, .shift])
+    static let liveOCRDefault = KeyCombo(key: .l, modifiers: [.control, .option, .shift])
     static let subtitleDefault = KeyCombo(key: .s, modifiers: [.control, .option])
     static let shortcutHUDDefault = KeyCombo(key: .slash, modifiers: [.control, .option])
     static let quickTranscriptionDefault = KeyCombo(key: .m, modifiers: [.control, .option])

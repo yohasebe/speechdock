@@ -80,6 +80,16 @@ Capture text from any region of your screen and convert it to speech:
 
 Uses macOS Vision Framework for text recognition. Requires Screen Recording permission.
 
+### Live OCR Subtitles
+
+Read a video's on-screen subtitles aloud as they appear, from Netflix, YouTube or any player, optionally translated into your language:
+
+1. Press the Live OCR hotkey (`Ctrl + Option + Shift + L` by default)
+2. Drag over the area where subtitles appear
+3. Each new line is spoken; a compact bar shows the status, voice and language
+
+Speak with your Text-to-Speech voice (with optional translation first), the built-in macOS voice, or the **Gemini Live interpreter**, which translates and speaks each line in one streamed step. Requires Screen Recording permission.
+
 ### Subtitle Mode
 
 Display real-time transcription as subtitles overlay during recording:

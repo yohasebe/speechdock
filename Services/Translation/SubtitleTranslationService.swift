@@ -273,6 +273,7 @@ final class SubtitleTranslationService {
         let language = appState.translationTargetLanguage
         let cacheKey = "\(provider.rawValue):" + makeCacheKey(text: text, language: language)
         if let cached = translationCache[cacheKey] {
+            appState.subtitleTranslatedSource = text
             appState.subtitleTranslatedText = cached
             dprint("SubtitleTranslation: Cache hit for '\(text.prefix(20))...'")
 
@@ -304,6 +305,7 @@ final class SubtitleTranslationService {
             }
 
             // Update display
+            appState.subtitleTranslatedSource = text
             appState.subtitleTranslatedText = translated
             addToCache(key: cacheKey, value: translated)
 

@@ -135,6 +135,23 @@ Capture text from any screen region and send it to the TTS panel:
 
 Uses the macOS Vision Framework for text recognition.
 
+## Live OCR Subtitles
+
+Read the subtitles of any video, such as Netflix, YouTube or a local player, aloud as they appear, optionally in another language:
+
+1. Press the Live OCR hotkey (default: `Ctrl + Option + Shift + L`) or choose **Read Subtitles from Screen…** under **Live Subtitles** in the menu
+2. Drag over the area where subtitles appear (a dashed orange frame marks it)
+3. Each new line is read aloud. The bar at the bottom of the screen shows the status (orange while watching, green while speaking), the voice, the language it speaks in, and buttons to translate, show the subtitle text (hidden by default) and turn reading on or off
+4. Press the hotkey again, or the close button on the bar, to stop
+
+Voices:
+
+- **Same as Text-to-Speech** uses your Text-to-Speech provider and voice. Turn on translation (globe) to translate each line first.
+- **macOS voice** speaks instantly and offline, choosing a voice that matches each line's language.
+- **Gemini Live interpreter** sends each line to Gemini Live, which translates and speaks it in one streamed step, usually starting within a second. It needs a Gemini API key.
+
+When lines arrive faster than they can be spoken, only the newest waiting line is read and the current one speeds up, so speech stays close to the video. SpeechDock's own windows are never captured, so the subtitle text can sit on top of the original subtitles, and clicks outside the bar reach the video player. Set the on-screen language and the capture interval in **Settings > Subtitle**. Speech errors appear under the bar.
+
 ## Subtitle Mode
 
 <figure>
