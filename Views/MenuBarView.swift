@@ -354,7 +354,7 @@ struct MenuBarView: View {
                 Image(systemName: icon)
                     .foregroundColor(.orange)
                     .font(.callout)
-                Text(text)
+                Text(LocalizedStringKey(text))  // Callers pass the English key
                     .font(.callout)
                     .foregroundColor(.orange)
                 Spacer()
@@ -372,7 +372,14 @@ struct MenuBarView: View {
 
     private func openMicrophoneSettings() {
         StatusBarManager.shared.closePopover()
-        PermissionService.shared.openMicrophoneSettings()
+        let service = PermissionService.shared
+        // macOS lists an app under Microphone only after it has asked once,
+        // so ask first; Settings is only useful after a denial.
+        if service.microphoneStatus == .notRequested {
+            Task { await service.requestMicrophone() }
+        } else {
+            service.openMicrophoneSettings()
+        }
     }
 
     private func openAccessibilitySettings() {
