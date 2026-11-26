@@ -235,7 +235,9 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         // Connect: playerNode → timePitch → mainMixer
         // Note: Use nil format for timePitch output to let the engine handle format conversion
         engine.connect(playerNode, to: timePitch, format: file.processingFormat)
-        engine.connect(timePitch, to: engine.mainMixerNode, format: nil)
+        // An explicit format: with nil, AVAudioEngine fails to start (-10868)
+        // whenever a specific output device is selected.
+        engine.connect(timePitch, to: engine.mainMixerNode, format: file.processingFormat)
 
         // Set output device
         try setOutputDevice(uid: audioOutputDeviceUID, for: engine)
