@@ -334,7 +334,10 @@ final class LLMContextualTranslator: ContextualTranslator {
                 ["parts": [["text": prompt]]]
             ],
             "generationConfig": [
-                "temperature": 0.2
+                "temperature": 0.2,
+                // Without this, Gemini 3 models think before answering, which adds
+                // seconds to every subtitle line. Matches LLMTranslation.
+                "thinkingConfig": ["thinkingLevel": LLMTranslation.geminiThinkingLevel(model: modelId)]
             ]
         ]
 
