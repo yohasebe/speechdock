@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Subtitle translation with Gemini no longer waits for the model to think before answering, which added seconds to each line; it now uses the minimal thinking level like other Gemini translations.
 - The menu's microphone warning asks for access when it has never been requested, instead of opening System Settings, where SpeechDock is not listed until it has asked once.
 - The menu's permission warnings are shown in the selected language.
+- Subtitle translation no longer stops for good when a result arrives after translation was reset or its settings changed. Later lines were queued behind the finished request, so subtitles stayed untranslated until translation was turned off and on.
 - The macOS voice reads languages without a preset voice, such as Vietnamese, with an installed voice for that language (preferring Premium, then Enhanced) instead of the system voice.
 
 ## [0.1.40] - 2026-10-24

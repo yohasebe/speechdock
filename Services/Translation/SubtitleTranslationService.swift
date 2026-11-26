@@ -83,6 +83,16 @@ final class SubtitleTranslationService {
     /// for the entire 1–2 s an API call took.
     private var pendingTranslationText: String?
 
+    /// The request in flight, if any. Owned here rather than inferred from
+    /// `subtitleTranslationState`, which used to stay `.translating` for good
+    /// when a result arrived after a reset or setting change, so every later
+    /// line queued behind a request that had already ended.
+    private var inFlight: (id: UUID, started: Date)?
+
+    /// A request older than this no longer blocks newer lines (a stalled call
+    /// would otherwise hold up translation until its network timeout).
+    private let maxInFlight: TimeInterval = 8
+
     /// Current translator instance
     private var translator: ContextualTranslator?
 
@@ -162,6 +172,7 @@ final class SubtitleTranslationService {
         errorResetTask?.cancel()
         errorResetTask = nil
         pendingTranslationText = nil
+        inFlight = nil
         translator?.cancel()
         // Keep cache for potential reuse
     }
@@ -261,7 +272,7 @@ final class SubtitleTranslationService {
         // pending request instead of dropping it. When the in-flight call
         // completes, the wrapping pass will pick this up and fire again so the
         // displayed translation tracks the speech with minimal delay.
-        guard appState.subtitleTranslationState != .translating else {
+        if let inFlight, Date().timeIntervalSince(inFlight.started) < maxInFlight {
             pendingTranslationText = text
             dprint("SubtitleTranslation: In-flight — queued latest as pending (\(text.count) chars)")
             return
@@ -280,7 +291,16 @@ final class SubtitleTranslationService {
             return
         }
 
+        let requestID = UUID()
+        inFlight = (requestID, Date())
         appState.subtitleTranslationState = .translating
+        // Every exit releases the request it started, whether or not the result is still wanted.
+        defer {
+            if inFlight?.id == requestID {
+                inFlight = nil
+                if appState.subtitleTranslationState == .translating { appState.subtitleTranslationState = .idle }
+            }
+        }
 
         do {
             guard let translator = translator else {
@@ -295,7 +315,8 @@ final class SubtitleTranslationService {
                 to: appState.translationTargetLanguage
             )
 
-            guard isCurrent(token, provider: provider, language: language, appState: appState) else { return }
+            guard isCurrent(token, provider: provider, language: language, appState: appState),
+                  inFlight?.id == requestID else { return }
             // Validate translation result - don't cache empty results
             guard !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 dprint("SubtitleTranslation: Empty translation result, skipping cache")
@@ -326,6 +347,7 @@ final class SubtitleTranslationService {
             if let pending = pendingTranslationText, pending != text {
                 pendingTranslationText = nil
                 dprint("SubtitleTranslation: Draining queued pending translation")
+                inFlight = nil  // Released before the next request starts.
                 Task { [weak self, weak appState] in
                     guard let self = self, let appState = appState else { return }
                     guard self.isCurrent(token, provider: provider, language: language, appState: appState) else { return }
