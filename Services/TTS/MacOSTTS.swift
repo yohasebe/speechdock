@@ -436,7 +436,31 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
             }
         }
 
-        return nil
+        // Any other language: an installed voice for that locale (e.g. vi → Linh),
+        // preferring Premium, then Enhanced. Without this, `say` falls back to the
+        // system voice and reads e.g. Vietnamese with an English voice.
+        return Self.installedVoice(for: languageCode, in: voiceList)
+    }
+
+    /// Picks a voice name from `say -v ?` lines like
+    /// "Linh (Enhanced) (Vietnamese (Vietnam)) vi_VN    # Xin chào!".
+    nonisolated static func installedVoice(for languageCode: String, in voiceList: [String]) -> String? {
+        let prefix = languageCode.replacingOccurrences(of: "-", with: "_").lowercased()
+        let names: [String] = voiceList.compactMap { line in
+            guard let hash = line.firstIndex(of: "#") else { return nil }
+            let fields = line[..<hash].trimmingCharacters(in: .whitespaces)
+            guard let localeRange = fields.range(of: #"\s[a-z]{2,3}_[A-Za-z0-9]+$"#, options: .regularExpression) else { return nil }
+            let locale = fields[localeRange].trimmingCharacters(in: .whitespaces).lowercased()
+            guard locale == prefix || locale.hasPrefix(prefix + "_") else { return nil }
+            // Drop the "(Language (Region))" description; keep "(Enhanced)" etc.
+            let name = fields[..<localeRange.lowerBound]
+                .replacingOccurrences(of: #"\s*\([^()]*\([^()]*\)\)$"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+            return name.isEmpty ? nil : name
+        }
+        return names.first { $0.contains("Premium") }
+            ?? names.first { $0.contains("Enhanced") }
+            ?? names.first
     }
 
     /// Cached voice list from `say -v ?`. Voices rarely change during app
