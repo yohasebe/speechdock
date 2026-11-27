@@ -11,6 +11,19 @@ final class UsabilityRegressionTests: XCTestCase {
         XCTAssertNil(FileTranscriptionText.appending(" \n\t", to: "draft"))
     }
 
+    func testClearedTranscriptionIsNotPrependedToTheNextFileResult() {
+        let app = AppState(startServices: false)
+        app.currentTranscription = "first result"
+        app.translationState = .translated("translated")
+        app.originalTextBeforeTranslation = "first result"
+
+        app.clearTranscription()
+
+        XCTAssertEqual(app.currentTranscription, "")
+        XCTAssertEqual(app.translationState, .idle)
+        XCTAssertEqual(FileTranscriptionText.appending("second result", to: app.currentTranscription), "second result")
+    }
+
     func testWindowRestoresOnSecondaryDisplayAndSurvivesDisconnect() {
         let primary = NSRect(x: 0, y: 40, width: 1200, height: 760)
         let secondary = NSRect(x: -1600, y: 0, width: 1600, height: 900)

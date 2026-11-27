@@ -1693,6 +1693,16 @@ final class AppState {
         }
     }
 
+    /// Empties the transcription panel's text, so the next recording or file
+    /// result starts from nothing rather than after the cleared text.
+    func clearTranscription() {
+        currentTranscription = ""
+        if translationState.isTranslated {
+            translationState = .idle
+            originalTextBeforeTranslation = ""
+        }
+    }
+
     /// Cancel ongoing translation
     func cancelTranslation() {
         translationTask?.cancel()

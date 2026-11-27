@@ -889,6 +889,7 @@ struct TranscriptionFloatingView: View {
                 Button(action: {
                     editedText = ""
                     baseText = ""
+                    appState.clearTranscription()
                 }) {
                     Image(systemName: "eraser")
                         .font(.system(size: 12))

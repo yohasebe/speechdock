@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.
 - Settings > API Keys shows a saved 1Password reference by its 1Password status, names the button Save Reference for a reference, saves on Return, and keeps the reason for a failed save on screen. Its messages and provider descriptions appear in the selected language.
+- Clearing the transcription panel with the eraser button also clears the text that a file transcription adds to; the cleared text no longer reappears before the next result.
 
 ## [0.1.40] - 2026-10-24
 
