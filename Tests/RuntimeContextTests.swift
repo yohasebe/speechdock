@@ -14,13 +14,14 @@ final class RuntimeContextTests: XCTestCase {
 
     @MainActor
     func testSharedStateInTheTestHostDoesNotSavePreferences() async throws {
-        let key = "selectedTTSProvider"
-        let before = UserDefaults.standard.string(forKey: key)
+        let key = "panelTextFontSize"
+        let before = UserDefaults.standard.object(forKey: key) as? Double
         let app = AppState.shared
-        let original = app.selectedTTSProvider
-        app.selectedTTSProvider = original == .macOS ? .gemini : .macOS
-        defer { app.selectedTTSProvider = original }
+        let original = app.panelTextFontSize
+        app.panelTextFontSize = (before ?? original) == AppState.maxPanelTextFontSize
+            ? AppState.minPanelTextFontSize : AppState.maxPanelTextFontSize
+        defer { app.panelTextFontSize = original }
         try await Task.sleep(for: .milliseconds(500))  // past the save debounce
-        XCTAssertEqual(UserDefaults.standard.string(forKey: key), before)
+        XCTAssertEqual(UserDefaults.standard.object(forKey: key) as? Double, before)
     }
 }

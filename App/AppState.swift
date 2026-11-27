@@ -1661,10 +1661,10 @@ final class AppState {
                     from: sourceLanguage
                 )
 
+                // A cancelled translation leaves the state to whoever cancelled it,
+                // which may already have started another translation.
                 if Task.isCancelled {
                     dprint("Translation: Task was cancelled")
-
-                    translationState = .idle
                     return
                 }
 

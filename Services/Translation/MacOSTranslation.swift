@@ -87,6 +87,9 @@ final class MacOSTranslation: TranslationServiceProtocol {
             throw TranslationError.translationUnavailable("Unknown language status")
         }
 
+        // The caller may have given up while availability was checked.
+        try Task.checkCancellation()
+
         // Cancel any existing task (defensive)
         currentTask?.cancel()
 

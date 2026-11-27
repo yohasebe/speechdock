@@ -198,6 +198,7 @@ struct APIKeySection: View {
     }
 
     private func saveAPIKey() async {
+        let change = apiKeyManager.beginKeyChange(for: provider)
         isValidating = true
         saveMessage = nil
 
@@ -215,7 +216,7 @@ struct APIKeySection: View {
         case .valid:
             isSaving = true
             do {
-                try apiKeyManager.setAPIKey(trimmed, for: provider)
+                guard try apiKeyManager.setAPIKey(trimmed, for: provider, ifStillCurrent: change) else { isSaving = false; return }
                 apiKey = trimmed
                 savedValue = trimmed
                 saveMessageColor = .green
@@ -233,7 +234,7 @@ struct APIKeySection: View {
         case .networkError:
             isSaving = true
             do {
-                try apiKeyManager.setAPIKey(trimmed, for: provider)
+                guard try apiKeyManager.setAPIKey(trimmed, for: provider, ifStillCurrent: change) else { isSaving = false; return }
                 apiKey = trimmed
                 savedValue = trimmed
                 saveMessageColor = .orange

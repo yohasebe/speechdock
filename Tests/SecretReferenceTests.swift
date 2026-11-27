@@ -304,6 +304,25 @@ final class SecretReferenceTests: XCTestCase {
         XCTAssertTrue(store.items.isEmpty)
     }
 
+    func testOnlyTheLatestKeyChangeIsSaved() throws {
+        let store = MemoryKeyStore()
+        let keys = manager(store: store)
+
+        let first = keys.beginKeyChange(for: .openAI)
+        let second = keys.beginKeyChange(for: .openAI)
+        XCTAssertFalse(try keys.setAPIKey("first", for: .openAI, ifStillCurrent: first))
+        XCTAssertTrue(try keys.setAPIKey("second", for: .openAI, ifStillCurrent: second))
+        XCTAssertEqual(store.items["OPENAI_API_KEY"], "second")
+
+        let pending = keys.beginKeyChange(for: .openAI)
+        try keys.deleteAPIKey(for: .openAI)
+        XCTAssertFalse(try keys.setAPIKey("late", for: .openAI, ifStillCurrent: pending), "a remove drops a save still being checked")
+        XCTAssertNil(store.items["OPENAI_API_KEY"])
+
+        let other = keys.beginKeyChange(for: .gemini)
+        XCTAssertTrue(try keys.setAPIKey("g", for: .gemini, ifStillCurrent: other), "providers are tracked separately")
+    }
+
     func testReferenceIsNeverReturnedAsAKey() async {
         let store = MemoryKeyStore()
         store.items = ["OPENAI_API_KEY": refA]

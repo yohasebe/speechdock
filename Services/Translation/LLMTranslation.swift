@@ -52,6 +52,10 @@ final class LLMTranslation: TranslationServiceProtocol {
             )
         }
 
+        // Reading the key can wait for 1Password approval; if the caller gave up
+        // meanwhile (e.g. the text was cleared), send nothing.
+        try Task.checkCancellation()
+
         // Cancel any existing task (defensive)
         currentTask?.cancel()
 

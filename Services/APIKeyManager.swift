@@ -260,6 +260,28 @@ final class APIKeyManager {
 
     // MARK: - Writing
 
+    /// The latest save or remove started for each key name. A save that checks a
+    /// key first finishes later; if a newer change started meanwhile (possibly in
+    /// a reopened Settings window), the older save is dropped.
+    @ObservationIgnored private var keyChanges: [String: Int] = [:]
+
+    /// Starts a save; pass the result to `setAPIKey(_:for:ifStillCurrent:)`.
+    func beginKeyChange(for provider: STTProvider) -> Int {
+        let name = Self.canonicalName(provider.envKeyName)
+        let change = (keyChanges[name] ?? 0) + 1
+        keyChanges[name] = change
+        return change
+    }
+
+    /// Saves unless a newer save or remove has started since `change`.
+    /// - Returns: whether the key was saved.
+    @discardableResult
+    func setAPIKey(_ key: String, for provider: STTProvider, ifStillCurrent change: Int) throws -> Bool {
+        guard keyChanges[Self.canonicalName(provider.envKeyName)] == change else { return false }
+        try setAPIKey(key, for: provider)
+        return true
+    }
+
     /// Saves under the canonical name. Once that succeeds, items under older
     /// names are removed, so a replaced key does not linger behind the new one.
     /// Nothing is moved on its own: this runs only when the user saves.
@@ -271,8 +293,9 @@ final class APIKeyManager {
         }
     }
 
-    /// Removes the key under every accepted name.
+    /// Removes the key under every accepted name; a save still being checked is dropped.
     func deleteAPIKey(for provider: STTProvider) throws {
+        _ = beginKeyChange(for: provider)
         for candidate in Self.candidateNames(provider.envKeyName) {
             try keychain.delete(key: candidate)
         }
