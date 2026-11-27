@@ -74,6 +74,10 @@ final class TextSelectionService {
         let frontApp = targetApp ?? NSWorkspace.shared.frontmostApplication
         dprint("TextSelectionService: getSelectedText called, target app: \(frontApp?.localizedName ?? "unknown") (bundle: \(frontApp?.bundleIdentifier ?? "unknown")), pre-captured: \(targetApp != nil)")
 
+        // SpeechDock itself (e.g. its transcription panel was in front): there is no
+        // selection to read, and a simulated Copy would only make the system beep.
+        guard frontApp?.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
+
         // For browsers and rich-text editors, skip AX API and go straight to clipboard.
         // AX returns single-newline-separated text from these apps, which collapses
         // paragraph breaks. The clipboard HTML/RTF path preserves blank lines between

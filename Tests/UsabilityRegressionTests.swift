@@ -11,6 +11,13 @@ final class UsabilityRegressionTests: XCTestCase {
         XCTAssertNil(FileTranscriptionText.appending(" \n\t", to: "draft"))
     }
 
+    func testSelectedTextIsNotReadFromSpeechDockItself() async {
+        let pasteboardBefore = NSPasteboard.general.changeCount
+        let text = await TextSelectionService.shared.getSelectedText(from: .current)
+        XCTAssertNil(text)
+        XCTAssertEqual(NSPasteboard.general.changeCount, pasteboardBefore, "no simulated Copy")
+    }
+
     func testClearedTranscriptionIsNotPrependedToTheNextFileResult() {
         let app = AppState(startServices: false)
         app.currentTranscription = "first result"
