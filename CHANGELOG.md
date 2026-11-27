@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The menu shows action names larger than its section headings and descriptions, and the Target and Paste controls in the transcription panel match the size of the other actions.
 - In Settings, sub-headings stand out from their descriptions, and where an API key comes from is shown in neutral colours; a provider without a key no longer looks like a warning.
 - Texts that still appeared in English, such as the permission labels, the floating mic menu, save and file errors, the shortcut overlay's section and action names, and the translate button's hints, are translated. The translate button says how many characters it needs, the OCR button's tooltip shows the current shortcut, and the floating mic menu's Hide Button reads Hide Mic Button.
+- Status, shortcut and permission badges in the menu and Settings share one size and corner radius.
 
 ### Fixed
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.

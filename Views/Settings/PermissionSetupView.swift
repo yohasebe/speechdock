@@ -152,11 +152,7 @@ struct PermissionSetupView: View {
 
                     Text(badge.text)
                         .font(.callout.weight(.medium))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(badge.color.opacity(0.15))
-                        .foregroundStyle(badge.color)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .labelBadge(foreground: badge.color, background: badge.color.opacity(0.15))
                 }
 
                 Text(description)

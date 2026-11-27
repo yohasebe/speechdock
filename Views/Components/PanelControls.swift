@@ -55,3 +55,15 @@ extension View {
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }
+
+extension View {
+    /// A small rounded label: a status, a hint like "Recommended", or a shortcut.
+    func labelBadge(foreground: Color, background: Color) -> some View {
+        self
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+}

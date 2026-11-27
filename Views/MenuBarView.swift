@@ -20,11 +20,7 @@ struct MenuBarView: View {
                 if appState.isRecording {
                     Text("Recording")
                         .font(.callout)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.red)
-                        .cornerRadius(4)
+                        .labelBadge(foreground: .white, background: .red)
                 } else if appState.transcriptionState == .processing {
                     HStack(spacing: 4) {
                         ProgressView()
@@ -32,19 +28,11 @@ struct MenuBarView: View {
                         Text("Processing")
                             .font(.callout)
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.orange)
-                    .cornerRadius(4)
+                    .labelBadge(foreground: .white, background: .orange)
                 } else if appState.ttsState == .speaking {
                     Text("Speaking")
                         .font(.callout)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.green)
-                        .cornerRadius(4)
+                        .labelBadge(foreground: .white, background: .green)
                 } else if appState.isProcessing || appState.ttsState == .loading {
                     ProgressView()
                         .scaleEffect(0.6)
@@ -340,11 +328,7 @@ struct MenuBarView: View {
     private func shortcutBadge(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 12, weight: .medium, design: .rounded))
-            .foregroundColor(.secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Color.secondary.opacity(0.15))
-            .cornerRadius(4)
+            .labelBadge(foreground: .secondary, background: Color.secondary.opacity(0.15))
     }
 
     // Permission warning view
