@@ -56,7 +56,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 |----------|--------|----------|
 | **OpenAI** | GPT Realtime Whisper、GPT Live Transcribe、GPT Transcribe | ストリーミングdelta（Whisper）、高精度、100以上の言語 |
 | **Google Gemini** | Gemini 3.5 Transcribe Live、Gemini 3.8 Live | ストリーミング文字起こし。ファイルの文字起こしは Gemini 3.8 Flash |
-| **ElevenLabs** | Scribe v2 Realtime | 低遅延、自然な句読点 |
+| **ElevenLabs** | Scribe v3 Live、Scribe v2 Realtime | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
 
 プロバイダは**設定** > **音声認識**から選択できます。
@@ -103,14 +103,15 @@ TTS再生を任意の音声出力デバイス（スピーカー、ヘッドフ�
   <figcaption>ファイル文字起こし — 音声ファイルをドラッグ＆ドロップして文字起こし</figcaption>
 </figure>
 
-録音済みの音声ファイルを文字起こしできます。クラウドSTTプロバイダとmacOSネイティブ（macOS 26+）で利用可能です。Grokプロバイダでは利用できません。
+録音済みの音声ファイルを文字起こしできます。クラウドSTTプロバイダとmacOSネイティブ（macOS 26+）で利用可能です。
 
 | プロバイダ | 形式 | 最大サイズ | 最大長 | API |
 |----------|---------|----------|--------------|-----|
 | **macOS**（26+） | MP3、WAV、M4A、AAC、AIFF、FLAC、MP4 | 100 MB | 無制限 | SpeechAnalyzer（必要に応じてシステム音声認識へ切り替え） |
 | **OpenAI** | MP3、WAV、M4A、FLAC、WebM、OGG、MP4 | 25 MB | 無制限 | GPT Transcribe |
 | **Gemini** | MP3、WAV、AAC、OGG、FLAC | 14 MB | 約10分 | generateContent |
-| **ElevenLabs** | MP3、WAV、M4A、OGG、FLAC | 25 MB | 約2時間 | Scribe v2 |
+| **ElevenLabs** | MP3、WAV、M4A、OGG、FLAC | 25 MB | 約2時間 | Scribe v3 |
+| **Grok** | MP3、WAV、M4A、AAC、OGG、FLAC、WebM、MP4 | 100 MB | 無制限 | xAI Speech to Text |
 
 **注意**: macOSのファイル文字起こしにはmacOS 26以降が必要です。APIキーは不要です。SpeechAnalyzer対応言語はデバイス上で処理し、代替の音声認識ではAppleのサーバーとインターネット接続を使用する場合があります。
 
@@ -136,7 +137,7 @@ macOSのオンデバイス翻訳は約18言語をサポートしていますが�
 | **macOS**（デフォルト） | System | オンデバイス、APIキー不要、macOS 26以降 |
 | **OpenAI** | GPT-5.4 Mini（デフォルト）、GPT-6 Luna | 高速、高品質 |
 | **Gemini** | Gemini 3.5 Flash Lite（デフォルト）、Gemini 3.1 Pro (Preview) | 高速、多言語対応 |
-| **Grok** | Grok 4.20 Fast（デフォルト）、Grok 4.20 Fast (Reasoning) | 高速翻訳 |
+| **Grok** | Grok 4.20 Fast（デフォルト）、Grok 4.7 | 高速翻訳 |
 
 ### 翻訳プロバイダの切り替え
 

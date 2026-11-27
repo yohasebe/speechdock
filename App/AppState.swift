@@ -1818,7 +1818,7 @@ final class AppState {
     func transcribeAudioFile(_ url: URL) {
         // Check if provider supports file transcription
         guard selectedRealtimeProvider.supportsFileTranscription else {
-            showFileTranscriptionNotice(String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), selectedRealtimeProvider.rawValue))
+            showFileTranscriptionNotice(FileTranscriptionError.providerNotSupported(selectedRealtimeProvider).localizedDescription)
             return
         }
 
@@ -1886,7 +1886,7 @@ final class AppState {
     func openAudioFileForTranscription() {
         // Check provider support first
         guard selectedRealtimeProvider.supportsFileTranscription else {
-            showFileTranscriptionNotice(String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), selectedRealtimeProvider.rawValue))
+            showFileTranscriptionNotice(FileTranscriptionError.providerNotSupported(selectedRealtimeProvider).localizedDescription)
             return
         }
 

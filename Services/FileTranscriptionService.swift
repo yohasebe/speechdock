@@ -20,7 +20,7 @@ enum FileTranscriptionError: LocalizedError {
         case .fileTooLarge(let maxMB, let actualMB):
             return String(format: NSLocalizedString("File too large (%dMB). Maximum size for this provider is %dMB", comment: "File transcription error"), actualMB, maxMB)
         case .providerNotSupported(let provider):
-            return String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), provider.rawValue)
+            return String(format: NSLocalizedString("%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, Grok, or macOS (26+) provider.", comment: "Provider not supported for file transcription"), provider.rawValue)
         case .readError(let error):
             return String(format: NSLocalizedString("Failed to read audio file: %@", comment: "File transcription error"), error.localizedDescription)
         case .transcriptionFailed(let error):
@@ -129,9 +129,11 @@ final class FileTranscriptionService {
         case .gemini:
             return .gemini38Flash
         case .elevenLabs:
-            return .scribeV2
-        case .grok, .macOS:
-            // These don't support file transcription
+            return .scribeV3
+        case .grok:
+            return .grokSTT
+        case .macOS:
+            // Transcribed natively, without an API model
             return .gptTranscribe
         }
     }
@@ -145,7 +147,9 @@ final class FileTranscriptionService {
             return GeminiSTTClient()
         case .elevenLabs:
             return ElevenLabsSTTClient()
-        case .grok, .macOS:
+        case .grok:
+            return GrokSTTClient()
+        case .macOS:
             // Return OpenAI as fallback (shouldn't be called due to validation)
             return OpenAISTTClient()
         }

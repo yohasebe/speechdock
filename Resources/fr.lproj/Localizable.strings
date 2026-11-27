@@ -69,7 +69,7 @@
 /* STT Panel - Placeholder */
 "Press Record (%@) to start transcription" = "Appuyez sur Enregistrer (%@) pour demarrer la transcription";
 "Or drop an audio file here" = "Ou deposez un fichier audio ici";
-"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "Passez a OpenAI, Gemini ou ElevenLabs pour la transcription de fichiers";
+"Switch to OpenAI, Gemini, ElevenLabs, or Grok for file transcription" = "Passez a OpenAI, Gemini, ElevenLabs ou Grok pour la transcription de fichiers";
 "Transcribing file..." = "Transcription du fichier...";
 "Drop audio file to transcribe" = "Deposez un fichier audio a transcrire";
 
@@ -160,13 +160,14 @@
 "Apple Speech (offline, fast)" = "Apple Speech (hors ligne, rapide)";
 "OpenAI Realtime API (high quality)" = "OpenAI Realtime API (haute qualite)";
 "Gemini Live API (multimodal)" = "Gemini Live API (multimodal)";
-"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2 (latence de 150 ms)";
+"ElevenLabs Scribe (low latency)" = "ElevenLabs Scribe (faible latence)";
 "Grok Voice Agent (low latency)" = "Grok Voice Agent (faible latence)";
 
 /* File Transcription Descriptions */
 "OpenAI API (max 25MB)" = "OpenAI API (max. 25 Mo)";
+"xAI API (max 100MB)" = "xAI API (max. 100 Mo)";
 "Gemini API (max 14MB)" = "Gemini API (max. 14 Mo)";
-"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (max. 25 Mo, ~2 h d'audio)";
+"Scribe v3 (max 25MB, ~2h audio)" = "Scribe v3 (max. 25 Mo, ~2 h d'audio)";
 "Realtime only" = "Temps reel uniquement";
 "Apple Speech (offline, max 500MB)" = "Apple Speech (hors ligne, max. 500 Mo)";
 
@@ -192,7 +193,6 @@
 "Auto uses system locale. Select a specific language for better accuracy." = "Auto utilise les reglages regionaux du systeme. Selectionnez une langue specifique pour une meilleure precision.";
 "Auto detects the language. Specifying a language can improve accuracy." = "Auto detecte la langue. Specifier une langue peut ameliorer la precision.";
 "Auto detects the language. Note: Portuguese is not supported." = "Auto detecte la langue. Remarque : le portugais n'est pas pris en charge.";
-"Auto detects the language (100+ languages supported)." = "Auto detecte la langue (plus de 100 langues prises en charge).";
 
 /* Settings - General - Audio Source */
 /* Settings - Audio Source Descriptions */
@@ -431,7 +431,7 @@
 "Audio file not found" = "Fichier audio introuvable";
 "Unsupported audio format: .%@\n\nSupported formats: %@" = "Format audio non pris en charge : .%@\n\nFormats pris en charge : %@";
 "File too large (%dMB). Maximum size for this provider is %dMB" = "Fichier trop volumineux (%dMB). La taille maximale pour ce fournisseur est de %dMB";
-"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@ ne prend pas en charge la transcription de fichiers.\n\nVeuillez passer au fournisseur OpenAI, Gemini, ElevenLabs ou macOS (26+).";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, Grok, or macOS (26+) provider." = "%@ ne prend pas en charge la transcription de fichiers.\n\nVeuillez passer au fournisseur OpenAI, Gemini, ElevenLabs, Grok ou macOS (26+).";
 "Failed to read audio file: %@" = "Echec de la lecture du fichier audio : %@";
 "Transcription failed: %@" = "Echec de la transcription : %@";
 

@@ -69,7 +69,7 @@
 /* STT Panel - Placeholder */
 "Press Record (%@) to start transcription" = "녹음(%@)을 눌러 받아쓰기를 시작하세요";
 "Or drop an audio file here" = "또는 오디오 파일을 여기에 드롭하세요";
-"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "파일 받아쓰기를 사용하려면 OpenAI, Gemini 또는 ElevenLabs로 전환하세요";
+"Switch to OpenAI, Gemini, ElevenLabs, or Grok for file transcription" = "파일 받아쓰기를 사용하려면 OpenAI, Gemini, ElevenLabs 또는 Grok으로 전환하세요";
 "Transcribing file..." = "파일 받아쓰기 중...";
 "Drop audio file to transcribe" = "받아쓸 오디오 파일을 드롭하세요";
 
@@ -160,13 +160,14 @@
 "Apple Speech (offline, fast)" = "Apple Speech (오프라인, 빠름)";
 "OpenAI Realtime API (high quality)" = "OpenAI Realtime API (고품질)";
 "Gemini Live API (multimodal)" = "Gemini Live API (멀티모달)";
-"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2 (150ms 지연)";
+"ElevenLabs Scribe (low latency)" = "ElevenLabs Scribe (저지연)";
 "Grok Voice Agent (low latency)" = "Grok Voice Agent (저지연)";
 
 /* File Transcription Descriptions */
 "OpenAI API (max 25MB)" = "OpenAI API (최대 25MB)";
+"xAI API (max 100MB)" = "xAI API (최대 100MB)";
 "Gemini API (max 14MB)" = "Gemini API (최대 14MB)";
-"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2 (최대 25MB, 약 2시간)";
+"Scribe v3 (max 25MB, ~2h audio)" = "Scribe v3 (최대 25MB, 약 2시간)";
 "Realtime only" = "실시간만 지원";
 "Apple Speech (offline, max 500MB)" = "Apple Speech (오프라인, 최대 500MB)";
 
@@ -192,7 +193,6 @@
 "Auto uses system locale. Select a specific language for better accuracy." = "자동은 시스템 로캘을 사용합니다. 정확도를 높이려면 특정 언어를 선택하세요.";
 "Auto detects the language. Specifying a language can improve accuracy." = "자동으로 언어를 감지합니다. 언어를 지정하면 정확도가 향상될 수 있습니다.";
 "Auto detects the language. Note: Portuguese is not supported." = "자동으로 언어를 감지합니다. 참고: 포르투갈어는 지원되지 않습니다.";
-"Auto detects the language (100+ languages supported)." = "자동으로 언어를 감지합니다 (100개 이상의 언어 지원).";
 
 /* Settings - General - Audio Source */
 /* Settings - Audio Source Descriptions */
@@ -431,7 +431,7 @@
 "Audio file not found" = "오디오 파일을 찾을 수 없습니다";
 "Unsupported audio format: .%@\n\nSupported formats: %@" = "지원하지 않는 오디오 형식: .%@\n\n지원 형식: %@";
 "File too large (%dMB). Maximum size for this provider is %dMB" = "파일이 너무 큽니다 (%dMB). 이 공급자의 최대 크기는 %dMB입니다";
-"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@은(는) 파일 받아쓰기를 지원하지 않습니다.\n\nOpenAI, Gemini, ElevenLabs 또는 macOS (26+) 공급자로 전환하세요.";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, Grok, or macOS (26+) provider." = "%@은(는) 파일 받아쓰기를 지원하지 않습니다.\n\nOpenAI, Gemini, ElevenLabs, Grok 또는 macOS (26+) 공급자로 전환하세요.";
 "Failed to read audio file: %@" = "오디오 파일 읽기 실패: %@";
 "Transcription failed: %@" = "받아쓰기 실패: %@";
 

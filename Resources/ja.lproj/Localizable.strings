@@ -69,7 +69,7 @@
 /* STT Panel - Placeholder */
 "Press Record (%@) to start transcription" = "録音 (%@) を押して文字起こしを開始";
 "Or drop an audio file here" = "または音声ファイルをここにドロップ";
-"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "ファイルの文字起こしにはOpenAI、Gemini、またはElevenLabsに切り替えてください";
+"Switch to OpenAI, Gemini, ElevenLabs, or Grok for file transcription" = "ファイルの文字起こしにはOpenAI、Gemini、ElevenLabs、またはGrokに切り替えてください";
 "Transcribing file..." = "ファイル文字起こし中...";
 "Drop audio file to transcribe" = "文字起こしする音声ファイルをドロップ";
 
@@ -160,13 +160,14 @@
 "Apple Speech (offline, fast)" = "Apple Speech（オフライン、高速）";
 "OpenAI Realtime API (high quality)" = "OpenAI Realtime API（高品質）";
 "Gemini Live API (multimodal)" = "Gemini Live API（マルチモーダル）";
-"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2（150msレイテンシ）";
+"ElevenLabs Scribe (low latency)" = "ElevenLabs Scribe（低レイテンシ）";
 "Grok Voice Agent (low latency)" = "Grok Voice Agent（低レイテンシ）";
 
 /* File Transcription Descriptions */
 "OpenAI API (max 25MB)" = "OpenAI API（最大25MB）";
+"xAI API (max 100MB)" = "xAI API（最大100MB）";
 "Gemini API (max 14MB)" = "Gemini API（最大14MB）";
-"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2（最大25MB、約2時間）";
+"Scribe v3 (max 25MB, ~2h audio)" = "Scribe v3（最大25MB、約2時間）";
 "Realtime only" = "リアルタイムのみ";
 "Apple Speech (offline, max 500MB)" = "Apple Speech（オフライン、最大500MB）";
 
@@ -192,7 +193,6 @@
 "Auto uses system locale. Select a specific language for better accuracy." = "「自動」はシステムのロケールを使用します。精度向上には特定の言語を選択してください。";
 "Auto detects the language. Specifying a language can improve accuracy." = "自動で言語を検出します。言語を指定すると精度が向上する場合があります。";
 "Auto detects the language. Note: Portuguese is not supported." = "自動で言語を検出します。注意: ポルトガル語は非対応です。";
-"Auto detects the language (100+ languages supported)." = "自動で言語を検出します（100以上の言語に対応）。";
 
 /* Settings - General - Audio Source */
 /* Settings - Audio Source Descriptions */
@@ -431,7 +431,7 @@
 "Audio file not found" = "音声ファイルが見つかりません";
 "Unsupported audio format: .%@\n\nSupported formats: %@" = "非対応の音声形式: .%@\n\n対応形式: %@";
 "File too large (%dMB). Maximum size for this provider is %dMB" = "ファイルが大きすぎます (%dMB)。このプロバイダの最大サイズは%dMBです";
-"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@はファイルの文字起こしに非対応です。\n\nOpenAI、Gemini、ElevenLabs、またはmacOS (26+)プロバイダに切り替えてください。";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, Grok, or macOS (26+) provider." = "%@はファイルの文字起こしに非対応です。\n\nOpenAI、Gemini、ElevenLabs、Grok、またはmacOS (26+)プロバイダに切り替えてください。";
 "Failed to read audio file: %@" = "音声ファイルの読み込みに失敗しました: %@";
 "Transcription failed: %@" = "文字起こしに失敗しました: %@";
 

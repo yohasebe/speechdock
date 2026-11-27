@@ -263,14 +263,14 @@ final class LLMTranslation: TranslationServiceProtocol {
 
         let systemPrompt = buildTranslationPrompt(targetLanguage: targetLanguage, sourceLanguage: sourceLanguage)
 
-        let requestBody: [String: Any] = [
+        var requestBody: [String: Any] = [
             "model": self.model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": text]
-            ],
-            "temperature": 0.3
+            ]
         ]
+        requestBody.merge(Self.grokSamplingParameters(model: self.model)) { _, new in new }
 
         guard let url = URL(string: endpoint) else {
             throw TranslationError.apiError("Invalid Grok API endpoint URL")
@@ -420,6 +420,13 @@ extension LLMTranslation {
         if model.hasPrefix("gpt-6") { return [:] }
         if model.hasPrefix("gpt-5") { return ["reasoning_effort": model.contains("5.") ? "none" : "minimal"] }
         return ["temperature": 0.3]
+    }
+
+    /// Grok 4.20 Fast does not reason and takes `temperature`. Later Grok
+    /// models always reason, at "high" unless told otherwise; "low" is their
+    /// lowest effort.
+    nonisolated static func grokSamplingParameters(model: String) -> [String: Any] {
+        model.hasPrefix("grok-4.20") ? ["temperature": 0.3] : ["reasoning_effort": "low"]
     }
 
     /// The lowest thinking level the offered models accept: 3.1 Pro starts at "low",

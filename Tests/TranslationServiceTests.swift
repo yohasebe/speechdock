@@ -146,7 +146,7 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertEqual(models.count, 2)
         XCTAssertEqual(models[0].id, "grok-4.20-non-reasoning")
         XCTAssertTrue(models[0].isDefault)
-        XCTAssertEqual(models[1].id, "grok-4.20-reasoning")
+        XCTAssertEqual(models[1].id, "grok-4.7")
         XCTAssertFalse(models[1].isDefault)
     }
 
@@ -194,6 +194,13 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertEqual(LLMTranslation.openAISamplingParameters(model: "gpt-5-mini")["reasoning_effort"] as? String, "minimal")
         XCTAssertEqual(LLMTranslation.openAISamplingParameters(model: "gpt-4.1")["temperature"] as? Double, 0.3)
         XCTAssertTrue(LLMTranslation.openAISamplingParameters(model: "gpt-6-astra").isEmpty, "only Luna accepts none")
+    }
+
+    func testGrokSamplingParameters() {
+        XCTAssertEqual(LLMTranslation.grokSamplingParameters(model: "grok-4.20-non-reasoning")["temperature"] as? Double, 0.3)
+        XCTAssertNil(LLMTranslation.grokSamplingParameters(model: "grok-4.20-non-reasoning")["reasoning_effort"])
+        XCTAssertEqual(LLMTranslation.grokSamplingParameters(model: "grok-4.7")["reasoning_effort"] as? String, "low")
+        XCTAssertNil(LLMTranslation.grokSamplingParameters(model: "grok-4.7")["temperature"])
     }
 
     func testGeminiThinkingLevelIsLowestAccepted() {

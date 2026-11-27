@@ -48,7 +48,7 @@
 | **macOS Native** | System Default（macOS 26+ではSpeechAnalyzer） | 不要 |
 | **OpenAI** | GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe | 必要 |
 | **Google Gemini** | Gemini 3.5 Transcribe Live、Gemini 3.8 Live | 必要 |
-| **ElevenLabs** | Scribe v2 Realtime | 必要 |
+| **ElevenLabs** | Scribe v3 Live、Scribe v2 Realtime | 必要 |
 | **Grok** | Grok STT | 必要 |
 
 **注意**: macOS 26+では、ネイティブSTTはAppleの新しいSpeechAnalyzerフレームワークを使用し、時間制限なしのリアルタイム文字起こしと高いパフォーマンスを提供します。

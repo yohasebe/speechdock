@@ -4,10 +4,14 @@ import UniformTypeIdentifiers
 /// Shared by validation, file chooser, drag destinations, and format guidance.
 enum AudioFileSupport {
     static let extensions = ["mp3", "wav", "m4a", "aac", "aiff", "aif", "webm", "ogg", "flac", "mp4"]
-    /// OpenAI's transcription API rejects these as an unsupported file format
-    private static let openAIUnsupported: Set<String> = ["aac", "aiff", "aif"]
+    /// Formats a provider's transcription API rejects as unsupported
+    private static let unsupported: [RealtimeSTTProvider: Set<String>] = [
+        .openAI: ["aac", "aiff", "aif"],
+        .grok: ["aiff", "aif"]
+    ]
     static func extensions(for provider: RealtimeSTTProvider) -> [String] {
-        provider == .openAI ? extensions.filter { !openAIUnsupported.contains($0) } : extensions
+        guard let rejected = unsupported[provider] else { return extensions }
+        return extensions.filter { !rejected.contains($0) }
     }
     static func contentTypes(for provider: RealtimeSTTProvider) -> [UTType] {
         extensions(for: provider).compactMap { UTType(filenameExtension: $0) }

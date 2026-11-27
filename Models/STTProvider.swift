@@ -24,7 +24,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         case .gemini:
             return [.gemini38Flash]
         case .elevenLabs:
-            return [.scribeV2]
+            return [.scribeV3]
         case .grok:
             return [.grokSTT]
         }
@@ -46,7 +46,7 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
         case .gemini:
             return "Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this."
         case .elevenLabs:
-            return "Enables STT (Scribe v2) and TTS (Eleven v3). Optional — macOS built-in works without this."
+            return "Enables STT (Scribe v3) and TTS (Eleven v3). Optional — macOS built-in works without this."
         case .grok:
             return "Enables STT (Grok STT), TTS (Grok TTS), and translation. Optional — macOS built-in works without this."
         }
@@ -61,7 +61,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
     case gemini38Flash = "gemini-3.8-flash"
 
     // ElevenLabs models
-    case scribeV2 = "scribe_v2"
+    case scribeV3 = "scribe_v3"
 
     // Grok models
     case grokSTT = "grok-stt"
@@ -72,7 +72,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .gptTranscribe: return "GPT Transcribe"
         case .gemini38Flash: return "Gemini 3.8 Flash"
-        case .scribeV2: return "Scribe v2"
+        case .scribeV3: return "Scribe v3"
         case .grokSTT: return "Grok STT"
         }
     }
@@ -83,7 +83,7 @@ enum STTModel: String, CaseIterable, Identifiable, Codable {
             return .openAI
         case .gemini38Flash:
             return .gemini
-        case .scribeV2:
+        case .scribeV3:
             return .elevenLabs
         case .grokSTT:
             return .grok

@@ -18,7 +18,7 @@ final class FileTranscriptionServiceTests: XCTestCase {
     }
 
     func testProviderSupportsFileTranscription_Grok() {
-        XCTAssertFalse(RealtimeSTTProvider.grok.supportsFileTranscription)
+        XCTAssertTrue(RealtimeSTTProvider.grok.supportsFileTranscription)
     }
 
     func testProviderSupportsFileTranscription_MacOS() {
@@ -47,8 +47,11 @@ final class FileTranscriptionServiceTests: XCTestCase {
         XCTAssertEqual(RealtimeSTTProvider.elevenLabs.maxFileSizeMB, 25)
     }
 
+    func testMaxFileSizeMB_Grok() {
+        XCTAssertEqual(RealtimeSTTProvider.grok.maxFileSizeMB, 100)
+    }
+
     func testMaxFileSizeMB_UnsupportedProviders() {
-        XCTAssertEqual(RealtimeSTTProvider.grok.maxFileSizeMB, 0)
         if #available(macOS 26, *) {
             XCTAssertEqual(RealtimeSTTProvider.macOS.maxFileSizeMB, 100)
         } else {
@@ -79,8 +82,14 @@ final class FileTranscriptionServiceTests: XCTestCase {
         XCTAssertTrue(formats.contains("FLAC"))
     }
 
+    func testSupportedAudioFormats_Grok() {
+        let formats = RealtimeSTTProvider.grok.supportedAudioFormats
+        XCTAssertTrue(formats.contains("MP3"))
+        XCTAssertTrue(formats.contains("WAV"))
+        XCTAssertFalse(formats.contains("AIFF"))
+    }
+
     func testSupportedAudioFormats_UnsupportedProviders() {
-        XCTAssertEqual(RealtimeSTTProvider.grok.supportedAudioFormats, "")
         if #available(macOS 26, *) {
             XCTAssertTrue(RealtimeSTTProvider.macOS.supportedAudioFormats.contains("MP3"))
             XCTAssertTrue(RealtimeSTTProvider.macOS.supportedAudioFormats.contains("AIFF"))
@@ -135,9 +144,9 @@ final class FileTranscriptionServiceTests: XCTestCase {
     }
 
     func testFileTranscriptionError_ProviderNotSupported() {
-        let error = FileTranscriptionError.providerNotSupported(.grok)
+        let error = FileTranscriptionError.providerNotSupported(.macOS)
         XCTAssertNotNil(error.errorDescription)
-        XCTAssertTrue(error.errorDescription!.contains("Grok"))
+        XCTAssertTrue(error.errorDescription!.contains("macOS"))
     }
 
     func testFileTranscriptionError_ReadError() {

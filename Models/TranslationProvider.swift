@@ -70,11 +70,11 @@ enum TranslationProvider: String, CaseIterable, Identifiable, Codable {
                 TranslationModelInfo(id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", isDefault: false)
             ]
         case .grok:
-            // grok-4-1-fast-* retire 2026-08-15; replaced by the undated 4.20 aliases
-            // (not the dated -0309 snapshots, which can themselves be retired).
+            // The undated 4.20 alias, not the dated -0309 snapshot, which can
+            // itself be retired.
             return [
                 TranslationModelInfo(id: "grok-4.20-non-reasoning", name: "Grok 4.20 Fast", isDefault: true),
-                TranslationModelInfo(id: "grok-4.20-reasoning", name: "Grok 4.20 Fast (Reasoning)", isDefault: false)
+                TranslationModelInfo(id: "grok-4.7", name: "Grok 4.7", isDefault: false)
             ]
         }
     }

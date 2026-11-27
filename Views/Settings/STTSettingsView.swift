@@ -171,10 +171,8 @@ struct STTLanguagePicker: View {
             return NSLocalizedString("Auto detects the language. Specifying a language can improve accuracy.", comment: "STT language help")
         case .gemini:
             return NSLocalizedString("Auto detects the language. Note: Portuguese is not supported.", comment: "STT language help")
-        case .elevenLabs:
+        case .elevenLabs, .grok:
             return NSLocalizedString("Auto detects the language. Specifying a language can improve accuracy.", comment: "STT language help")
-        case .grok:
-            return NSLocalizedString("Auto detects the language (100+ languages supported).", comment: "STT language help")
         }
     }
 }

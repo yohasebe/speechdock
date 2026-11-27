@@ -704,7 +704,7 @@ struct TranscriptionFloatingView: View {
                         }
                     } else {
                         // Show hint about switching provider for file transcription
-                        Text("Switch to OpenAI, Gemini, or ElevenLabs for file transcription")
+                        Text("Switch to OpenAI, Gemini, ElevenLabs, or Grok for file transcription")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

@@ -368,13 +368,13 @@ final class LLMContextualTranslator: ContextualTranslator {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": modelId,
             "messages": [
                 ["role": "user", "content": prompt]
-            ],
-            "temperature": 0.3
+            ]
         ]
+        body.merge(LLMTranslation.grokSamplingParameters(model: modelId)) { _, new in new }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 

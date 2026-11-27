@@ -103,8 +103,7 @@ tell application "SpeechDock"
 end tell
 ```
 
-- Requires a supported STT provider (OpenAI, Gemini, ElevenLabs, or macOS 26+)
-- Grok provider does not support file transcription
+- Requires a supported STT provider (OpenAI, Gemini, ElevenLabs, Grok, or macOS 26+)
 - See [Advanced Features](advanced.md#audio-file-transcription) for supported formats and limits
 - This command blocks until transcription is complete
 
@@ -366,7 +365,7 @@ tell application "SpeechDock"
         if errNum is 1021 then
             display dialog "File not found: " & errMsg
         else if errNum is 1020 then
-            display dialog "Provider doesn't support file transcription. Switch to OpenAI, Gemini, or ElevenLabs."
+            display dialog "Provider doesn't support file transcription. Switch to OpenAI, Gemini, ElevenLabs, or Grok."
         else
             display dialog "Error " & errNum & ": " & errMsg
         end if

@@ -36,7 +36,7 @@ class TranscribeFileCommand: NSScriptCommand {
 
             guard provider.supportsFileTranscription else {
                 self.setAppleScriptError(.sttProviderNotSupported,
-                    message: "\(provider.rawValue) does not support file transcription. Switch to OpenAI, Gemini, or ElevenLabs.")
+                    message: "\(provider.rawValue) does not support file transcription. Switch to OpenAI, Gemini, ElevenLabs, or Grok.")
                 self.resumeExecution(withResult: nil)
                 return
             }

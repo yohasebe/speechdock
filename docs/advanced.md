@@ -54,7 +54,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 |----------|--------|----------|
 | **OpenAI** | GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe | Streaming deltas (Whisper), high accuracy, 100+ languages |
 | **Google Gemini** | Gemini 3.5 Transcribe Live, Gemini 3.8 Live | Streaming speech-to-text; file transcription uses Gemini 3.8 Flash |
-| **ElevenLabs** | Scribe v2 Realtime | Low latency, natural punctuation |
+| **ElevenLabs** | Scribe v3 Live, Scribe v2 Realtime | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |
 
 Select the provider in **Settings** > **Speech-to-Text**.
@@ -101,14 +101,15 @@ Route TTS playback to any audio output device (speakers, headphones, virtual dev
   <figcaption>File Transcription — Drag and drop audio files to transcribe</figcaption>
 </figure>
 
-Transcribe pre-recorded audio files. Available with cloud STT providers and macOS native (macOS 26+). Not available with Grok provider.
+Transcribe pre-recorded audio files. Available with cloud STT providers and macOS native (macOS 26+).
 
 | Provider | Formats | Max Size | Max Duration | API |
 |----------|---------|----------|--------------|-----|
 | **macOS** (26+) | MP3, WAV, M4A, AAC, AIFF, FLAC, MP4 | 100 MB | No limit | SpeechAnalyzer; system recognition fallback |
 | **OpenAI** | MP3, WAV, M4A, FLAC, WebM, OGG, MP4 | 25 MB | Unlimited | GPT Transcribe |
 | **Gemini** | MP3, WAV, AAC, OGG, FLAC | 14 MB | ~10 min | generateContent |
-| **ElevenLabs** | MP3, WAV, M4A, OGG, FLAC | 25 MB | ~2 hours | Scribe v2 |
+| **ElevenLabs** | MP3, WAV, M4A, OGG, FLAC | 25 MB | ~2 hours | Scribe v3 |
+| **Grok** | MP3, WAV, M4A, AAC, OGG, FLAC, WebM, MP4 | 100 MB | No limit | xAI Speech to Text |
 
 **Note**: macOS file transcription requires macOS 26 or later and no API key. SpeechAnalyzer processes supported languages on-device; fallback recognition may use Apple’s servers and require an internet connection.
 
@@ -134,7 +135,7 @@ While macOS on-device translation supports ~18 languages, cloud providers offer:
 | **macOS** (default) | System | On-device, no API key, macOS 26+ |
 | **OpenAI** | GPT-5.4 Mini (default), GPT-6 Luna | Fast, high quality |
 | **Gemini** | Gemini 3.5 Flash Lite (default), Gemini 3.1 Pro (Preview) | Fast, multilingual |
-| **Grok** | Grok 4.20 Fast (default), Grok 4.20 Fast (Reasoning) | Fast translation |
+| **Grok** | Grok 4.20 Fast (default), Grok 4.7 | Fast translation |
 
 ### Switching Translation Provider
 

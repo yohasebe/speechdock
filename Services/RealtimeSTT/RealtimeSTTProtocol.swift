@@ -130,7 +130,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             }
         case .openAI: return NSLocalizedString("OpenAI Realtime API (high quality)", comment: "STT provider description")
         case .gemini: return NSLocalizedString("Gemini Live API (multimodal)", comment: "STT provider description")
-        case .elevenLabs: return NSLocalizedString("ElevenLabs Scribe v2 (150ms latency)", comment: "STT provider description")
+        case .elevenLabs: return NSLocalizedString("ElevenLabs Scribe (low latency)", comment: "STT provider description")
         case .grok: return NSLocalizedString("Grok Voice Agent (low latency)", comment: "STT provider description")
         }
     }
@@ -138,7 +138,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
     /// Whether this provider supports file transcription (batch mode)
     var supportsFileTranscription: Bool {
         switch self {
-        case .openAI, .gemini, .elevenLabs:
+        case .openAI, .gemini, .elevenLabs, .grok:
             return true
         case .macOS:
             #if compiler(>=6.1)
@@ -146,8 +146,6 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
                 return true
             }
             #endif
-            return false
-        case .grok:
             return false
         }
     }
@@ -169,7 +167,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             #endif
             return ""
         case .grok:
-            return ""
+            return "MP3, WAV, M4A, AAC, OGG, FLAC, WebM, MP4"
         }
     }
 
@@ -183,7 +181,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             // grows audio by 4/3: 14 MiB of audio is about 19.6 MB encoded.
             return 14
         case .elevenLabs:
-            return 25  // Scribe v2 limit
+            return 25  // Scribe limit
         case .macOS:
             #if compiler(>=6.1)
             if #available(macOS 26, *) {
@@ -192,7 +190,8 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             #endif
             return 0
         case .grok:
-            return 0
+            // The API accepts up to 500 MB; the request body is built in memory.
+            return 100
         }
     }
 
@@ -213,7 +212,7 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
             #endif
             return ""
         case .grok:
-            return ""
+            return "No limit"
         }
     }
 
@@ -225,9 +224,9 @@ enum RealtimeSTTProvider: String, CaseIterable, Identifiable, Codable {
         case .gemini:
             return NSLocalizedString("Gemini API (max 14MB)", comment: "File transcription description")
         case .elevenLabs:
-            return NSLocalizedString("Scribe v2 (max 25MB, ~2h audio)", comment: "File transcription description")
+            return NSLocalizedString("Scribe v3 (max 25MB, ~2h audio)", comment: "File transcription description")
         case .grok:
-            return NSLocalizedString("Realtime only", comment: "File transcription description")
+            return NSLocalizedString("xAI API (max 100MB)", comment: "File transcription description")
         case .macOS:
             #if compiler(>=6.1)
             if #available(macOS 26, *) {

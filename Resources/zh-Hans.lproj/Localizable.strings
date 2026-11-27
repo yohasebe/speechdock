@@ -69,7 +69,7 @@
 /* STT Panel - Placeholder */
 "Press Record (%@) to start transcription" = "按下录音 (%@) 开始语音转录";
 "Or drop an audio file here" = "或将音频文件拖放到此处";
-"Switch to OpenAI, Gemini, or ElevenLabs for file transcription" = "请切换到 OpenAI、Gemini 或 ElevenLabs 以进行文件转录";
+"Switch to OpenAI, Gemini, ElevenLabs, or Grok for file transcription" = "请切换到 OpenAI、Gemini、ElevenLabs 或 Grok 以进行文件转录";
 "Transcribing file..." = "文件转录中...";
 "Drop audio file to transcribe" = "拖放音频文件以进行转录";
 
@@ -160,13 +160,14 @@
 "Apple Speech (offline, fast)" = "Apple Speech（离线、快速）";
 "OpenAI Realtime API (high quality)" = "OpenAI Realtime API（高质量）";
 "Gemini Live API (multimodal)" = "Gemini Live API（多模态）";
-"ElevenLabs Scribe v2 (150ms latency)" = "ElevenLabs Scribe v2（150ms 延迟）";
+"ElevenLabs Scribe (low latency)" = "ElevenLabs Scribe（低延迟）";
 "Grok Voice Agent (low latency)" = "Grok Voice Agent（低延迟）";
 
 /* File Transcription Descriptions */
 "OpenAI API (max 25MB)" = "OpenAI API（最大 25MB）";
+"xAI API (max 100MB)" = "xAI API（最大 100MB）";
 "Gemini API (max 14MB)" = "Gemini API（最大 14MB）";
-"Scribe v2 (max 25MB, ~2h audio)" = "Scribe v2（最大 25MB，约 2 小时音频）";
+"Scribe v3 (max 25MB, ~2h audio)" = "Scribe v3（最大 25MB，约 2 小时音频）";
 "Realtime only" = "仅限实时";
 "Apple Speech (offline, max 500MB)" = "Apple Speech（离线，最大 500MB）";
 
@@ -192,7 +193,6 @@
 "Auto uses system locale. Select a specific language for better accuracy." = "自动使用系统区域设置。选择特定语言可提高准确率。";
 "Auto detects the language. Specifying a language can improve accuracy." = "自动检测语言。指定语言可提高准确率。";
 "Auto detects the language. Note: Portuguese is not supported." = "自动检测语言。注意：不支持葡萄牙语。";
-"Auto detects the language (100+ languages supported)." = "自动检测语言（支持 100 多种语言）。";
 
 /* Settings - Audio Source Descriptions */
 "Record from microphone" = "从麦克风录音";
@@ -430,7 +430,7 @@
 "Audio file not found" = "未找到音频文件";
 "Unsupported audio format: .%@\n\nSupported formats: %@" = "不支持的音频格式：.%@\n\n支持的格式：%@";
 "File too large (%dMB). Maximum size for this provider is %dMB" = "文件过大 (%dMB)。此服务商的最大文件大小为 %dMB";
-"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, or macOS (26+) provider." = "%@ 不支持文件转录。\n\n请切换到 OpenAI、Gemini、ElevenLabs 或 macOS (26+) 服务商。";
+"%@ does not support file transcription.\n\nPlease switch to OpenAI, Gemini, ElevenLabs, Grok, or macOS (26+) provider." = "%@ 不支持文件转录。\n\n请切换到 OpenAI、Gemini、ElevenLabs、Grok 或 macOS (26+) 服务商。";
 "Failed to read audio file: %@" = "无法读取音频文件：%@";
 "Transcription failed: %@" = "转录失败：%@";
 

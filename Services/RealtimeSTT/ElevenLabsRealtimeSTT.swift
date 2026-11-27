@@ -6,7 +6,7 @@ import Foundation
 final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     weak var delegate: RealtimeSTTDelegate?
     private(set) var isListening = false
-    var selectedModel: String = "scribe_v2_realtime"
+    var selectedModel: String = "scribe_v3_live"
     var selectedLanguage: String = ""  // "" = Auto (ElevenLabs auto-detects)
     var audioInputDeviceUID: String = ""  // "" = System Default
     var audioSource: STTAudioSource = .microphone
@@ -577,7 +577,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "scribe_v2_realtime", name: "Scribe v2 Realtime", description: "~150ms latency streaming", isDefault: true)
+            RealtimeSTTModelInfo(id: "scribe_v3_live", name: "Scribe v3 Live", description: "Latest streaming model", isDefault: true),
+            RealtimeSTTModelInfo(id: "scribe_v2_realtime", name: "Scribe v2 Realtime", description: "~150ms latency streaming")
         ]
     }
 }

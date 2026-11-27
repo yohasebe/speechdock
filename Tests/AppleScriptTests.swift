@@ -246,7 +246,7 @@ final class AppleScriptTests: XCTestCase {
         } else {
             XCTAssertFalse(RealtimeSTTProvider.macOS.supportsFileTranscription)
         }
-        XCTAssertFalse(RealtimeSTTProvider.grok.supportsFileTranscription)
+        XCTAssertTrue(RealtimeSTTProvider.grok.supportsFileTranscription)
     }
 
     // MARK: - API Key Requirement Tests

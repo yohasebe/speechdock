@@ -105,8 +105,7 @@ tell application "SpeechDock"
 end tell
 ```
 
-- 対応STTプロバイダ（OpenAI、Gemini、ElevenLabs、またはmacOS 26+）が必要です
-- Grokプロバイダはファイル文字起こしに対応していません
+- 対応STTプロバイダ（OpenAI、Gemini、ElevenLabs、Grok、またはmacOS 26+）が必要です
 - 対応形式と制限については[高度な機能](advanced_ja.md#音声ファイルの文字起こし)を参照してください
 - このコマンドは文字起こしが完了するまでブロックします
 
@@ -370,7 +369,7 @@ tell application "SpeechDock"
         if errNum is 1021 then
             display dialog "ファイルが見つかりません: " & errMsg
         else if errNum is 1020 then
-            display dialog "このプロバイダはファイル文字起こしに対応していません。OpenAI、Gemini、またはElevenLabsに切り替えてください。"
+            display dialog "このプロバイダはファイル文字起こしに対応していません。OpenAI、Gemini、ElevenLabs、またはGrokに切り替えてください。"
         else
             display dialog "エラー " & errNum & ": " & errMsg
         end if

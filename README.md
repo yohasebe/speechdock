@@ -48,7 +48,7 @@ Convert speech to text using:
 | **macOS Native** | System Default (SpeechAnalyzer on macOS 26+) | Not required |
 | **OpenAI** | GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe | Required |
 | **Google Gemini** | Gemini 3.5 Transcribe Live, Gemini 3.8 Live | Required |
-| **ElevenLabs** | Scribe v2 Realtime | Required |
+| **ElevenLabs** | Scribe v3 Live, Scribe v2 Realtime | Required |
 | **Grok** | Grok STT | Required |
 
 **Note**: On macOS 26+, the native STT uses Apple's new SpeechAnalyzer framework, providing real-time transcription without time limits and improved performance.
