@@ -693,9 +693,6 @@ final class FloatingWindowManager: ObservableObject {
         floatingWindow?.orderOut(nil)
         isVisible = false
 
-        // Reset window level coordinator when panel is closed
-        WindowLevelCoordinator.shared.reset()
-
         // Restore focus to the previous app (unless we already activated a selected window)
         if !skipActivation, let previousApp = previousApp {
             previousApp.activate(options: [])

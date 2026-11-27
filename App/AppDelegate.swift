@@ -21,6 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Set as accessory app (no dock icon)
         ActivationPolicyCoordinator.shared.updatePolicy()
 
+        // Let Settings come in front of the floating speech panels while it is in use
+        WindowLevelCoordinator.shared.startObserving()
+
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                                object: nil, queue: .main) { _ in
             MainActor.assumeIsolated {

@@ -186,8 +186,6 @@ final class FloatingMicButtonManager {
         buttonWindow = nil
         appState = nil
         // Keep lastFrontmostApp for next show()
-
-        WindowLevelCoordinator.shared.reset()
     }
 
     func toggle(appState: AppState) {

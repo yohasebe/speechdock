@@ -297,7 +297,6 @@ final class StatusBarManager: NSObject {
     func closePanel() {
         panel?.orderOut(nil)
         removeEventMonitors()
-        WindowLevelCoordinator.shared.reset()
     }
 
     // Alias for compatibility

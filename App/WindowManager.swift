@@ -35,7 +35,7 @@ final class WindowManager {
 
         let window = NSWindow(contentViewController: hostingController)
         window.title = NSLocalizedString("SpeechDock Settings", comment: "Settings window")
-        window.identifier = NSUserInterfaceItemIdentifier("settings")
+        window.identifier = WindowLevelCoordinator.settingsIdentifier
         window.styleMask = [.titled, .closable, .resizable]
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 700, height: 500))

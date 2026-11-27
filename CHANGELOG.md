@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.
 - Settings > API Keys shows a saved 1Password reference by its 1Password status, names the button Save Reference for a reference, saves on Return, and keeps the reason for a failed save on screen. Its messages and provider descriptions appear in the selected language.
 - Clearing the transcription panel with the eraser button also clears the text that a file transcription adds to; the cleared text no longer reappears before the next result.
+- Settings comes in front of the floating speech panels while you use it. The panels float above other apps again when you click one or switch to another app.
 - Opening the text-to-speech panel from the menu while the transcription panel is in front no longer plays the system alert sound.
 - The transcription panel opens with the cursor in its text area instead of keyboard focus on Close.
 - Text-to-speech starts when an audio output device is chosen in Settings. With a chosen device, macOS voices, Gemini, Grok, and OpenAI and ElevenLabs speech that is not streamed failed to start.
