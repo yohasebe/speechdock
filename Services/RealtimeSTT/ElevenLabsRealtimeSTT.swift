@@ -151,11 +151,8 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
     // MARK: - WebSocket Connection
 
     private func connectWebSocket(apiKey: String) async throws {
-        // Map old model IDs to realtime versions
-        var model = selectedModel.isEmpty ? defaultModelId : selectedModel
-        if model == "scribe_v2" || model == "scribe_v1" {
-            model = "scribe_v2_realtime"
-        }
+        // A model that is no longer offered falls back to the default.
+        let model = availableModels().contains { $0.id == selectedModel } ? selectedModel : defaultModelId
 
         // ElevenLabs replaced the old `sample_rate` + `encoding` query params with
         // a unified `audio_format` (e.g. `pcm_16000`, `pcm_8000`, `ulaw_8000`).
@@ -577,8 +574,7 @@ final class ElevenLabsRealtimeSTT: NSObject, RealtimeSTTService {
 
     func availableModels() -> [RealtimeSTTModelInfo] {
         [
-            RealtimeSTTModelInfo(id: "scribe_v3_live", name: "Scribe v3 Live", description: "Latest streaming model", isDefault: true),
-            RealtimeSTTModelInfo(id: "scribe_v2_realtime", name: "Scribe v2 Realtime", description: "~150ms latency streaming")
+            RealtimeSTTModelInfo(id: "scribe_v3_live", name: "Scribe v3 Live", description: "Latest streaming model", isDefault: true)
         ]
     }
 }

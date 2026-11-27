@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Grok transcribes audio files (MP3, WAV, M4A, AAC, OGG, FLAC, WebM, MP4; up to 100 MB).
 
 ### Changed
-- ElevenLabs real-time transcription offers Scribe v3 Live (default) and Scribe v2 Realtime, and file transcription uses Scribe v3.
+- ElevenLabs real-time transcription uses Scribe v3 Live, and file transcription uses Scribe v3.
 - Grok translation offers Grok 4.20 Fast (default) and Grok 4.7, which replaces Grok 4.20 Fast (Reasoning); a saved Grok 4.20 Fast (Reasoning) selection moves to Grok 4.20 Fast.
 
 ### Fixed

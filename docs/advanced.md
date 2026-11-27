@@ -55,7 +55,7 @@ Cloud providers offer higher accuracy, more language support, and specialized fe
 |----------|--------|----------|
 | **OpenAI** | GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe | Streaming deltas (Whisper), high accuracy, 100+ languages |
 | **Google Gemini** | Gemini 3.5 Transcribe Live, Gemini 3.8 Live | Streaming speech-to-text; file transcription uses Gemini 3.8 Flash |
-| **ElevenLabs** | Scribe v3 Live, Scribe v2 Realtime | Low latency, natural punctuation |
+| **ElevenLabs** | Scribe v3 Live | Low latency, natural punctuation |
 | **Grok** | Grok STT | xAI's dedicated streaming speech-to-text |
 
 Select the provider in **Settings** > **Speech-to-Text**.

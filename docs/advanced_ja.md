@@ -57,7 +57,7 @@ APIキーはmacOSキーチェーンに安全に保存されます。開発時に
 |----------|--------|----------|
 | **OpenAI** | GPT Realtime Whisper、GPT Live Transcribe、GPT Transcribe | ストリーミングdelta（Whisper）、高精度、100以上の言語 |
 | **Google Gemini** | Gemini 3.5 Transcribe Live、Gemini 3.8 Live | ストリーミング文字起こし。ファイルの文字起こしは Gemini 3.8 Flash |
-| **ElevenLabs** | Scribe v3 Live、Scribe v2 Realtime | 低遅延、自然な句読点 |
+| **ElevenLabs** | Scribe v3 Live | 低遅延、自然な句読点 |
 | **Grok** | Grok STT | xAIの専用ストリーミング音声認識 |
 
 プロバイダは**設定** > **音声認識**から選択できます。
