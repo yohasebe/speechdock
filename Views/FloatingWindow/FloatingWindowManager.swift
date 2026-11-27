@@ -307,7 +307,7 @@ final class FloatingWindowManager: ObservableObject {
         switch style {
         case .floating:
             styleMask = [.borderless, .resizable]
-            level = WindowLevelCoordinator.shared.nextPanelLevel()
+            level = WindowLevelCoordinator.shared.speechPanelLevel()
         case .standardWindow:
             styleMask = [.titled, .closable, .miniaturizable, .resizable]
             level = .normal
@@ -644,7 +644,7 @@ final class FloatingWindowManager: ObservableObject {
 
         // Update level to appear on top of other panels (only for floating style)
         if currentWindowStyle == .floating {
-            window.level = WindowLevelCoordinator.shared.nextPanelLevel()
+            window.level = WindowLevelCoordinator.shared.speechPanelLevel()
         }
 
         // Bring window to front

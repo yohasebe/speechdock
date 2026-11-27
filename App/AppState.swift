@@ -45,7 +45,9 @@ enum PanelStyle: String, CaseIterable {
 @MainActor
 @Observable
 final class AppState {
-    static let shared = AppState()
+    /// The unit-test host gets a state that neither reads nor saves preferences,
+    /// so a test run cannot change the settings of a development copy.
+    static let shared = AppState(startServices: !RuntimeContext.isUnitTestHost)
 
     // MARK: - App Initialization
     /// Flag indicating whether the app has completed initialization
@@ -606,10 +608,7 @@ final class AppState {
             firstLaunchDate = Date()
         }
         refreshVoiceCachesInBackground()
-        // Listing shareable content asks for Screen Recording; the unit-test host must not.
-        if !RuntimeContext.isUnitTestHost {
-            prefetchAvailableAppsInBackground()
-        }
+        prefetchAvailableAppsInBackground()
         updatePermissionStatus()
         setupOCRCallbacks()
         // Pre-cache macOS Translation language availability
@@ -1696,6 +1695,10 @@ final class AppState {
     /// Empties the transcription panel's text, so the next recording or file
     /// result starts from nothing rather than after the cleared text.
     func clearTranscription() {
+        // A late result from the stopped recording, or a translation still running,
+        // would otherwise bring the cleared text back.
+        resultSourceSTTService = nil
+        if translationState.isTranslating { cancelTranslation() }
         currentTranscription = ""
         if translationState.isTranslated {
             translationState = .idle

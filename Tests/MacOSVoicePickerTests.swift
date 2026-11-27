@@ -3,9 +3,9 @@ import XCTest
 
 final class MacOSVoicePickerTests: XCTestCase {
     private let list = [
-        "Samantha (English (US)) en_US    # Hello! My name is Samantha.",
-        "Linh (Vietnamese (Vietnam)) vi_VN    # Xin chào! Tên tôi là Linh.",
-        "Linh (Enhanced) (Vietnamese (Vietnam)) vi_VN    # Xin chào! Tên tôi là Linh.",
+        "Samantha (English (US)) en_US    # sample",
+        "Linh (Vietnamese (Vietnam)) vi_VN    # sample",
+        "Linh (Enhanced) (Vietnamese (Vietnam)) vi_VN    # sample",
         "",
     ]
 

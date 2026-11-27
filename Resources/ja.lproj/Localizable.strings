@@ -589,8 +589,9 @@
 "SpeechDock Permissions" = "SpeechDock の権限";
 "Recommended" = "推奨";
 "Optional" = "任意";
-"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "パネルの「翻訳する」ボタンと、字幕のリアルタイム翻訳の両方で使う、翻訳のプロバイダ、モデル、翻訳先の言語です。";
+"The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed." = "プロバイダと翻訳先の言語は、パネルの「翻訳する」ボタンと字幕の翻訳の両方で使います。モデルはパネル用で、字幕は速さのためにプロバイダの既定のモデルを使います。";
 "Enter at least %d characters to translate" = "翻訳するには%d文字以上入力してください";
 "STT language is the same as translation target" = "音声認識の言語が翻訳先と同じです";
 "Show Key" = "キーを表示";
 "Hide Key" = "キーを隠す";
+"Invalid API key" = "API キーが無効です";

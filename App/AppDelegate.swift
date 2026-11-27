@@ -10,9 +10,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var isExplicitQuit = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Check for duplicate instances. The unit-test host skips it: while another
-        // copy runs, the alert would stall the test run.
-        if !RuntimeContext.isUnitTestHost && isAnotherInstanceRunning() {
+        // The unit-test host shares the app's bundle ID, preferences and temporary
+        // folder with a running development copy, so it starts nothing: no duplicate
+        // alert, menu bar item, hotkeys, cleanup or permission requests.
+        guard !RuntimeContext.isUnitTestHost else { return }
+
+        // Check for duplicate instances
+        if isAnotherInstanceRunning() {
             showDuplicateInstanceAlert()
             NSApp.terminate(nil)
             return
@@ -84,10 +88,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         }
 
-        // Check permissions on first launch (not in the unit-test host, which has none)
-        if !RuntimeContext.isUnitTestHost {
-            checkRequiredPermissions()
-        }
+        // Check permissions on first launch
+        checkRequiredPermissions()
     }
 
     /// Check if another instance of SpeechDock is already running
@@ -165,6 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        guard !RuntimeContext.isUnitTestHost else { return }
         hotKeyService?.unregisterAllHotKeys()
 
         // Clean up all SpeechDock temp files on termination

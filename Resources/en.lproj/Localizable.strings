@@ -589,8 +589,9 @@
 "SpeechDock Permissions" = "SpeechDock Permissions";
 "Recommended" = "Recommended";
 "Optional" = "Optional";
-"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation.";
+"The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed." = "The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed.";
 "Enter at least %d characters to translate" = "Enter at least %d characters to translate";
 "STT language is the same as translation target" = "STT language is the same as translation target";
 "Show Key" = "Show Key";
 "Hide Key" = "Hide Key";
+"Invalid API key" = "Invalid API key";

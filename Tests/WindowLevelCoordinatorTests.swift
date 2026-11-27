@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class WindowLevelCoordinatorTests: XCTestCase {
     func testRepeatedPanelPresentationDoesNotEscalateLevel() {
-        for _ in 0..<110 { XCTAssertEqual(WindowLevelCoordinator.shared.nextPanelLevel(), .floating) }
+        for _ in 0..<110 { XCTAssertEqual(WindowLevelCoordinator.shared.speechPanelLevel(), .floating) }
     }
 
     func testSavePanelKeepsSystemLevelAndFitsSmallDisplay() {
@@ -51,13 +51,13 @@ final class WindowLevelCoordinatorTests: XCTestCase {
 
         coordinator.keyWindowChanged(to: settings)
         XCTAssertEqual(floatingPanel.level, .normal)
-        XCTAssertEqual(coordinator.nextPanelLevel(), .normal)
+        XCTAssertEqual(coordinator.speechPanelLevel(), .normal)
         XCTAssertEqual(standardPanel.level, .normal)
         XCTAssertEqual(subtitle.level, .floating)
 
         coordinator.keyWindowChanged(to: floatingPanel)
         XCTAssertEqual(floatingPanel.level, .floating)
-        XCTAssertEqual(coordinator.nextPanelLevel(), .floating)
+        XCTAssertEqual(coordinator.speechPanelLevel(), .floating)
     }
 
     func testWindowsAttachedToSettingsCountAsSettings() {

@@ -574,8 +574,9 @@
 "SpeechDock Permissions" = "SpeechDock 권한";
 "Recommended" = "권장";
 "Optional" = "선택";
-"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "패널의 번역 버튼과 자막 실시간 번역에 함께 쓰이는 번역 제공자, 모델, 대상 언어입니다.";
+"The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed." = "제공자와 대상 언어는 패널의 번역 버튼과 자막 번역에 함께 쓰입니다. 모델은 패널용이며, 자막은 속도를 위해 제공자의 기본 모델을 사용합니다.";
 "Enter at least %d characters to translate" = "번역하려면 %d자 이상 입력하세요";
 "STT language is the same as translation target" = "음성 인식 언어가 번역 대상 언어와 같습니다";
 "Show Key" = "키 표시";
 "Hide Key" = "키 숨기기";
+"Invalid API key" = "API 키가 올바르지 않습니다";

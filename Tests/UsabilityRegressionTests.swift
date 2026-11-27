@@ -28,6 +28,10 @@ final class UsabilityRegressionTests: XCTestCase {
 
         XCTAssertEqual(app.currentTranscription, "")
         XCTAssertEqual(app.translationState, .idle)
+
+        app.translationState = .translating
+        app.clearTranscription()
+        XCTAssertEqual(app.translationState, .idle, "a running translation is cancelled")
         XCTAssertEqual(FileTranscriptionText.appending("second result", to: app.currentTranscription), "second result")
     }
 

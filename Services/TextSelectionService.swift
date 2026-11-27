@@ -76,13 +76,14 @@ final class TextSelectionService {
 
         // SpeechDock itself (e.g. its transcription panel was in front): there is no
         // selection to read, and a simulated Copy would only make the system beep.
-        guard frontApp?.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
+        // With no known app, a simulated Copy could go anywhere; read nothing instead.
+        guard let frontApp, frontApp.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
 
         // For browsers and rich-text editors, skip AX API and go straight to clipboard.
         // AX returns single-newline-separated text from these apps, which collapses
         // paragraph breaks. The clipboard HTML/RTF path preserves blank lines between
         // paragraphs via NSAttributedString's parser.
-        let useClipboardFirst = frontApp.flatMap { $0.bundleIdentifier }.map { clipboardFirstBundleIDs.contains($0) } ?? false
+        let useClipboardFirst = frontApp.bundleIdentifier.map { clipboardFirstBundleIDs.contains($0) } ?? false
         if useClipboardFirst {
             dprint("TextSelectionService: Target is a rich-text app, skipping AX and using clipboard directly")
             let clipboardText = await getSelectedTextViaClipboard(targetApp: frontApp)

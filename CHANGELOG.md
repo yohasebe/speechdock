@@ -13,24 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - ElevenLabs real-time transcription uses Scribe v3 Live, and file transcription uses Scribe v3.
 - Grok translation offers Grok 4.20 Fast (default) and Grok 4.7, which replaces Grok 4.20 Fast (Reasoning); a saved Grok 4.20 Fast (Reasoning) selection moves to Grok 4.20 Fast.
-- Text in the menu, Settings, panels and overlays is at least 12 pt, with icons beside text sized to match. The panel text size starts at 12 pt; a smaller saved size is raised to 12 pt. The About API Keys heading is translated.
-- Both speech panels use the same larger icons with bigger click areas for Close, the status icon, and the text size, spell check and clear controls.
+- Text in the menu, Settings, panels and overlays is at least 12 pt, with icons beside text sized to match. The panel text size can no longer be set below 12 pt; a smaller saved size is raised to 12 pt. The About API Keys heading is translated.
+- Both speech panels use the same larger icons for Close and the status, and larger click areas for Close and the text size, spell check and clear controls.
 - The menu shows action names larger than its section headings and descriptions, and the Target and Paste controls in the transcription panel match the size of the other actions.
 - In Settings, sub-headings stand out from their descriptions, and where an API key comes from is shown in neutral colours; a provider without a key no longer looks like a warning.
-- Texts that still appeared in English, such as the permission labels, the floating mic menu, save and file errors, the shortcut overlay's section and action names, and the translate button's hints, are translated. The translate button says how many characters it needs, the OCR button's tooltip shows the current shortcut, and the floating mic menu's Hide Button reads Hide Mic Button.
+- Texts that still appeared in English are translated, including the permission labels, the floating mic menu, save and file errors, and the shortcut overlay's section and action names.
+- The translate button's tooltip says how many characters it needs, the OCR button's tooltip shows the current shortcut, and the floating mic menu's Hide Button reads Hide Mic Button.
 - Status, shortcut and permission badges in the menu and Settings share one size and corner radius.
 
 ### Fixed
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.
 - Settings > API Keys shows a saved 1Password reference by its 1Password status, names the button Save Reference for a reference, saves on Return, and keeps the reason for a failed save on screen. Its messages and provider descriptions appear in the selected language.
-- Clearing the transcription panel with the eraser button also clears the text that a file transcription adds to; the cleared text no longer reappears before the next result.
+- Clearing the transcription panel with the eraser button also clears the text that a file transcription adds to, stops a running translation, and ignores late results from the stopped recording; the cleared text no longer comes back.
 - Settings comes in front of the floating speech panels while you use it. The panels float above other apps again when you click one or switch to another app.
 - Opening the text-to-speech panel from the menu while the transcription panel is in front no longer plays the system alert sound.
 - The transcription panel opens with the cursor in its text area instead of keyboard focus on Close.
 - Text-to-speech starts when an audio output device is chosen in Settings. With a chosen device, macOS voices, Gemini, Grok, and OpenAI and ElevenLabs speech that is not streamed failed to start.
 - macOS voices read a language without a preset voice, such as Vietnamese, with an installed voice for that language (Premium first, then Enhanced) instead of the system voice.
-- Gemini subtitle translation uses the minimal thinking level, so each line no longer waits for the model to think first.
+- Subtitle translation with Gemini shows each line sooner.
 - The menu's microphone warning asks for microphone access when SpeechDock has not asked yet, and the menu's permission warnings appear in the selected language.
+- While an API key is being checked, its field and Remove are locked, so an edit made during the check is not replaced by the checked value.
+- An invalid API key is reported in the selected language.
 
 ## [0.1.40] - 2026-10-24
 

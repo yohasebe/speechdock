@@ -17,8 +17,9 @@ final class WindowLevelCoordinator {
 
     private init() {}
 
-    /// The level for a floating speech panel right now.
-    func nextPanelLevel() -> NSWindow.Level { settingsInUse ? .normal : .floating }
+    /// The level for a floating speech panel right now. Other floating tools (the
+    /// menu, the mic button, subtitles) keep their own levels.
+    func speechPanelLevel() -> NSWindow.Level { settingsInUse ? .normal : .floating }
 
     /// Follows which window is in use. Called once at launch.
     func startObserving() {
@@ -52,12 +53,13 @@ final class WindowLevelCoordinator {
     private func setSettingsInUse(_ inUse: Bool, front: NSWindow?) {
         guard inUse != settingsInUse else { return }
         settingsInUse = inUse
-        let level = nextPanelLevel()
+        let level = speechPanelLevel()
         for panel in NSApp.windows where Self.isFloatingSpeechPanel(panel) && panel.level != level {
             panel.level = level
         }
-        // Changing a panel's level can order it in front; keep the window in use on top.
-        if inUse { front?.orderFront(nil) }
+        // Changing a panel's level can order it in front of the window just made key
+        // (Settings, or the menu panel); keep that window on top.
+        front?.orderFront(nil)
     }
 
     /// A speech panel in floating style (borderless); standard-window panels stay normal.

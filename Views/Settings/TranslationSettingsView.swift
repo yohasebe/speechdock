@@ -10,7 +10,7 @@ struct TranslationSettingsView: View {
 
         Form {
             Section {
-                Text("Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation.")
+                Text("The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed.")
                     .font(.callout)
                     .foregroundColor(.secondary)
 

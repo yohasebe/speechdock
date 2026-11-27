@@ -573,8 +573,9 @@
 "SpeechDock Permissions" = "SpeechDock 权限";
 "Recommended" = "推荐";
 "Optional" = "可选";
-"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "面板“翻译”按钮和字幕实时翻译共用的翻译服务、模型和目标语言。";
+"The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed." = "服务提供商和目标语言同时用于面板的“翻译”按钮和字幕翻译。模型仅用于面板；为保证速度，字幕使用该服务提供商的默认模型。";
 "Enter at least %d characters to translate" = "请至少输入 %d 个字符以进行翻译";
 "STT language is the same as translation target" = "语音识别语言与翻译目标语言相同";
 "Show Key" = "显示密钥";
 "Hide Key" = "隐藏密钥";
+"Invalid API key" = "API 密钥无效";

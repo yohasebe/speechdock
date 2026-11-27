@@ -83,7 +83,7 @@ struct APIKeyValidator {
             case 200:
                 return .valid
             case 401, 403:
-                return .invalid("Invalid API key")
+                return .invalid(NSLocalizedString("Invalid API key", comment: "API key validation"))
             default:
                 return .networkError("HTTP \(httpResponse.statusCode)")
             }

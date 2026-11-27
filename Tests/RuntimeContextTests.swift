@@ -11,4 +11,16 @@ final class RuntimeContextTests: XCTestCase {
         XCTAssertNil(keys.keyOrigin(for: .openAI))
         XCTAssertNil(keys.storedKeychainValue(for: .openAI))
     }
+
+    @MainActor
+    func testSharedStateInTheTestHostDoesNotSavePreferences() async throws {
+        let key = "selectedTTSProvider"
+        let before = UserDefaults.standard.string(forKey: key)
+        let app = AppState.shared
+        let original = app.selectedTTSProvider
+        app.selectedTTSProvider = original == .macOS ? .gemini : .macOS
+        defer { app.selectedTTSProvider = original }
+        try await Task.sleep(for: .milliseconds(500))  // past the save debounce
+        XCTAssertEqual(UserDefaults.standard.string(forKey: key), before)
+    }
 }

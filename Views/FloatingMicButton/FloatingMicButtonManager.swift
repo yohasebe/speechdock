@@ -150,7 +150,7 @@ final class FloatingMicButtonManager {
         window.hidesOnDeactivate = false
         window.isOpaque = false
         window.backgroundColor = .clear
-        window.level = WindowLevelCoordinator.shared.nextPanelLevel()
+        window.level = .floating
         window.ignoresMouseEvents = false
         window.isMovableByWindowBackground = false  // We handle drag manually
         window.hasShadow = false  // Shadow is on the view itself

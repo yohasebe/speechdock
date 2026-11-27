@@ -54,6 +54,8 @@ struct APIKeySection: View {
                     }
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.leading)
+                    // The value being checked is saved when the check ends; edits meanwhile would be lost.
+                    .disabled(isValidating || isSaving)
                     .onSubmit {
                         guard canSave else { return }
                         Task { await saveAPIKey() }
@@ -103,6 +105,7 @@ struct APIKeySection: View {
                         Button("Remove") {
                             removeAPIKey()
                         }
+                        .disabled(isValidating || isSaving)
                         .foregroundColor(.red)
                     }
                 }
@@ -189,7 +192,9 @@ struct APIKeySection: View {
     /// Something new to save: not empty, not what is already saved, and not busy.
     private var canSave: Bool {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !trimmed.isEmpty && trimmed != savedValue && !isSaving && !isValidating
+        // A reference is compared without the quotes it is saved without.
+        let value = SecretReference.isReference(trimmed) ? SecretReference.normalized(trimmed) : trimmed
+        return !value.isEmpty && value != savedValue && !isSaving && !isValidating
     }
 
     private func saveAPIKey() async {
@@ -269,9 +274,10 @@ struct APIKeySection: View {
             apiKey = ""
             savedValue = ""
             saveMessageColor = .green
-            saveMessage = NSLocalizedString("Removed", comment: "API key removed")
+            let shown = NSLocalizedString("Removed", comment: "API key removed")
+            saveMessage = shown
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                saveMessage = nil
+                if saveMessage == shown { saveMessage = nil }
             }
         } catch {
             saveMessageColor = .red

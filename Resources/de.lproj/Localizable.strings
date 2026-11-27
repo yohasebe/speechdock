@@ -574,8 +574,9 @@
 "SpeechDock Permissions" = "SpeechDock-Berechtigungen";
 "Recommended" = "Empfohlen";
 "Optional" = "Optional";
-"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "Übersetzungsanbieter, Modell und Zielsprache für die Übersetzen-Taste im Fenster und die Echtzeit-Übersetzung der Untertitel.";
+"The provider and target language apply to both the panel Translate button and subtitle translation. The model applies to the panel; subtitles use the provider's default model for speed." = "Anbieter und Zielsprache gelten für die Übersetzen-Taste im Fenster und für die Untertitel-Übersetzung. Das Modell gilt für das Fenster; Untertitel verwenden aus Geschwindigkeitsgründen das Standardmodell des Anbieters.";
 "Enter at least %d characters to translate" = "Geben Sie mindestens %d Zeichen ein, um zu übersetzen";
 "STT language is the same as translation target" = "Die Spracherkennungssprache entspricht der Zielsprache";
 "Show Key" = "Schlüssel anzeigen";
 "Hide Key" = "Schlüssel ausblenden";
+"Invalid API key" = "Ungültiger API-Schlüssel";
