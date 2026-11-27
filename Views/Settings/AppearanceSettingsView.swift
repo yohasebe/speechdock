@@ -14,19 +14,19 @@ struct AppearanceSettingsView: View {
                         Spacer()
                         Text("\(Int(appState.panelTextFontSize)) pt")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.callout)
                     }
 
                     HStack(spacing: 8) {
                         Slider(
                             value: $appState.panelTextFontSize,
-                            in: 10...24,
+                            in: AppState.minPanelTextFontSize...AppState.maxPanelTextFontSize,
                             step: 1
                         ) {
                             EmptyView()
                         } minimumValueLabel: {
                             Text("A")
-                                .font(.system(size: 10))
+                                .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         } maximumValueLabel: {
                             Text("A")
@@ -38,11 +38,11 @@ struct AppearanceSettingsView: View {
                             appState.panelTextFontSize = 13.0
                         }
                         .buttonStyle(.borderless)
-                        .font(.caption)
+                        .font(.callout)
                     }
 
                     Text("Font size for text in STT and TTS panels.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -58,7 +58,7 @@ struct AppearanceSettingsView: View {
                 }
 
                 Text("Floating: Always-on-top borderless panels. Standard Window: Regular windows with title bar. Only one panel (STT or TTS) can be open at a time.")
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             } header: {
                 Text("Panel Appearance")
@@ -91,11 +91,11 @@ struct LaunchAtLoginToggle: View {
 
             if LaunchAtLoginService.shared.isAvailable {
                 Text("SpeechDock will start automatically when you log in")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             } else {
                 Text("Launch at login requires macOS 13 or later")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.orange)
             }
         }

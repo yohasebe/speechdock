@@ -46,7 +46,7 @@ struct ShortcutHUDView: View {
 
             // Footer
             Text("Press ESC or \(dismissShortcutString) to dismiss")
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundColor(.white.opacity(0.5))
         }
         .padding(24)

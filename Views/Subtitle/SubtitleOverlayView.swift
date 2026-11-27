@@ -236,7 +236,7 @@ struct SubtitleOverlayView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "stop.fill")
-                                .font(.system(size: 10))
+                                .font(.system(size: 12))
                             Text("Stop")
                                 .font(.system(size: 13, weight: .medium))
                         }
@@ -317,7 +317,7 @@ struct SubtitleOverlayView: View {
                 SubtitleProviderMenu(appState: appState)
 
                 Text("→")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.3))
 
                 // Language selector
@@ -334,7 +334,7 @@ struct SubtitleOverlayView: View {
             // Font size control
             HStack(spacing: 4) {
                 Image(systemName: "textformat.size")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.4))
 
                 HStack(spacing: 3) {
@@ -344,7 +344,7 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "minus")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
@@ -360,7 +360,7 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
@@ -370,7 +370,7 @@ struct SubtitleOverlayView: View {
             // Max lines control
             HStack(spacing: 4) {
                 Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.4))
 
                 HStack(spacing: 3) {
@@ -380,7 +380,7 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "minus")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
@@ -396,7 +396,7 @@ struct SubtitleOverlayView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
@@ -519,7 +519,7 @@ struct SubtitleProviderMenu: View {
                     Text(reason)
                 }
             }
-            .font(.system(size: 11))
+            .font(.system(size: 12))
             .foregroundColor(.white.opacity(0.6))
         }
         .menuStyle(.borderlessButton)

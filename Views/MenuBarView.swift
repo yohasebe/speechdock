@@ -19,7 +19,7 @@ struct MenuBarView: View {
                 // Status indicator
                 if appState.isRecording {
                     Text("Recording")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -30,7 +30,7 @@ struct MenuBarView: View {
                         ProgressView()
                             .scaleEffect(0.5)
                         Text("Processing")
-                            .font(.caption)
+                            .font(.callout)
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
@@ -39,7 +39,7 @@ struct MenuBarView: View {
                     .cornerRadius(4)
                 } else if appState.ttsState == .speaking {
                     Text("Speaking")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -59,7 +59,7 @@ struct MenuBarView: View {
 
             // MARK: - STT Section
             Text("Speech-to-Text")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.top, 2)
@@ -108,11 +108,11 @@ struct MenuBarView: View {
                     Spacer()
                     if appState.subtitleModeEnabled {
                         Text("On")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.accentColor)
                     } else {
                         Text("Off")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                     shortcutBadge(appState.hotKeyService?.subtitleKeyCombo.displayString ?? "\u{2303}\u{2325}S")
@@ -135,11 +135,11 @@ struct MenuBarView: View {
                     Spacer()
                     if appState.showFloatingMicButton {
                         Text("On")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.accentColor)
                     } else {
                         Text("Off")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                     shortcutBadge(appState.hotKeyService?.quickTranscriptionKeyCombo.displayString ?? "\u{2303}\u{2325}M")
@@ -162,7 +162,7 @@ struct MenuBarView: View {
                             .font(.callout)
                             .foregroundColor(appState.selectedRealtimeProvider.supportsFileTranscription ? .primary : .secondary)
                         Text(appState.selectedRealtimeProvider.fileTranscriptionDescription)
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                     Spacer()
@@ -182,7 +182,7 @@ struct MenuBarView: View {
 
             // MARK: - TTS Section
             Text("Text-to-Speech")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.top, 2)
@@ -301,7 +301,7 @@ struct MenuBarView: View {
                             .font(.callout)
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                     .contentShape(Rectangle())
@@ -339,7 +339,7 @@ struct MenuBarView: View {
     // Shortcut badge view
     private func shortcutBadge(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .medium, design: .rounded))
+            .font(.system(size: 12, weight: .medium, design: .rounded))
             .foregroundColor(.secondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
@@ -353,13 +353,13 @@ struct MenuBarView: View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .foregroundColor(.orange)
-                    .font(.caption)
+                    .font(.callout)
                 Text(text)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.orange)
                 Spacer()
                 Image(systemName: "arrow.right.circle")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.orange)
             }
             .padding(.horizontal, 8)
@@ -454,7 +454,7 @@ struct TranscriptionHistoryMenu: View {
                     }) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("\(entry.formattedDate) [\(entry.provider)]")
-                                .font(.caption2)
+                                .font(.callout)
                             Text(entry.preview)
                         }
                     }
@@ -482,7 +482,7 @@ struct TranscriptionHistoryMenu: View {
                 Spacer()
                 if !entries.isEmpty {
                     Text("\(entries.count)")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             }

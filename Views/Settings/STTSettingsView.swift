@@ -16,12 +16,12 @@ struct STTSettingsView: View {
                 }
 
                 Text(appState.selectedRealtimeProvider.description)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 if availableSTTProviders.count < RealtimeSTTProvider.allCases.count {
                     Text(NSLocalizedString("Set API keys in the API Keys section to enable more providers", comment: "API key hint"))
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.orange)
                 }
 
@@ -89,7 +89,7 @@ struct STTModelPicker: View {
         }
         .help(availableModels.first { $0.id == appState.selectedRealtimeSTTModel }.map { "\($0.name): \($0.description)" } ?? "")
         if let model = availableModels.first(where: { $0.id == appState.selectedRealtimeSTTModel }), !model.description.isEmpty {
-            Text(model.description).font(.caption).foregroundStyle(.secondary)
+            Text(model.description).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         }
@@ -146,7 +146,7 @@ struct STTLanguagePicker: View {
             }
 
             Text(languageHelpText)
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
         }
     }
@@ -193,17 +193,17 @@ struct AudioInputSourcePicker: View {
             }
 
             Text(appState.selectedAudioInputSourceType.description)
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
 
             if appState.selectedAudioInputSourceType == .systemAudio {
                 Text("System Audio requires Screen Recording permission.")
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
 
             Text("App-specific audio capture is available in the menu bar and STT panel.")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
         }
         .onAppear {
@@ -229,7 +229,7 @@ struct AudioInputDevicePicker: View {
                 }
 
                 Text("Select the microphone device for speech recognition.")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
             .onAppear {
@@ -259,7 +259,7 @@ struct VADAutoStopSettings: View {
         if supportsVADAutoStop {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Auto-Stop Settings")
-                    .font(.subheadline)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -268,12 +268,12 @@ struct VADAutoStopSettings: View {
                         Spacer()
                         Text("\(Int(appState.vadMinimumRecordingTime))s")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.callout)
                     }
 
                     HStack {
                         Text("5s")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
 
                         Slider(
@@ -283,12 +283,12 @@ struct VADAutoStopSettings: View {
                         )
 
                         Text("60s")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
 
                     Text("Recording must reach this duration before auto-stop activates.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -298,12 +298,12 @@ struct VADAutoStopSettings: View {
                         Spacer()
                         Text("\(Int(appState.vadSilenceDuration))s")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.callout)
                     }
 
                     HStack {
                         Text("1s")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
 
                         Slider(
@@ -313,12 +313,12 @@ struct VADAutoStopSettings: View {
                         )
 
                         Text("10s")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
 
                     Text("Duration of silence required to trigger auto-stop.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -328,7 +328,7 @@ struct VADAutoStopSettings: View {
                         appState.vadMinimumRecordingTime = 10.0
                         appState.vadSilenceDuration = 3.0
                     }
-                    .font(.caption)
+                    .font(.callout)
                 }
             }
             .padding(.top, 4)
@@ -343,14 +343,14 @@ struct STTPanelBehaviorSettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Panel Behavior")
-                .font(.subheadline)
+                .font(.callout)
                 .foregroundColor(.secondary)
 
             Toggle(isOn: $appState.sttAutoStart) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Auto-start recording")
                     Text("When enabled, recording starts automatically when the STT panel opens.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             }
@@ -359,7 +359,7 @@ struct STTPanelBehaviorSettings: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Close panel after paste")
                     Text("When enabled, the STT panel closes automatically after pasting text.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             }

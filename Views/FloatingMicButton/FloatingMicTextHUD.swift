@@ -411,7 +411,7 @@ struct FloatingMicTextHUDView: View {
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.8))
                 Text(String(format: NSLocalizedString("%@ to stop", comment: "Stop shortcut"), shortcutString))
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.8))
                 Spacer()
             }

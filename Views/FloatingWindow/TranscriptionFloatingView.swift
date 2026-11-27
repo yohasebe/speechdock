@@ -66,13 +66,13 @@ struct CompactButtonLabel: View {
         HStack(spacing: 4) {
             if let icon = icon {
                 Image(systemName: icon)
-                    .font(.system(size: 10))
+                    .font(.system(size: 12))
             }
             Text(NSLocalizedString(title, comment: "Panel action"))
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
             if !shortcut.isEmpty {
                 Text("(\(shortcut))")
-                    .font(.system(size: 10))
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -96,10 +96,10 @@ struct CompactWindowSelectorButton: View {
         Button(action: onToggle) {
             HStack(spacing: 4) {
                 Image(systemName: "macwindow")
-                    .font(.system(size: 10))
+                    .font(.system(size: 12))
 
                 Text("Target:")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
 
                 if let selected = floatingWindowManager.selectedWindow {
                     if let appIcon = selected.appIcon {
@@ -109,11 +109,11 @@ struct CompactWindowSelectorButton: View {
                             .frame(width: 12, height: 12)
                     } else {
                         Image(systemName: "app.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 12))
                     }
                 } else {
                     Text("None")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                 }
 
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -691,21 +691,21 @@ struct TranscriptionFloatingView: View {
                         VStack(spacing: 4) {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.down.doc")
-                                    .font(.caption)
+                                    .font(.callout)
                                 Text("Or drop an audio file here")
-                                    .font(.caption)
+                                    .font(.callout)
                             }
                             .foregroundStyle(.secondary)
 
                             // Provider-specific limits
                             Text(AudioFileSupport.formatHint(for: provider) + "\n" + AudioFileSupport.limits(for: provider))
-                                .font(.caption2)
+                                .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
                         // Show hint about switching provider for file transcription
                         Text("Switch to OpenAI, Gemini, ElevenLabs, or Grok for file transcription")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -838,7 +838,7 @@ struct TranscriptionFloatingView: View {
                         appState.decreasePanelTextFontSize()
                     }) {
                         Image(systemName: "minus")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                             .frame(width: 16, height: 16)
                     }
@@ -850,7 +850,7 @@ struct TranscriptionFloatingView: View {
                         appState.resetPanelTextFontSize()
                     }) {
                         Text("\(Int(appState.panelTextFontSize))")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .monospacedDigit()
                             .foregroundColor(.secondary)
                             .frame(minWidth: 20)
@@ -863,7 +863,7 @@ struct TranscriptionFloatingView: View {
                         appState.increasePanelTextFontSize()
                     }) {
                         Image(systemName: "plus")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                             .frame(width: 16, height: 16)
                     }
@@ -973,7 +973,7 @@ struct TranscriptionFloatingView: View {
 
                         // Duration
                         Text(formattedDuration)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.callout.monospacedDigit())
                             .foregroundColor(.red)
                             .lineLimit(1)
                             .fixedSize()
@@ -1607,7 +1607,7 @@ struct AudioInputSourceSelector: View {
                 }
 
                 Text("Screen Recording permission required")
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
         } label: {

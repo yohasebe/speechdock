@@ -85,7 +85,7 @@ struct TranslationControls: View {
 
             if let reason = appState.effectiveTranslationSelection.fallbackReason {
                 Text(reason)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -165,7 +165,7 @@ struct TranslationControls: View {
                 Text("Original")
                     .font(.callout.weight(.medium))
                 Image(systemName: "chevron.left")
-                    .font(.caption2.weight(.semibold))
+                    .font(.callout.weight(.semibold))
             }
             .fixedSize()
             .foregroundColor(.accentColor)
@@ -191,7 +191,7 @@ struct TranslationControls: View {
                 Text("Translating...")
                     .font(.callout)
                 Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
+                    .font(.callout)
             }
             .foregroundColor(.secondary)
             .padding(.horizontal, 6)

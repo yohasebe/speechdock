@@ -16,7 +16,7 @@ struct TextCountView: View {
 
     var body: some View {
         Text("\(charCount) \(NSLocalizedString("chars", comment: "Character count label")) / \(wordCount) \(NSLocalizedString("words", comment: "Word count label"))")
-            .font(.caption)
+            .font(.callout)
             .foregroundColor(.secondary)
             .fixedSize()
     }

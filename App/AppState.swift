@@ -351,7 +351,7 @@ final class AppState {
     /// Default font size for panel text areas
     static let defaultPanelTextFontSize: Double = 13.0
     /// Minimum font size for panel text areas
-    static let minPanelTextFontSize: Double = 10.0
+    static let minPanelTextFontSize: Double = 12.0
     /// Maximum font size for panel text areas
     static let maxPanelTextFontSize: Double = 24.0
     /// Font size step for increase/decrease
@@ -1997,7 +1997,8 @@ final class AppState {
             closePanelAfterPaste = UserDefaults.standard.bool(forKey: "closePanelAfterPaste")
         }
         if UserDefaults.standard.object(forKey: "panelTextFontSize") != nil {
-            panelTextFontSize = UserDefaults.standard.double(forKey: "panelTextFontSize")
+            panelTextFontSize = min(max(UserDefaults.standard.double(forKey: "panelTextFontSize"), Self.minPanelTextFontSize),
+                                    Self.maxPanelTextFontSize)
         }
 
         // Auto-start settings

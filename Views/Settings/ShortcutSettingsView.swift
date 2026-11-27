@@ -58,7 +58,7 @@ struct ShortcutSettingsView: View {
                     Text("Global Hotkeys")
                 } footer: {
                     Text("Click on a shortcut and press a new key combination to change it. Shortcuts must include at least one modifier key (\u{2318}, \u{2325}, \u{2303}, or \u{21E7}).")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -70,7 +70,7 @@ struct ShortcutSettingsView: View {
                     Text("STT Panel Shortcuts")
                 } footer: {
                     Text("Shortcuts available when the STT transcription panel is open.")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -82,7 +82,7 @@ struct ShortcutSettingsView: View {
                     Text("TTS Panel Shortcuts")
                 } footer: {
                     Text("Shortcuts available when the TTS panel is open. STT and TTS panels are mutually exclusive, so they can share the same shortcuts.")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -94,7 +94,7 @@ struct ShortcutSettingsView: View {
                     Text("Common Shortcuts")
                 } footer: {
                     Text("Shortcuts available in both STT and TTS panels.")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -153,7 +153,7 @@ struct PanelShortcutRow: View {
                 Text(action.displayName)
                 if !manager.conflicts(for: action).isEmpty {
                     Text(String(format: NSLocalizedString("Also used by: %@", comment: "Duplicate shortcut"), manager.conflicts(for: action).map(\.displayName).joined(separator: ", ")))
-                        .font(.caption).foregroundStyle(.red)
+                        .font(.callout).foregroundStyle(.red)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

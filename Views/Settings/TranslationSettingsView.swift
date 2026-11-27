@@ -11,7 +11,7 @@ struct TranslationSettingsView: View {
         Form {
             Section {
                 Text("Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation.")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 Picker("Provider", selection: $appState.translationProvider) {
@@ -21,7 +21,7 @@ struct TranslationSettingsView: View {
                 }
 
                 Text(appState.translationProvider.description)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 if appState.translationProvider != .macOS {
@@ -51,7 +51,7 @@ struct TranslationSettingsView: View {
 
                 if appState.translationProvider == .macOS {
                     Text("Only languages with installed language packs are shown. Install more in System Settings > General > Language & Region > Translation Languages.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             } header: {
@@ -60,7 +60,7 @@ struct TranslationSettingsView: View {
 
             Section {
                 Text("Real-time translation for subtitle mode (STT). Active only when subtitle mode is enabled.")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 SubtitleTranslationSettings(appState: appState)
@@ -113,7 +113,7 @@ struct SubtitleTranslationSettings: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Enable Real-Time Translation")
                     Text("Translate subtitles to target language in real-time.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             }
@@ -122,7 +122,7 @@ struct SubtitleTranslationSettings: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Show Original Text")
                     Text("Display original text above the translation.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             }

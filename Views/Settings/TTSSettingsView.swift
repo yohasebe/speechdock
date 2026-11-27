@@ -16,12 +16,12 @@ struct TTSSettingsView: View {
                 }
 
                 Text(appState.selectedTTSProvider.description)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 if availableTTSProviders.count < TTSProvider.allCases.count {
                     Text(NSLocalizedString("Set API keys in the API Keys section to enable more providers", comment: "API key hint"))
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.orange)
                 }
 
@@ -94,7 +94,7 @@ struct TTSModelPicker: View {
         }
         .help(availableModels.first { $0.id == appState.selectedTTSModel }.map { "\($0.name): \($0.description)" } ?? "")
         if let model = availableModels.first(where: { $0.id == appState.selectedTTSModel }), !model.description.isEmpty {
-            Text(model.description).font(.caption).foregroundStyle(.secondary)
+            Text(model.description).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         }
@@ -136,7 +136,7 @@ struct TTSVoicePicker: View {
                         if item.isSection {
                             Divider()
                             Text(item.sectionTitle)
-                                .font(.caption)
+                                .font(.callout)
                                 .foregroundColor(.secondary)
                         } else if let voice = item.voice {
                             Text(voiceDisplayName(voice))
@@ -314,7 +314,7 @@ struct TTSSpeedSlider: View {
                 Spacer()
                 Text(speedDisplayText)
                     .foregroundColor(.secondary)
-                    .font(.caption)
+                    .font(.callout)
             }
 
             HStack(spacing: 8) {
@@ -326,11 +326,11 @@ struct TTSSpeedSlider: View {
                     EmptyView()
                 } minimumValueLabel: {
                     Text("Slow")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 } maximumValueLabel: {
                     Text("Fast")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
                 .disabled(!supportsSpeed)
@@ -340,12 +340,12 @@ struct TTSSpeedSlider: View {
                     appState.selectedTTSSpeed = 1.0
                 }
                 .buttonStyle(.borderless)
-                .font(.caption)
+                .font(.callout)
             }
 
             if let helpText = speedHelpText {
                 Text(helpText)
-                    .font(.caption2)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
         }
@@ -388,7 +388,7 @@ struct TTSLanguagePicker: View {
                 }
 
                 Text("Specifies the output language for speech synthesis.")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
         }
@@ -409,7 +409,7 @@ struct AudioOutputDevicePicker: View {
             }
 
             Text("Select the audio output device for speech playback.")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
         }
         .onAppear {
@@ -436,7 +436,7 @@ struct TTSPanelBehaviorSettings: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Auto-speak on panel open")
                     Text("When enabled, TTS starts speaking automatically when the panel opens with text.")
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                 }
             }

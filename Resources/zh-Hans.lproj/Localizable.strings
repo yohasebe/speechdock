@@ -539,6 +539,7 @@
 "1Password reference could not be read" = "无法读取 1Password 引用";
 "%@ API key: %@" = "%1$@ API 密钥：%2$@";
 "%@ API key not found" = "未找到 %@ API 密钥";
+"About API Keys" = "关于 API 密钥";
 "Each field takes the key itself or a 1Password reference (op://vault/item/field). A reference is read with the 1Password CLI (op) when Settings opens or a key is first needed; only the reference is stored in the keychain." = "每个字段可以填写密钥本身，或 1Password 引用（op://保险库/项目/字段）。引用会在打开设置或首次需要密钥时，通过 1Password CLI（op）读取；钥匙串中只保存引用。";
 "SpeechDock works without API keys using macOS built-in STT/TTS. Cloud providers below are optional and offer additional voices, models, and languages." = "SpeechDock 无需 API 密钥即可使用 macOS 内置的语音识别和朗读。下方的云服务提供商为可选项，可提供更多声音、模型和语言。";
 "Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this." = "用于语音识别（GPT Realtime Whisper、GPT Live Transcribe、GPT Transcribe）、朗读（GPT-4o Mini TTS）和翻译。可选；macOS 内置功能无需此密钥。";

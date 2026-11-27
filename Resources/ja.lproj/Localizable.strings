@@ -555,6 +555,7 @@
 "1Password reference could not be read" = "1Password の参照を読めませんでした";
 "%@ API key: %@" = "%1$@ の API キー: %2$@";
 "%@ API key not found" = "%@ の API キーが見つかりません";
+"About API Keys" = "API キーについて";
 "Each field takes the key itself or a 1Password reference (op://vault/item/field). A reference is read with the 1Password CLI (op) when Settings opens or a key is first needed; only the reference is stored in the keychain." = "各欄には、キーそのもの、または 1Password の参照（op://保管庫/項目/フィールド）を書けます。参照は、設定を開いたときか、キーが初めて必要になったときに 1Password CLI（op）で読みます。キーチェーンに保存されるのは参照だけです。";
 "SpeechDock works without API keys using macOS built-in STT/TTS. Cloud providers below are optional and offer additional voices, models, and languages." = "SpeechDock は API キーが無くても macOS 標準の音声認識と読み上げで使えます。下のクラウドプロバイダは省略でき、声、モデル、言語の選択肢が増えます。";
 "Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this." = "音声認識（GPT Realtime Whisper、GPT Live Transcribe、GPT Transcribe）、読み上げ（GPT-4o Mini TTS）、翻訳に使います。省略できます。macOS 標準の機能はこのキーなしで使えます。";

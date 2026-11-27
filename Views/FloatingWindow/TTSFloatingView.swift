@@ -572,13 +572,13 @@ struct TTSFloatingView: View {
                 VStack(spacing: 4) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.down.doc")
-                            .font(.caption)
+                            .font(.callout)
                         Text(NSLocalizedString("Or drop a text file here", comment: "TTS placeholder file drop hint"))
-                            .font(.caption)
+                            .font(.callout)
                     }
                     .foregroundStyle(.secondary)
                     Text(TextFileImport.extensionHint)
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -866,7 +866,7 @@ struct TTSFloatingView: View {
                         appState.decreasePanelTextFontSize()
                     }) {
                         Image(systemName: "minus")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                             .frame(width: 16, height: 16)
                     }
@@ -878,7 +878,7 @@ struct TTSFloatingView: View {
                         appState.resetPanelTextFontSize()
                     }) {
                         Text("\(Int(appState.panelTextFontSize))")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .monospacedDigit()
                             .foregroundColor(.secondary)
                             .frame(minWidth: 20)
@@ -891,7 +891,7 @@ struct TTSFloatingView: View {
                         appState.increasePanelTextFontSize()
                     }) {
                         Image(systemName: "plus")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                             .frame(width: 16, height: 16)
                     }
@@ -1430,7 +1430,7 @@ struct TTSSpeedSelector: View {
 
                     HStack(spacing: 8) {
                         Text("0.5x")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.secondary)
 
                         Slider(
@@ -1450,7 +1450,7 @@ struct TTSSpeedSelector: View {
                         .frame(width: 150)
 
                         Text("2.0x")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
 

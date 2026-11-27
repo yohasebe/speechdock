@@ -28,7 +28,7 @@ struct TextReplacementSettingsView: View {
                 .font(.headline)
 
             Text("Automatically replace common patterns like URLs and emails.")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
 
             VStack(spacing: 4) {
@@ -71,7 +71,7 @@ struct TextReplacementSettingsView: View {
             Spacer()
 
             Text("\(service.rules.count) rules")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
         }
         .padding(.bottom, 8)
@@ -86,11 +86,11 @@ struct TextReplacementSettingsView: View {
                 .foregroundColor(.secondary)
 
             Text("No custom rules")
-                .font(.subheadline)
+                .font(.callout)
                 .foregroundColor(.secondary)
 
             Text("Add rules for specific text replacements.")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -111,13 +111,13 @@ struct TextReplacementSettingsView: View {
                     .frame(width: 50)
 
                 Text("Find")
-                    .font(.caption)
+                    .font(.callout)
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text("Replace With")
-                    .font(.caption)
+                    .font(.callout)
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -278,7 +278,7 @@ struct BuiltInPatternRowView: View {
             // Arrow indicator
             Image(systemName: "arrow.right")
                 .foregroundColor(.secondary)
-                .font(.caption)
+                .font(.callout)
 
             // Replacement text field
             TextField("Replacement", text: $replacement)

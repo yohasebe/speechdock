@@ -76,11 +76,11 @@ struct APIKeySection: View {
                         ProgressView()
                             .controlSize(.small)
                         Text("Validating...")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     } else if let message = saveMessage {
                         Text(message)
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundColor(saveMessageColor)
                     }
 
@@ -109,7 +109,7 @@ struct APIKeySection: View {
             Text(provider.rawValue)
         } footer: {
             Text(provider.footerDescription)
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
         }
         .onAppear {
@@ -125,18 +125,18 @@ struct APIKeySection: View {
             switch origin?.source ?? .none {
             case .environment:
                 Label(environmentLabel(origin), systemImage: "terminal")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.blue)
             case .keychain:
                 // A saved reference is described by its 1Password status below.
                 if origin?.isReference != true {
                     Label("From Keychain", systemImage: "key.fill")
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundColor(.green)
                 }
             case .none:
                 Label("Not Set", systemImage: "exclamationmark.triangle")
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.orange)
             }
 
@@ -161,15 +161,15 @@ struct APIKeySection: View {
         switch apiKeyManager.keyStatus(for: provider) {
         case .ready:
             Label("1Password reference: read", systemImage: "checkmark.circle")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.green)
         case .pending:
             Label("1Password reference: read when first used", systemImage: "clock")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
         case .failed(let failure):
             Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.orange)
         case .notSet:
             EmptyView()

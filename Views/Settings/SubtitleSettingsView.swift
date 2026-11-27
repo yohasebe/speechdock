@@ -12,7 +12,7 @@ struct SubtitleSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Enable Subtitle Mode")
                         Text("Display real-time transcription as subtitles during recording.")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -33,7 +33,7 @@ struct SubtitleSettingsView: View {
                         Spacer()
                         Text("\(Int(appState.subtitleFontSize)) pt")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.callout)
                     }
 
                     HStack(spacing: 8) {
@@ -57,7 +57,7 @@ struct SubtitleSettingsView: View {
                             appState.subtitleFontSize = 28.0
                         }
                         .buttonStyle(.borderless)
-                        .font(.caption)
+                        .font(.callout)
                     }
                 }
 
@@ -67,7 +67,7 @@ struct SubtitleSettingsView: View {
                         Spacer()
                         Text("\(Int(appState.subtitleOpacity * 100))%")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.callout)
                     }
 
                     Slider(
@@ -83,7 +83,7 @@ struct SubtitleSettingsView: View {
                         Spacer()
                         Text("\(Int(appState.subtitleBackgroundOpacity * 100))%")
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.callout)
                     }
 
                     Slider(
@@ -103,7 +103,7 @@ struct SubtitleSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Hide STT Panel when active")
                         Text("Temporarily hide the STT panel when subtitle mode is active.")
-                            .font(.caption2)
+                            .font(.callout)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -123,7 +123,7 @@ struct SubtitleSettingsView: View {
                         appState.subtitleMaxLines = 3
                         appState.subtitleHidePanelWhenActive = true
                     }
-                    .font(.caption)
+                    .font(.callout)
                 }
             }
         }

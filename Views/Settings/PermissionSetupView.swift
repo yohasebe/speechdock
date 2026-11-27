@@ -75,7 +75,7 @@ struct PermissionSetupView: View {
             .padding(.vertical, 12)
 
             Text("If Screen Recording is enabled in System Settings but still unavailable here, restart SpeechDock.")
-                .font(.caption)
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 28)
 
@@ -151,7 +151,7 @@ struct PermissionSetupView: View {
                         .font(.body.weight(.medium))
 
                     Text(badge.text)
-                        .font(.caption2.weight(.medium))
+                        .font(.callout.weight(.medium))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(badge.color.opacity(0.15))
@@ -160,7 +160,7 @@ struct PermissionSetupView: View {
                 }
 
                 Text(description)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -173,10 +173,10 @@ struct PermissionSetupView: View {
                     .foregroundStyle(.green)
             } else {
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(status.label).font(.caption).foregroundStyle(.secondary)
+                    Text(status.label).font(.callout).foregroundStyle(.secondary)
                     Button(action: action) {
                         Text(status == .notRequested ? "Allow" : "Open Settings")
-                            .font(.caption)
+                            .font(.callout)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)

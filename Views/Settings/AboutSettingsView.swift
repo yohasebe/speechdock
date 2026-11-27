@@ -19,12 +19,12 @@ struct AboutSettingsView: View {
                 .font(.system(size: 20, weight: .bold))
 
             Text("Version \(appVersion) (\(buildNumber))")
-                .font(.caption)
+                .font(.callout)
                 .foregroundColor(.secondary)
 
             // Copyright
             Text("\u{00A9} 2026 Yoichiro Hasebe")
-                .font(.caption2)
+                .font(.callout)
                 .foregroundColor(.secondary)
 
             // Links
@@ -38,7 +38,7 @@ struct AboutSettingsView: View {
                         Image(systemName: "link")
                         Text("GitHub")
                     }
-                    .font(.caption)
+                    .font(.callout)
                 }
                 .buttonStyle(.link)
 
@@ -51,7 +51,7 @@ struct AboutSettingsView: View {
                         Image(systemName: "book")
                         Text("Documentation")
                     }
-                    .font(.caption)
+                    .font(.callout)
                 }
                 .buttonStyle(.link)
             }
@@ -76,7 +76,7 @@ struct AboutSettingsView: View {
             // Support Links
             VStack(spacing: 6) {
                 Text(NSLocalizedString("Support Development", comment: "About view support section title"))
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
 
                 HStack(spacing: 16) {
@@ -90,7 +90,7 @@ struct AboutSettingsView: View {
                                 .foregroundColor(.pink)
                             Text("GitHub Sponsors")
                         }
-                        .font(.caption)
+                        .font(.callout)
                     }
                     .buttonStyle(.link)
 
@@ -104,7 +104,7 @@ struct AboutSettingsView: View {
                                 .foregroundColor(.orange)
                             Text("Buy Me a Coffee")
                         }
-                        .font(.caption)
+                        .font(.callout)
                     }
                     .buttonStyle(.link)
 
@@ -118,7 +118,7 @@ struct AboutSettingsView: View {
                                 .foregroundColor(.red)
                             Text("Ko-fi")
                         }
-                        .font(.caption)
+                        .font(.callout)
                     }
                     .buttonStyle(.link)
                 }
