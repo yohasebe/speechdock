@@ -7,13 +7,16 @@
 # (scripts/lint/check_tracked_paths.rb), judged by the allow list inside that
 # commit. CI runs the same check, but a direct push is already public by then.
 # Each commit in the pushed range is checked, not only the tip: a file added
-# and removed again is still published in the history.
+# and removed again is still published in the history. Commits that carry
+# scripts/lint/check_doc_figures.rb must also pass it: the SVGs under
+# docs/images/ are the figures the generators draw.
 #
 # Bypass: git push --no-verify
 
 zero=0000000000000000000000000000000000000000
 root=$(git rev-parse --show-toplevel)
 checker="$root/scripts/lint/check_tracked_paths.rb"
+figures="$root/scripts/lint/check_doc_figures.rb"
 status=0
 checked=0
 
@@ -56,6 +59,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       echo "[pre-push] $short ($local_ref) is not allowed to be published:" >&2
       printf '%s\n' "$out" >&2
       status=1
+    fi
+    # Commits from before the figure check have no figures to check.
+    if git cat-file -e "$c:scripts/lint/check_doc_figures.rb" 2>/dev/null; then
+      if ! out=$(ruby "$figures" --tree "$c"); then
+        echo "[pre-push] $short ($local_ref) has documentation figures the generators did not draw:" >&2
+        printf '%s\n' "$out" >&2
+        status=1
+      fi
     fi
   done
 done

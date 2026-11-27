@@ -17,3 +17,6 @@ jobs:
 
       - name: Tracked files match the allow list
         run: ruby scripts/lint/check_tracked_paths.rb
+
+      - name: Documentation figures are the generated ones
+        run: ruby scripts/lint/check_doc_figures.rb

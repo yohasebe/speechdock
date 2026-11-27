@@ -31,7 +31,7 @@ project.yml
 .github/workflows/*.yml
 scripts/*.{sh,swift}
 scripts/hooks/pre-push
-scripts/lint/check_tracked_paths.rb
+scripts/lint/check_{tracked_paths,doc_figures}.rb
 scripts/lint/tracked_paths.allow
 
 # --- App sources and tests --------------------------------------------------

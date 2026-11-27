@@ -357,6 +357,14 @@ namespace :docs do
     end
   end
 
+  desc "Check that the committed figures are the ones the generators draw"
+  task :check_figures do
+    Dir.mktmpdir do |dir|
+      Rake::Task["docs:figures"].invoke(dir)
+      sh "ruby scripts/lint/check_doc_figures.rb --against #{dir}"
+    end
+  end
+
   desc "Install Jekyll dependencies"
   task :setup do
     puts "Installing Jekyll dependencies..."
@@ -558,6 +566,11 @@ namespace :lint do
   desc "Check that every tracked file matches scripts/lint/tracked_paths.allow"
   task :tracked_paths do
     sh "ruby scripts/lint/check_tracked_paths.rb"
+  end
+
+  desc "Check that the documentation's SVG figures are the generated ones"
+  task :doc_figures do
+    sh "ruby scripts/lint/check_doc_figures.rb"
   end
 end
 
