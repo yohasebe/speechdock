@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.
 - Settings > API Keys shows a saved 1Password reference by its 1Password status, names the button Save Reference for a reference, saves on Return, and keeps the reason for a failed save on screen. Its messages and provider descriptions appear in the selected language.
-- Clearing the transcription panel with the eraser button also clears the text that a file transcription adds to, stops a running translation before it sends the text, and ignores late results from the stopped recording; the cleared text no longer comes back.
+- Clearing the transcription panel with the eraser button also clears the text that a file transcription adds to, stops a running translation (one still waiting for API key access does not send the text), and ignores late results from the stopped recording; the cleared text no longer comes back.
 - Settings comes in front of the floating speech panels while you use it. The panels float above other apps again when you click one or switch to another app.
 - Opening the text-to-speech panel from the menu while the transcription panel is in front no longer plays the system alert sound.
 - The transcription panel opens with the cursor in its text area instead of keyboard focus on Close.
