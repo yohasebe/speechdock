@@ -54,7 +54,7 @@ struct CheckForUpdatesView: View {
                     .foregroundColor(.accentColor)
                     .frame(width: 20)
                 Text("Check for Updates...")
-                    .font(.callout)
+                    .font(.body)
                 Spacer()
             }
             .contentShape(Rectangle())

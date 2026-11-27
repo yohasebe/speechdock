@@ -75,7 +75,7 @@ struct MenuBarView: View {
                         .font(.body)
                         .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
-                    shortcutBadge(appState.hotKeyService?.sttKeyCombo.displayString ?? "\u{2318}\u{21E7}Space")
+                    shortcutBadge(appState.hotKeyService?.sttKeyCombo.displayString ?? "\u{21E7}\u{2318}Space")
                 }
                 .contentShape(Rectangle())
             }

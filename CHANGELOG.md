@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - The word count in the speech panels counts words in Japanese, Chinese and other text written without spaces.
 - Texts that still appeared in English are translated: the input and output device names in the speech panels and Settings, the macOS voice and model names, the subtitle position, the speed hints, the OCR selection instructions and the floating mic button's spoken state.
+- Check for Updates... in the menu is the same size as the other actions.
 
 ## [0.1.41] - 2026-11-27
 
