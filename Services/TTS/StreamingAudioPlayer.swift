@@ -119,12 +119,8 @@ final class StreamingAudioPlayer {
         // Connect: player → converterMixer → timePitch → mainMixer
         // MixerNode automatically converts Int16 to Float32 which timePitch requires
         engine.connect(player, to: converterMixer, format: pcmFormat)
-        // An explicit format: with nil, AVAudioEngine fails to start (-10868)
-        // whenever a specific output device is selected.
-        let floatFormat = AVAudioFormat(standardFormatWithSampleRate: pcmFormat.sampleRate,
-                                        channels: pcmFormat.channelCount) ?? pcmFormat
-        engine.connect(converterMixer, to: timePitch, format: floatFormat)
-        engine.connect(timePitch, to: engine.mainMixerNode, format: floatFormat)
+        engine.connect(converterMixer, to: timePitch, format: nil)
+        engine.connect(timePitch, to: engine.mainMixerNode, format: nil)
 
         // Set output device if specified
         if !outputDeviceUID.isEmpty {

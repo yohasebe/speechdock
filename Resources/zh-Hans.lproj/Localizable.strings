@@ -7,6 +7,7 @@
 "Speech-to-Text" = "语音转文字";
 "Text-to-Speech" = "文字转语音";
 "Microphone access required" = "需要麦克风访问权限";
+"Screen Recording access recommended" = "建议允许屏幕录制";
 "Accessibility access required" = "需要辅助功能访问权限";
 "Stop" = "停止";
 "Transcription" = "语音转录";

@@ -7,6 +7,7 @@
 "Speech-to-Text" = "Reconnaissance vocale";
 "Text-to-Speech" = "Synthese vocale";
 "Microphone access required" = "Acces au microphone requis";
+"Screen Recording access recommended" = "Acces a l'enregistrement d'ecran recommande";
 "Accessibility access required" = "Acces a l'accessibilite requis";
 "Stop" = "Arreter";
 "Transcription" = "Transcription";

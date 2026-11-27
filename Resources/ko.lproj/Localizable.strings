@@ -7,6 +7,7 @@
 "Speech-to-Text" = "음성 인식";
 "Text-to-Speech" = "텍스트 읽기";
 "Microphone access required" = "마이크 접근 권한이 필요합니다";
+"Screen Recording access recommended" = "화면 기록 권한을 허용하는 것이 좋습니다";
 "Accessibility access required" = "손쉬운 사용 접근 권한이 필요합니다";
 "Stop" = "중지";
 "Transcription" = "받아쓰기";

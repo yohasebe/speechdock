@@ -7,6 +7,7 @@
 "Speech-to-Text" = "音声認識";
 "Text-to-Speech" = "テキスト読み上げ";
 "Microphone access required" = "マイクへのアクセスが必要です";
+"Screen Recording access recommended" = "画面収録の許可をおすすめします";
 "Accessibility access required" = "アクセシビリティの許可が必要です";
 "Stop" = "停止";
 "Transcription" = "文字起こし";

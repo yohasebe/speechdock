@@ -7,6 +7,7 @@
 "Speech-to-Text" = "Speech-to-Text";
 "Text-to-Speech" = "Text-to-Speech";
 "Microphone access required" = "Microphone access required";
+"Screen Recording access recommended" = "Screen Recording access recommended";
 "Accessibility access required" = "Accessibility access required";
 "Stop" = "Stop";
 "Transcription" = "Transcription";

@@ -7,6 +7,7 @@
 "Speech-to-Text" = "Sprache-zu-Text";
 "Text-to-Speech" = "Text-zu-Sprache";
 "Microphone access required" = "Mikrofonzugriff erforderlich";
+"Screen Recording access recommended" = "Zugriff auf Bildschirmaufnahme empfohlen";
 "Accessibility access required" = "Bedienungshilfen-Zugriff erforderlich";
 "Stop" = "Stopp";
 "Transcription" = "Transkription";
