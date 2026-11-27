@@ -56,7 +56,7 @@ struct ButtonLabelWithShortcut: View {
     }
 }
 
-/// Compact button label for grouped buttons (smaller font)
+/// Compact button label for grouped buttons (tighter padding, same type as other actions)
 struct CompactButtonLabel: View {
     let title: String
     let shortcut: String
@@ -66,13 +66,13 @@ struct CompactButtonLabel: View {
         HStack(spacing: 4) {
             if let icon = icon {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
+                    .font(.body)
             }
             Text(NSLocalizedString(title, comment: "Panel action"))
-                .font(.system(size: 12, weight: .medium))
+                .font(.body)
             if !shortcut.isEmpty {
                 Text("(\(shortcut))")
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
         }
@@ -96,28 +96,29 @@ struct CompactWindowSelectorButton: View {
         Button(action: onToggle) {
             HStack(spacing: 4) {
                 Image(systemName: "macwindow")
-                    .font(.system(size: 12))
+                    .font(.body)
 
                 Text("Target:")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.body)
 
                 if let selected = floatingWindowManager.selectedWindow {
                     if let appIcon = selected.appIcon {
                         Image(nsImage: appIcon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
+                            .frame(width: 16, height: 16)
                     } else {
                         Image(systemName: "app.fill")
-                            .font(.system(size: 12))
+                            .font(.body)
                     }
                 } else {
                     Text("None")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.body)
                 }
 
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
             }
             .fixedSize()
             .padding(5)

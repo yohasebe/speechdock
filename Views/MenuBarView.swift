@@ -59,7 +59,7 @@ struct MenuBarView: View {
 
             // MARK: - STT Section
             Text("Speech-to-Text")
-                .font(.callout)
+                .font(.callout.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.top, 2)
@@ -84,7 +84,7 @@ struct MenuBarView: View {
                         .foregroundColor(appState.isRecording ? .red : (appState.hasMicrophonePermission ? .accentColor : .secondary))
                         .frame(width: 20)
                     Text(appState.isRecording ? "Stop" : "Transcription")
-                        .font(.callout)
+                        .font(.body)
                         .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.sttKeyCombo.displayString ?? "\u{2318}\u{21E7}Space")
@@ -103,7 +103,7 @@ struct MenuBarView: View {
                         .foregroundColor(appState.hasMicrophonePermission ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("Subtitle Mode")
-                        .font(.callout)
+                        .font(.body)
                         .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     if appState.subtitleModeEnabled {
@@ -130,7 +130,7 @@ struct MenuBarView: View {
                         .foregroundColor(appState.hasMicrophonePermission ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("Floating Mic Button")
-                        .font(.callout)
+                        .font(.body)
                         .foregroundColor(appState.hasMicrophonePermission ? .primary : .secondary)
                     Spacer()
                     if appState.showFloatingMicButton {
@@ -159,7 +159,7 @@ struct MenuBarView: View {
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Transcribe Audio File...")
-                            .font(.callout)
+                            .font(.body)
                             .foregroundColor(appState.selectedRealtimeProvider.supportsFileTranscription ? .primary : .secondary)
                         Text(appState.selectedRealtimeProvider.fileTranscriptionDescription)
                             .font(.callout)
@@ -182,7 +182,7 @@ struct MenuBarView: View {
 
             // MARK: - TTS Section
             Text("Text-to-Speech")
-                .font(.callout)
+                .font(.callout.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.top, 2)
@@ -219,7 +219,7 @@ struct MenuBarView: View {
                         .foregroundColor(.accentColor)
                         .frame(width: 20)
                     Text("Text to Speech")
-                        .font(.callout)
+                        .font(.body)
                         .foregroundColor(.primary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.ttsKeyCombo.displayString ?? "\u{2303}\u{2325}T")
@@ -240,7 +240,7 @@ struct MenuBarView: View {
                         .foregroundColor(ocrEnabled ? .accentColor : .secondary)
                         .frame(width: 20)
                     Text("OCR Region to TTS")
-                        .font(.callout)
+                        .font(.body)
                         .foregroundColor(ocrEnabled ? .primary : .secondary)
                     Spacer()
                     shortcutBadge(appState.hotKeyService?.ocrKeyCombo.displayString ?? "\u{2303}\u{2325}\u{21E7}O")
@@ -264,7 +264,7 @@ struct MenuBarView: View {
                             .foregroundColor(.accentColor)
                             .frame(width: 20)
                         Text("Settings...")
-                            .font(.callout)
+                            .font(.body)
                         Spacer()
                         shortcutBadge("\u{2318},")
                     }
@@ -278,7 +278,7 @@ struct MenuBarView: View {
                 } label: {
                     HStack {
                         Image(systemName: "lock.shield").foregroundColor(.accentColor).frame(width: 20)
-                        Text("Permissions...").font(.callout)
+                        Text("Permissions...").font(.body)
                         Spacer()
                     }
                     .contentShape(Rectangle())
@@ -298,7 +298,7 @@ struct MenuBarView: View {
                             .foregroundColor(.accentColor)
                             .frame(width: 20)
                         Text("Help & Documentation")
-                            .font(.callout)
+                            .font(.body)
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.callout)
@@ -321,7 +321,7 @@ struct MenuBarView: View {
                             .foregroundColor(.accentColor)
                             .frame(width: 20)
                         Text("Quit SpeechDock")
-                            .font(.callout)
+                            .font(.body)
                         Spacer()
                     }
                     .contentShape(Rectangle())
@@ -485,7 +485,7 @@ struct TranscriptionHistoryMenu: View {
                     .foregroundColor(.accentColor)
                     .frame(width: 20)
                 Text(NSLocalizedString("Transcription History", comment: "Transcription history menu title"))
-                    .font(.callout)
+                    .font(.body)
                 Spacer()
                 if !entries.isEmpty {
                     Text("\(entries.count)")
