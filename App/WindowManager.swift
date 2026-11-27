@@ -39,7 +39,7 @@ final class WindowManager {
         window.styleMask = [.titled, .closable, .resizable]
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 700, height: 500))
-        window.minSize = NSSize(width: 650, height: 450)
+        window.minSize = NSSize(width: 700, height: 450)  // Same as SettingsWindow's minWidth
         window.center()
 
         // Remove previous observer if any

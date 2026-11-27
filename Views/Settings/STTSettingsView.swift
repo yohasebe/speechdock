@@ -259,8 +259,7 @@ struct VADAutoStopSettings: View {
         if supportsVADAutoStop {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Auto-Stop Settings")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
+                    .font(.headline)
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -343,8 +342,7 @@ struct STTPanelBehaviorSettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Panel Behavior")
-                .font(.callout)
-                .foregroundColor(.secondary)
+                .font(.headline)
 
             Toggle(isOn: $appState.sttAutoStart) {
                 VStack(alignment: .leading, spacing: 2) {

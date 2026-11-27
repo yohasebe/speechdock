@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Text in the menu, Settings, panels and overlays is at least 12 pt, with icons beside text sized to match. The panel text size starts at 12 pt; a smaller saved size is raised to 12 pt. The About API Keys heading is translated.
 - Both speech panels use the same larger icons with bigger click areas for Close, the status icon, and the text size, spell check and clear controls.
 - The menu shows action names larger than its section headings and descriptions, and the Target and Paste controls in the transcription panel match the size of the other actions.
+- In Settings, sub-headings stand out from their descriptions, and where an API key comes from is shown in neutral colours; a provider without a key no longer looks like a warning.
 
 ### Fixed
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.

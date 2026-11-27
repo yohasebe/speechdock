@@ -123,21 +123,23 @@ struct APIKeySection: View {
 
         VStack(alignment: .leading, spacing: 4) {
             switch origin?.source ?? .none {
+            // Where the key comes from is information, not a warning: a provider
+            // without a key is optional.
             case .environment:
                 Label(environmentLabel(origin), systemImage: "terminal")
                     .font(.callout)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.secondary)
             case .keychain:
                 // A saved reference is described by its 1Password status below.
                 if origin?.isReference != true {
-                    Label("From Keychain", systemImage: "key.fill")
+                    Label("From Keychain", systemImage: "key")
                         .font(.callout)
-                        .foregroundColor(.green)
+                        .foregroundStyle(.secondary)
                 }
             case .none:
-                Label("Not Set", systemImage: "exclamationmark.triangle")
+                Label("Not Set", systemImage: "minus.circle")
                     .font(.callout)
-                    .foregroundColor(.orange)
+                    .foregroundStyle(.secondary)
             }
 
             if origin?.isReference == true {
