@@ -142,6 +142,9 @@ final class FloatingWindowManager: ObservableObject {
         floatingWindow?.makeKeyAndOrderFront(nil)
         isVisible = true
 
+        // Start with the text area focused (as in the TTS panel), not the first control
+        setupTextViewFocusObserver()
+
         // Activate window with retry (needed for apps launched via `open` command)
         activateWindowWithRetry()
 
