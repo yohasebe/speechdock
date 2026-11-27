@@ -55,14 +55,12 @@ final class TranscriptionHistoryService {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        let wordCount = trimmed.split(omittingEmptySubsequences: true) { $0.isWhitespace || $0.isNewline }.count
-
         let entry = TranscriptionHistoryEntry(
             id: UUID(),
             date: Date(),
             provider: provider,
             text: trimmed,
-            wordCount: wordCount
+            wordCount: TextStatistics.wordCount(trimmed)
         )
 
         entries.insert(entry, at: 0)

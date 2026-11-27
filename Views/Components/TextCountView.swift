@@ -9,9 +9,7 @@ struct TextCountView: View {
     }
 
     private var wordCount: Int {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return 0 }
-        return trimmed.split(omittingEmptySubsequences: true) { $0.isWhitespace || $0.isNewline }.count
+        TextStatistics.wordCount(text)
     }
 
     var body: some View {
