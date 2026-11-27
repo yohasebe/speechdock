@@ -10,8 +10,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var isExplicitQuit = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Check for duplicate instances
-        if isAnotherInstanceRunning() {
+        // Check for duplicate instances. The unit-test host skips it: while another
+        // copy runs, the alert would stall the test run.
+        if !RuntimeContext.isUnitTestHost && isAnotherInstanceRunning() {
             showDuplicateInstanceAlert()
             NSApp.terminate(nil)
             return
@@ -80,8 +81,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         }
 
-        // Check permissions on first launch
-        checkRequiredPermissions()
+        // Check permissions on first launch (not in the unit-test host, which has none)
+        if !RuntimeContext.isUnitTestHost {
+            checkRequiredPermissions()
+        }
     }
 
     /// Check if another instance of SpeechDock is already running

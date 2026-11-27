@@ -6,7 +6,7 @@ final class KeychainServiceTests: XCTestCase {
     private let testKey = "test_api_key_\(UUID().uuidString)"
 
     override func setUpWithError() throws {
-        keychainService = KeychainService()
+        keychainService = KeychainService(service: "com.speechdock.apikeys.tests")
         // Clean up any existing test key
         try? keychainService.delete(key: testKey)
     }

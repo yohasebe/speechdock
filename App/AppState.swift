@@ -606,7 +606,10 @@ final class AppState {
             firstLaunchDate = Date()
         }
         refreshVoiceCachesInBackground()
-        prefetchAvailableAppsInBackground()
+        // Listing shareable content asks for Screen Recording; the unit-test host must not.
+        if !RuntimeContext.isUnitTestHost {
+            prefetchAvailableAppsInBackground()
+        }
         updatePermissionStatus()
         setupOCRCallbacks()
         // Pre-cache macOS Translation language availability

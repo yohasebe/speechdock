@@ -13,10 +13,18 @@ final class KeychainService {
     /// The development build keeps its own items, so it never reads (and
     /// prompts for) the keys the released app saved.
     #if DEBUG
-    private let service = "com.speechdock.apikeys.dev"
+    static let appService = "com.speechdock.apikeys.dev"
     #else
-    private let service = "com.speechdock.apikeys"
+    static let appService = "com.speechdock.apikeys"
     #endif
+
+    private let service: String
+
+    /// - Parameter service: the keychain service the items are stored under. Tests
+    ///   pass their own, so they never touch the app's keys.
+    init(service: String = KeychainService.appService) {
+        self.service = service
+    }
 
     /// Lock for thread-safe keychain access
     private let lock = NSLock()

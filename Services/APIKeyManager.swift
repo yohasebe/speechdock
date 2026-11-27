@@ -54,7 +54,9 @@ final class APIKeyManager {
 
     init(keychain: APIKeyStore = KeychainService(),
          environment: @escaping () -> [String: String] = { ProcessInfo.processInfo.environment },
-         testModeNoAPIKeys: Bool = ProcessInfo.processInfo.environment["SPEECHDOCK_TEST_NO_API_KEYS"] == "1",
+         // The unit-test host never reads real keys: the keychain would ask the user.
+         testModeNoAPIKeys: Bool = ProcessInfo.processInfo.environment["SPEECHDOCK_TEST_NO_API_KEYS"] == "1"
+            || RuntimeContext.isUnitTestHost,
          referenceResolver: SecretReferenceResolver? = nil) {
         self.keychain = keychain
         self.environment = environment
