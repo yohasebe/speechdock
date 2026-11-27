@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ElevenLabs real-time transcription uses Scribe v3 Live, and file transcription uses Scribe v3.
 - Grok translation offers Grok 4.20 Fast (default) and Grok 4.7, which replaces Grok 4.20 Fast (Reasoning); a saved Grok 4.20 Fast (Reasoning) selection moves to Grok 4.20 Fast.
 - Text in the menu, Settings, panels and overlays is at least 12 pt, with icons beside text sized to match. The panel text size starts at 12 pt; a smaller saved size is raised to 12 pt. The About API Keys heading is translated.
+- Both speech panels use the same larger icons with bigger click areas for Close, the status icon, and the text size, spell check and clear controls.
 
 ### Fixed
 - API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.

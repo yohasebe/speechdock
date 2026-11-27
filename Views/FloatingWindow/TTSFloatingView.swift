@@ -596,9 +596,8 @@ struct TTSFloatingView: View {
                         onClose()
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelIconButtonStyle())
                     .keyboardShortcut("w", modifiers: .command)
                     .help("Close (⌘W)")
                 }
@@ -756,12 +755,12 @@ struct TTSFloatingView: View {
         if appState.ttsState == .speaking {
             // Animated waveform icon for speaking state (matches menu bar style)
             TTSPulsingWaveformIcon()
-                .frame(width: 28, height: 22)
+                .frame(width: 24, height: 24)
         } else {
             Image(systemName: statusIconName)
                 .foregroundColor(statusIconColor)
-                .font(.title2)
-                .frame(width: 28, height: 22)
+                .font(.system(size: 18, weight: .medium))
+                .frame(width: 24, height: 24)
         }
     }
 
@@ -858,59 +857,18 @@ struct TTSFloatingView: View {
         // Only show when not speaking/loading and text is not empty
         let isActive = appState.ttsState == .speaking || appState.ttsState == .loading
         if !isActive && !editableText.isEmpty {
-            HStack(spacing: 6) {
-                // Font size stepper
-                HStack(spacing: 2) {
-                    // Decrease font size
-                    Button(action: {
-                        appState.decreasePanelTextFontSize()
-                    }) {
-                        Image(systemName: "minus")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .frame(width: 16, height: 16)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Decrease Font Size (\(shortcutManager.shortcut(for: .fontSizeDecrease).displayString))")
-
-                    // Current size (click to reset)
-                    Button(action: {
-                        appState.resetPanelTextFontSize()
-                    }) {
-                        Text("\(Int(appState.panelTextFontSize))")
-                            .font(.system(size: 12, weight: .medium))
-                            .monospacedDigit()
-                            .foregroundColor(.secondary)
-                            .frame(minWidth: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Reset Font Size (\(shortcutManager.shortcut(for: .fontSizeReset).displayString))")
-
-                    // Increase font size
-                    Button(action: {
-                        appState.increasePanelTextFontSize()
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .frame(width: 16, height: 16)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Increase Font Size (\(shortcutManager.shortcut(for: .fontSizeIncrease).displayString))")
-                }
+            HStack(spacing: 2) {
+                PanelTextSizeControl(appState: appState)
 
                 Divider()
-                    .frame(height: 12)
+                    .frame(height: 14)
 
-                // Spell Check button
                 Button(action: {
                     showSpellingPanel()
                 }) {
                     Image(systemName: "checkmark.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelIconButtonStyle())
                 .help("Spell Check")
 
                 // Clear button (disabled during translation)
@@ -919,18 +877,12 @@ struct TTSFloatingView: View {
                     appState.ttsText = ""
                 }) {
                     Image(systemName: "eraser")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelIconButtonStyle())
                 .disabled(appState.translationState.isTranslated)
-                .opacity(appState.translationState.isTranslated ? 0.5 : 1.0)
                 .help(appState.translationState.isTranslated ? "Press Original to edit" : "Clear Text")
             }
-            .padding(6)
-            .background(Color(.windowBackgroundColor))
-            .cornerRadius(6)
-            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .panelTextToolbar()
             .padding(8)
         }
     }
@@ -1087,7 +1039,7 @@ struct TTSPulsingWaveformIcon: View {
 
     var body: some View {
         Image(systemName: "waveform")
-            .font(.title2)
+            .font(.system(size: 18, weight: .medium))
             .foregroundColor(Color.blue.opacity(pulsingOpacity))
             .onAppear {
                 startPulseAnimation()

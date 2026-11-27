@@ -830,79 +830,31 @@ struct TranscriptionFloatingView: View {
     private var textAreaFloatingButtons: some View {
         // Only show when not busy and text is not empty
         if !isBusy && !editedText.isEmpty {
-            HStack(spacing: 6) {
-                // Font size stepper
-                HStack(spacing: 2) {
-                    // Decrease font size
-                    Button(action: {
-                        appState.decreasePanelTextFontSize()
-                    }) {
-                        Image(systemName: "minus")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .frame(width: 16, height: 16)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Decrease Font Size (\(shortcutManager.shortcut(for: .fontSizeDecrease).displayString))")
-
-                    // Current size (click to reset)
-                    Button(action: {
-                        appState.resetPanelTextFontSize()
-                    }) {
-                        Text("\(Int(appState.panelTextFontSize))")
-                            .font(.system(size: 12, weight: .medium))
-                            .monospacedDigit()
-                            .foregroundColor(.secondary)
-                            .frame(minWidth: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Reset Font Size (\(shortcutManager.shortcut(for: .fontSizeReset).displayString))")
-
-                    // Increase font size
-                    Button(action: {
-                        appState.increasePanelTextFontSize()
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .frame(width: 16, height: 16)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Increase Font Size (\(shortcutManager.shortcut(for: .fontSizeIncrease).displayString))")
-                }
+            HStack(spacing: 2) {
+                PanelTextSizeControl(appState: appState)
 
                 Divider()
-                    .frame(height: 12)
+                    .frame(height: 14)
 
-                // Spell Check button
                 Button(action: {
                     showSpellingPanel()
                 }) {
                     Image(systemName: "checkmark.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelIconButtonStyle())
                 .help("Spell Check")
 
-                // Clear button
                 Button(action: {
                     editedText = ""
                     baseText = ""
                     appState.clearTranscription()
                 }) {
                     Image(systemName: "eraser")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelIconButtonStyle())
                 .help("Clear Text")
             }
-            .padding(.horizontal, 8)
-            .frame(height: 28)
-            .background(Color(.windowBackgroundColor))
-            .cornerRadius(6)
-            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .panelTextToolbar()
             .padding(8)
         }
     }
@@ -948,9 +900,8 @@ struct TranscriptionFloatingView: View {
                 if isFloatingStyle {
                     Button(action: onCancel) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelIconButtonStyle())
                     .applyCustomShortcut(cancelShortcut)
                     .keyboardShortcut("w", modifiers: .command)
                     .help("Close (⌘W)")
@@ -1223,7 +1174,8 @@ struct TranscriptionFloatingView: View {
                     .foregroundColor(.accentColor)
             }
         }
-        .frame(width: 22, height: 22)
+        .font(.system(size: 18, weight: .medium))
+        .frame(width: 24, height: 24)
     }
 
     private var headerText: String {
