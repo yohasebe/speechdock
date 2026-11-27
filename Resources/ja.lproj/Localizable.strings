@@ -345,6 +345,7 @@
 "API Key" = "APIキー";
 "Validating..." = "検証中...";
 "Save to Keychain" = "キーチェーンに保存";
+"Save Reference" = "参照を保存";
 "Remove" = "削除";
 "From Environment" = "環境変数から";
 "From Keychain" = "キーチェーンから";
@@ -555,11 +556,16 @@
 "%@ API key: %@" = "%1$@ の API キー: %2$@";
 "%@ API key not found" = "%@ の API キーが見つかりません";
 "Each field takes the key itself or a 1Password reference (op://vault/item/field). A reference is read with the 1Password CLI (op) when Settings opens or a key is first needed; only the reference is stored in the keychain." = "各欄には、キーそのもの、または 1Password の参照（op://保管庫/項目/フィールド）を書けます。参照は、設定を開いたときか、キーが初めて必要になったときに 1Password CLI（op）で読みます。キーチェーンに保存されるのは参照だけです。";
+"SpeechDock works without API keys using macOS built-in STT/TTS. Cloud providers below are optional and offer additional voices, models, and languages." = "SpeechDock は API キーが無くても macOS 標準の音声認識と読み上げで使えます。下のクラウドプロバイダは省略でき、声、モデル、言語の選択肢が増えます。";
+"Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this." = "音声認識（GPT Realtime Whisper、GPT Live Transcribe、GPT Transcribe）、読み上げ（GPT-4o Mini TTS）、翻訳に使います。省略できます。macOS 標準の機能はこのキーなしで使えます。";
+"Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this." = "音声認識（Gemini Live、Gemini 3.8 Flash）、読み上げ（Gemini 3.8 Flash / Flash-Lite TTS）、翻訳に使います。省略できます。macOS 標準の機能はこのキーなしで使えます。";
+"Enables STT (Scribe v3) and TTS (Eleven v3). Optional — macOS built-in works without this." = "音声認識（Scribe v3）と読み上げ（Eleven v3）に使います。省略できます。macOS 標準の機能はこのキーなしで使えます。";
+"Enables STT (Grok STT), TTS (Grok TTS), and translation. Optional — macOS built-in works without this." = "音声認識（Grok STT）、読み上げ（Grok TTS）、翻訳に使います。省略できます。macOS 標準の機能はこのキーなしで使えます。";
 "Reload from 1Password" = "1Password から読み直す";
 "From Environment (%@, older name)" = "環境変数から（%@、古い名前）";
 "From Environment (%@)" = "環境変数から（%@）";
-"1Password: read" = "1Password: 読み込み済み";
-"1Password: read when first used" = "1Password: 初めて使うときに読み込み";
+"1Password reference: read" = "1Password 参照: 読み込み済み";
+"1Password reference: read when first used" = "1Password 参照: 初めて使うときに読み込み";
 "Use the form op://vault/item/field" = "op://保管庫/項目/フィールド の形で入力してください";
 "1Password CLI (op) could not be verified" = "1Password CLI（op）の署名を確認できません";
 "The audio input changed, so recording stopped. Start recording again." = "音声の入力が変わったため、録音を停止しました。もう一度録音を開始してください。";

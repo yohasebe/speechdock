@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ElevenLabs real-time transcription offers Scribe v3 Live (default) and Scribe v2 Realtime, and file transcription uses Scribe v3.
 - Grok translation offers Grok 4.20 Fast (default) and Grok 4.7, which replaces Grok 4.20 Fast (Reasoning); a saved Grok 4.20 Fast (Reasoning) selection moves to Grok 4.20 Fast.
 
+### Fixed
+- API key fields accept a 1Password reference in quotes, as 1Password's Copy Secret Reference gives it.
+- Settings > API Keys shows a saved 1Password reference by its 1Password status, names the button Save Reference for a reference, saves on Return, and keeps the reason for a failed save on screen. Its messages and provider descriptions appear in the selected language.
+
 ## [0.1.40] - 2026-10-24
 
 ### Added

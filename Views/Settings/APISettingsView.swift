@@ -31,6 +31,8 @@ struct APIKeySection: View {
     let provider: STTProvider
 
     @State private var apiKey: String = ""
+    /// What the keychain holds for this provider, to tell an edited field from the saved one.
+    @State private var savedValue: String = ""
     @State private var showKey: Bool = false
     @State private var isSaving: Bool = false
     @State private var isValidating: Bool = false
@@ -43,14 +45,18 @@ struct APIKeySection: View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    if showKey {
-                        TextField("API Key", text: $apiKey)
-                            .textFieldStyle(.roundedBorder)
-                            .multilineTextAlignment(.leading)
-                    } else {
-                        SecureField("API Key", text: $apiKey)
-                            .textFieldStyle(.roundedBorder)
-                            .multilineTextAlignment(.leading)
+                    Group {
+                        if showKey {
+                            TextField("API Key", text: $apiKey)
+                        } else {
+                            SecureField("API Key", text: $apiKey)
+                        }
+                    }
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.leading)
+                    .onSubmit {
+                        guard canSave else { return }
+                        Task { await saveAPIKey() }
                     }
 
                     Button(action: { showKey.toggle() }) {
@@ -78,12 +84,12 @@ struct APIKeySection: View {
                             .foregroundColor(saveMessageColor)
                     }
 
-                    Button("Save to Keychain") {
+                    Button(SecretReference.isReference(apiKey) ? "Save Reference" : "Save to Keychain") {
                         Task {
                             await saveAPIKey()
                         }
                     }
-                    .disabled(apiKey.isEmpty || isSaving || isValidating)
+                    .disabled(!canSave)
 
                     if case .failed = apiKeyManager.keyStatus(for: provider) {
                         Button("Reload from 1Password") {
@@ -122,9 +128,12 @@ struct APIKeySection: View {
                     .font(.caption)
                     .foregroundColor(.blue)
             case .keychain:
-                Label("From Keychain", systemImage: "key.fill")
-                    .font(.caption)
-                    .foregroundColor(.green)
+                // A saved reference is described by its 1Password status below.
+                if origin?.isReference != true {
+                    Label("From Keychain", systemImage: "key.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
             case .none:
                 Label("Not Set", systemImage: "exclamationmark.triangle")
                     .font(.caption)
@@ -151,11 +160,11 @@ struct APIKeySection: View {
     private var referenceStatus: some View {
         switch apiKeyManager.keyStatus(for: provider) {
         case .ready:
-            Label("1Password: read", systemImage: "checkmark.circle")
+            Label("1Password reference: read", systemImage: "checkmark.circle")
                 .font(.caption)
                 .foregroundColor(.green)
         case .pending:
-            Label("1Password: read when first used", systemImage: "clock")
+            Label("1Password reference: read when first used", systemImage: "clock")
                 .font(.caption)
                 .foregroundColor(.secondary)
         case .failed(let failure):
@@ -169,16 +178,24 @@ struct APIKeySection: View {
 
     private func loadAPIKey() {
         // The stored text: the key, or a 1Password reference (never its value).
-        apiKey = apiKeyManager.storedKeychainValue(for: provider) ?? ""
+        savedValue = apiKeyManager.storedKeychainValue(for: provider) ?? ""
+        apiKey = savedValue
+    }
+
+    /// Something new to save: not empty, not what is already saved, and not busy.
+    private var canSave: Bool {
+        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && trimmed != savedValue && !isSaving && !isValidating
     }
 
     private func saveAPIKey() async {
         isValidating = true
         saveMessage = nil
 
-        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let result: ValidationResult
         if SecretReference.isReference(trimmed) {
+            trimmed = SecretReference.normalized(trimmed)
             result = await validateReference(trimmed)
         } else {
             result = await APIKeyValidator.validate(key: trimmed, for: provider)
@@ -190,11 +207,13 @@ struct APIKeySection: View {
             isSaving = true
             do {
                 try apiKeyManager.setAPIKey(trimmed, for: provider)
+                apiKey = trimmed
+                savedValue = trimmed
                 saveMessageColor = .green
-                saveMessage = "Valid ✓ Saved!"
+                saveMessage = NSLocalizedString("Valid ✓ Saved!", comment: "API key saved")
             } catch {
                 saveMessageColor = .red
-                saveMessage = "Error: \(error.localizedDescription)"
+                saveMessage = String(format: NSLocalizedString("Error: %@", comment: "API key error"), error.localizedDescription)
             }
             isSaving = false
 
@@ -206,17 +225,23 @@ struct APIKeySection: View {
             isSaving = true
             do {
                 try apiKeyManager.setAPIKey(trimmed, for: provider)
+                apiKey = trimmed
+                savedValue = trimmed
                 saveMessageColor = .orange
-                saveMessage = "Could not verify (saved anyway)"
+                saveMessage = NSLocalizedString("Could not verify (saved anyway)", comment: "API key saved without validation")
             } catch {
                 saveMessageColor = .red
-                saveMessage = "Error: \(error.localizedDescription)"
+                saveMessage = String(format: NSLocalizedString("Error: %@", comment: "API key error"), error.localizedDescription)
             }
             isSaving = false
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            saveMessage = nil
+        // A failure stays until the next attempt, so its reason can be read.
+        if saveMessageColor != .red {
+            let shown = saveMessage
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                if saveMessage == shown { saveMessage = nil }
+            }
         }
     }
 
@@ -238,12 +263,15 @@ struct APIKeySection: View {
         do {
             try apiKeyManager.deleteAPIKey(for: provider)
             apiKey = ""
-            saveMessage = "Removed"
+            savedValue = ""
+            saveMessageColor = .green
+            saveMessage = NSLocalizedString("Removed", comment: "API key removed")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 saveMessage = nil
             }
         } catch {
-            saveMessage = "Error: \(error.localizedDescription)"
+            saveMessageColor = .red
+            saveMessage = String(format: NSLocalizedString("Error: %@", comment: "API key error"), error.localizedDescription)
         }
     }
 }

@@ -345,6 +345,7 @@
 "API Key" = "Cle API";
 "Validating..." = "Validation...";
 "Save to Keychain" = "Enregistrer dans le Keychain";
+"Save Reference" = "Enregistrer la référence";
 "Remove" = "Supprimer";
 "From Environment" = "Variable d'environnement";
 "From Keychain" = "Depuis le Keychain";
@@ -540,11 +541,16 @@
 "%@ API key: %@" = "Clé API %1$@ : %2$@";
 "%@ API key not found" = "Clé API %@ introuvable";
 "Each field takes the key itself or a 1Password reference (op://vault/item/field). A reference is read with the 1Password CLI (op) when Settings opens or a key is first needed; only the reference is stored in the keychain." = "Chaque champ accepte la clé elle-même ou une référence 1Password (op://coffre/élément/champ). Une référence est lue avec 1Password CLI (op) à l’ouverture des réglages ou à la première utilisation d’une clé ; seule la référence est enregistrée dans le trousseau.";
+"SpeechDock works without API keys using macOS built-in STT/TTS. Cloud providers below are optional and offer additional voices, models, and languages." = "SpeechDock fonctionne sans clé API grâce à la reconnaissance et à la synthèse vocales intégrées à macOS. Les fournisseurs cloud ci-dessous sont facultatifs et ajoutent des voix, des modèles et des langues.";
+"Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this." = "Pour la reconnaissance vocale (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), la synthèse vocale (GPT-4o Mini TTS) et la traduction. Facultatif : les fonctions de macOS marchent sans cette clé.";
+"Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this." = "Pour la reconnaissance vocale (Gemini Live, Gemini 3.8 Flash), la synthèse vocale (Gemini 3.8 Flash / Flash-Lite TTS) et la traduction. Facultatif : les fonctions de macOS marchent sans cette clé.";
+"Enables STT (Scribe v3) and TTS (Eleven v3). Optional — macOS built-in works without this." = "Pour la reconnaissance vocale (Scribe v3) et la synthèse vocale (Eleven v3). Facultatif : les fonctions de macOS marchent sans cette clé.";
+"Enables STT (Grok STT), TTS (Grok TTS), and translation. Optional — macOS built-in works without this." = "Pour la reconnaissance vocale (Grok STT), la synthèse vocale (Grok TTS) et la traduction. Facultatif : les fonctions de macOS marchent sans cette clé.";
 "Reload from 1Password" = "Relire depuis 1Password";
 "From Environment (%@, older name)" = "Depuis l’environnement (%@, ancien nom)";
 "From Environment (%@)" = "Depuis l’environnement (%@)";
-"1Password: read" = "1Password : lue";
-"1Password: read when first used" = "1Password : lue à la première utilisation";
+"1Password reference: read" = "Référence 1Password : lue";
+"1Password reference: read when first used" = "Référence 1Password : lue à la première utilisation";
 "Use the form op://vault/item/field" = "Utilisez la forme op://coffre/élément/champ";
 "1Password CLI (op) could not be verified" = "Impossible de vérifier 1Password CLI (op)";
 "The audio input changed, so recording stopped. Start recording again." = "L’entrée audio a changé, l’enregistrement a donc été arrêté. Relancez l’enregistrement.";

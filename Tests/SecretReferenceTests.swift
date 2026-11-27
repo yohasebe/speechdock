@@ -92,6 +92,22 @@ final class SecretReferenceTests: XCTestCase {
         XCTAssertFalse(SecretReference.isWellFormed("op://Test/{{x}}/credential"))
     }
 
+    func testQuotedReferenceIsReadWithoutItsQuotes() async {
+        for quoted in ["\"\(refA)\"", "'\(refA)'", "\u{201C}\(refA)\u{201D}", " \"\(refA)\"\n"] {
+            XCTAssertEqual(SecretReference.normalized(quoted), refA)
+            XCTAssertTrue(SecretReference.isReference(quoted))
+            XCTAssertTrue(SecretReference.isWellFormed(quoted))
+        }
+        XCTAssertEqual(SecretReference.normalized("\"\(refA)"), "\"\(refA)", "an unmatched quote is kept")
+        XCTAssertFalse(SecretReference.isWellFormed("\"\(refA)"))
+
+        let runner = FakeOpRunner(handler: syntheticOp([refA: "fake-a"]))
+        let keys = manager(env: ["OPENAI_API_KEY": "\"\(refA)\""], runner: runner)
+        let value = await keys.apiKey(for: .openAI)
+        XCTAssertEqual(value, "fake-a")
+        for input in runner.inputs { XCTAssertFalse(input.contains("\"")) }
+    }
+
     func testFailureClassification() {
         func classify(_ text: String) -> SecretReferenceFailure {
             SecretReferenceFailure.classify(stderr: Data(text.utf8))

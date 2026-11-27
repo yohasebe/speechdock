@@ -42,13 +42,13 @@ enum STTProvider: String, CaseIterable, Identifiable, Codable {
     var footerDescription: String {
         switch self {
         case .openAI:
-            return "Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this."
+            return NSLocalizedString("Enables STT (GPT Realtime Whisper, GPT Live Transcribe, GPT Transcribe), TTS (GPT-4o Mini TTS), and translation. Optional — macOS built-in works without this.", comment: "API key footer")
         case .gemini:
-            return "Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this."
+            return NSLocalizedString("Enables STT (Gemini Live, Gemini 3.8 Flash), TTS (Gemini 3.8 Flash / Flash-Lite TTS), and translation. Optional — macOS built-in works without this.", comment: "API key footer")
         case .elevenLabs:
-            return "Enables STT (Scribe v3) and TTS (Eleven v3). Optional — macOS built-in works without this."
+            return NSLocalizedString("Enables STT (Scribe v3) and TTS (Eleven v3). Optional — macOS built-in works without this.", comment: "API key footer")
         case .grok:
-            return "Enables STT (Grok STT), TTS (Grok TTS), and translation. Optional — macOS built-in works without this."
+            return NSLocalizedString("Enables STT (Grok STT), TTS (Grok TTS), and translation. Optional — macOS built-in works without this.", comment: "API key footer")
         }
     }
 }

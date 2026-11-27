@@ -6,14 +6,25 @@ import Security
 enum SecretReference {
     static let prefix = "op://"
 
+    /// The reference without surrounding whitespace or one pair of enclosing
+    /// quotes, which 1Password's "Copy Secret Reference" includes.
+    static func normalized(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        for (open, close) in [("\"", "\""), ("'", "'"), ("\u{201C}", "\u{201D}")]
+        where trimmed.count >= 2 && trimmed.hasPrefix(open) && trimmed.hasSuffix(close) {
+            return String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
+    }
+
     static func isReference(_ value: String) -> Bool {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(prefix)
+        normalized(value).hasPrefix(prefix)
     }
 
     /// `op://vault/item/field` or `op://vault/item/section/field`. Whitespace
     /// and braces are rejected: the reference goes into an `op inject` template.
     static func isWellFormed(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = normalized(value)
         guard trimmed.hasPrefix(prefix) else { return false }
         if trimmed.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0) || $0 == "{" || $0 == "}" }) {
             return false
@@ -376,7 +387,7 @@ final class SecretReferenceResolver: @unchecked Sendable {
     // MARK: - Internals
 
     private static func key(_ reference: String) -> String {
-        reference.trimmingCharacters(in: .whitespacesAndNewlines)
+        SecretReference.normalized(reference)
     }
 
     private static func result(of state: State) -> Result<String, SecretReferenceFailure> {

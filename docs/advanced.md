@@ -39,6 +39,7 @@ Setup, on each Mac that runs SpeechDock (the CLI is not synced with your 1Passwo
 2. In the 1Password app, turn on **Settings** > **Developer** > **Integrate with 1Password CLI**. SpeechDock reads references through this integration; when it is off, reading usually fails as "not signed in".
 3. To check a reference without showing the key, run in a terminal: `op read "op://Private/OpenAI/credential" >/dev/null && echo OK`
 
+- Paste the reference into the field and click **Save Reference** (or press Return). Quotes around a reference, as 1Password's **Copy Secret Reference** gives it, are removed.
 - Only the reference is stored in the Keychain. The value it reads to stays in SpeechDock's memory until it quits and is never written to disk or logs.
 - All references are read together, with one approval, when **Settings** > **API Keys** opens or when a key is first needed. Starting SpeechDock (for example at login) does not ask for approval.
 - If a reference cannot be read (op not installed, not signed in, approval declined, item not found), that provider is treated as having no key, and Settings shows the reason. Use **Reload from 1Password** to try again; a declined approval is not asked again until you do.
