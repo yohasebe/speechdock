@@ -232,6 +232,16 @@
 "Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini 使用基于提示的语速控制（近似调整）";
 "Adjust playback speed (actual range: 0.7x–1.2x)" = "调整播放速度（实际范围：0.7x–1.2x）";
 "Adjust playback speed" = "调整播放速度";
+"macOS built-in speech recognition" = "macOS 内置语音识别";
+"macOS built-in TTS" = "macOS 内置语音合成";
+"Use the playback controls to change speed. Saved audio retains the original pace." = "使用播放控件更改速度。保存的音频保持原始语速。";
+"Speed changes playback only. Saved audio retains the original pace." = "速度只影响播放。保存的音频保持原始语速。";
+"Speed control not available. Wrap text with <slow> or <fast> for pacing effects." = "无法调整速度。可用 <slow> 或 <fast> 包围文本来改变语速。";
+"Change speed using the playback controls" = "使用播放控件更改速度";
+"Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x" = "调整播放速度（0.5x–2.0x）；保存的音频保持 1.0x";
+"Grok TTS does not support speed control" = "Grok TTS 不支持调整速度";
+"Drag to select OCR region" = "拖动以选择 OCR 区域";
+"Press ESC to cancel" = "按 ESC 取消";
 "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS 不支持速度控制。请选择 TTS-1 或 TTS-1 HD。";
 "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "GPT-4o Mini TTS 不支持速度控制。请使用 TTS-1 或 TTS-1 HD 进行速度控制。";
 "Gemini uses natural language pace control (approximate)." = "Gemini 使用自然语言语速控制（近似）。";
@@ -475,6 +485,7 @@
 
 /* ===== Misc ===== */
 "Auto" = "自动";
+"Auto (detect language)" = "自动（检测语言）";
 "── Premium ──" = "── 高级 ──";
 "── Enhanced ──" = "── 增强 ──";
 "── Standard ──" = "── 标准 ──";

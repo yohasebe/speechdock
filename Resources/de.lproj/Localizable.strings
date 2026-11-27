@@ -233,6 +233,16 @@
 "Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini verwendet Prompt-basierte Temporegelung (ungefähre Anpassung)";
 "Adjust playback speed (actual range: 0.7x–1.2x)" = "Wiedergabegeschwindigkeit anpassen (tatsächlicher Bereich: 0,7x–1,2x)";
 "Adjust playback speed" = "Wiedergabegeschwindigkeit anpassen";
+"macOS built-in speech recognition" = "Integrierte Spracherkennung von macOS";
+"macOS built-in TTS" = "Integrierte Sprachausgabe von macOS";
+"Use the playback controls to change speed. Saved audio retains the original pace." = "Ändern Sie die Geschwindigkeit mit der Wiedergabesteuerung. Gespeichertes Audio behält das ursprüngliche Tempo.";
+"Speed changes playback only. Saved audio retains the original pace." = "Die Geschwindigkeit ändert nur die Wiedergabe. Gespeichertes Audio behält das ursprüngliche Tempo.";
+"Speed control not available. Wrap text with <slow> or <fast> for pacing effects." = "Geschwindigkeitsregelung nicht verfügbar. Umschließen Sie Text mit <slow> oder <fast>, um das Tempo zu ändern.";
+"Change speed using the playback controls" = "Geschwindigkeit über die Wiedergabesteuerung ändern";
+"Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x" = "Wiedergabegeschwindigkeit anpassen (0.5x–2.0x); gespeichertes Audio bleibt bei 1.0x";
+"Grok TTS does not support speed control" = "Grok TTS unterstützt keine Geschwindigkeitsregelung";
+"Drag to select OCR region" = "Ziehen, um den OCR-Bereich auszuwählen";
+"Press ESC to cancel" = "ESC drücken zum Abbrechen";
 "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS unterstützt keine Geschwindigkeitsregelung. Wählen Sie TTS-1 oder TTS-1 HD.";
 "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "Geschwindigkeitsregelung für GPT-4o Mini TTS nicht verfügbar. Verwenden Sie TTS-1 oder TTS-1 HD für die Geschwindigkeitsregelung.";
 "Gemini uses natural language pace control (approximate)." = "Gemini verwendet natürlichsprachliche Temporegelung (ungefähr).";
@@ -476,6 +486,7 @@
 
 /* ===== Misc ===== */
 "Auto" = "Automatisch";
+"Auto (detect language)" = "Automatisch (Sprache erkennen)";
 "── Premium ──" = "── Premium ──";
 "── Enhanced ──" = "── Erweitert ──";
 "── Standard ──" = "── Standard ──";

@@ -233,6 +233,16 @@
 "Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini uses prompt-based pacing (approximate adjustment)";
 "Adjust playback speed (actual range: 0.7x–1.2x)" = "Adjust playback speed (actual range: 0.7x–1.2x)";
 "Adjust playback speed" = "Adjust playback speed";
+"macOS built-in speech recognition" = "macOS built-in speech recognition";
+"macOS built-in TTS" = "macOS built-in TTS";
+"Use the playback controls to change speed. Saved audio retains the original pace." = "Use the playback controls to change speed. Saved audio retains the original pace.";
+"Speed changes playback only. Saved audio retains the original pace." = "Speed changes playback only. Saved audio retains the original pace.";
+"Speed control not available. Wrap text with <slow> or <fast> for pacing effects." = "Speed control not available. Wrap text with <slow> or <fast> for pacing effects.";
+"Change speed using the playback controls" = "Change speed using the playback controls";
+"Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x" = "Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x";
+"Grok TTS does not support speed control" = "Grok TTS does not support speed control";
+"Drag to select OCR region" = "Drag to select OCR region";
+"Press ESC to cancel" = "Press ESC to cancel";
 "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD.";
 "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control.";
 "Gemini uses natural language pace control (approximate)." = "Gemini uses natural language pace control (approximate).";
@@ -476,6 +486,7 @@
 
 /* ===== Misc ===== */
 "Auto" = "Auto";
+"Auto (detect language)" = "Auto (detect language)";
 "── Premium ──" = "── Premium ──";
 "── Enhanced ──" = "── Enhanced ──";
 "── Standard ──" = "── Standard ──";

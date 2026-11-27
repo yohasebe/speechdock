@@ -198,8 +198,8 @@ private class SelectionView: NSView {
 
     private func drawInstructions() {
         // Main instruction text
-        let mainText = "Drag to select OCR region"
-        let subText = "Press ESC to cancel"
+        let mainText = NSLocalizedString("Drag to select OCR region", comment: "OCR selection instruction")
+        let subText = NSLocalizedString("Press ESC to cancel", comment: "OCR selection instruction")
 
         // Main text attributes
         let mainAttributes: [NSAttributedString.Key: Any] = [

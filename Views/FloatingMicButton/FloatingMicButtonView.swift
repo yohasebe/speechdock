@@ -97,7 +97,7 @@ struct FloatingMicButtonView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(Text("Quick Transcription"))
-        .accessibilityValue(Text(appState.transcriptionState == .preparing ? "Preparing speech recognition..." : (appState.isRecording ? "Recording..." : "Stopped")))
+        .accessibilityValue(Text(LocalizedStringKey(appState.transcriptionState == .preparing ? "Preparing speech recognition..." : (appState.isRecording ? "Recording..." : "Stopped"))))
         .accessibilityHint(Text("Click to dictate; drag to move"))
         .accessibilityAction { manager.toggleRecording() }
         .onChange(of: reduceMotion) { _, reduced in pulseAnimation = !reduced && appState.isRecording }

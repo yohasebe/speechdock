@@ -233,6 +233,16 @@
 "Gemini uses prompt-based pacing (approximate adjustment)" = "Gemini utilise un controle du rythme par prompt (ajustement approximatif)";
 "Adjust playback speed (actual range: 0.7x–1.2x)" = "Ajuster la vitesse de lecture (plage reelle : 0,7x a 1,2x)";
 "Adjust playback speed" = "Ajuster la vitesse de lecture";
+"macOS built-in speech recognition" = "Reconnaissance vocale intégrée de macOS";
+"macOS built-in TTS" = "Synthèse vocale intégrée de macOS";
+"Use the playback controls to change speed. Saved audio retains the original pace." = "Modifiez la vitesse avec les commandes de lecture. L'audio enregistré conserve le rythme d'origine.";
+"Speed changes playback only. Saved audio retains the original pace." = "La vitesse ne modifie que la lecture. L'audio enregistré conserve le rythme d'origine.";
+"Speed control not available. Wrap text with <slow> or <fast> for pacing effects." = "Réglage de la vitesse indisponible. Entourez le texte de <slow> ou <fast> pour changer le rythme.";
+"Change speed using the playback controls" = "Modifier la vitesse avec les commandes de lecture";
+"Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x" = "Régler la vitesse de lecture (0.5x–2.0x) ; l'audio enregistré reste à 1.0x";
+"Grok TTS does not support speed control" = "Grok TTS ne permet pas de régler la vitesse";
+"Drag to select OCR region" = "Faites glisser pour sélectionner la zone OCR";
+"Press ESC to cancel" = "Appuyez sur Échap pour annuler";
 "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTS ne prend pas en charge le controle de la vitesse. Selectionnez TTS-1 ou TTS-1 HD.";
 "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "Le controle de la vitesse n'est pas disponible pour GPT-4o Mini TTS. Utilisez TTS-1 ou TTS-1 HD pour le controle de la vitesse.";
 "Gemini uses natural language pace control (approximate)." = "Gemini utilise un controle du rythme en langage naturel (approximatif).";
@@ -476,6 +486,7 @@
 
 /* ===== Misc ===== */
 "Auto" = "Auto";
+"Auto (detect language)" = "Auto (détecter la langue)";
 "── Premium ──" = "── Premium ──";
 "── Enhanced ──" = "── Enhanced ──";
 "── Standard ──" = "── Standard ──";

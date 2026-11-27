@@ -682,7 +682,7 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
         var voices: [TTSVoice] = []
 
         // Add auto-detect option
-        voices.append(TTSVoice(id: "", name: "Auto (detect language)", language: "", isDefault: true, quality: .standard))
+        voices.append(TTSVoice(id: "", name: NSLocalizedString("Auto (detect language)", comment: "macOS voice that follows the language of the text"), language: "", isDefault: true, quality: .standard))
 
         // Get available voices from AVSpeechSynthesisVoice API
         let systemVoices = AVSpeechSynthesisVoice.speechVoices()
@@ -728,7 +728,7 @@ final class MacOSTTS: NSObject, TTSService, @unchecked Sendable {
 
     @MainActor
     func availableModels() -> [TTSModelInfo] {
-        [TTSModelInfo(id: "default", name: "System Default", description: "macOS built-in TTS", isDefault: true)]
+        [TTSModelInfo(id: "default", name: NSLocalizedString("System Default", comment: "TTS model"), description: NSLocalizedString("macOS built-in TTS", comment: "TTS model description"), isDefault: true)]
     }
 
     @MainActor

@@ -1447,11 +1447,11 @@ struct AudioInputSourceSelector: View {
                let device = availableMicrophones.first(where: { $0.uid == appState.selectedAudioInputDeviceUID }) {
                 return device.name
             }
-            return "Microphone"
+            return NSLocalizedString("Microphone", comment: "Audio input source")
         case .systemAudio:
-            return "System Audio"
+            return NSLocalizedString("System Audio", comment: "Audio input source")
         case .applicationAudio:
-            return availableApps.first { $0.bundleID == appState.selectedAudioAppBundleID }?.name ?? "App"
+            return availableApps.first { $0.bundleID == appState.selectedAudioAppBundleID }?.name ?? NSLocalizedString("App", comment: "Audio input source")
         }
     }
 

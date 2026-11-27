@@ -426,7 +426,7 @@ final class MacOSRealtimeSTT: NSObject, RealtimeSTTService {
     }
 
     func availableModels() -> [RealtimeSTTModelInfo] {
-        [RealtimeSTTModelInfo(id: "default", name: "System Default", description: "macOS built-in speech recognition", isDefault: true)]
+        [RealtimeSTTModelInfo(id: "default", name: NSLocalizedString("System Default", comment: "STT model"), description: NSLocalizedString("macOS built-in speech recognition", comment: "STT model description"), isDefault: true)]
     }
 }
 

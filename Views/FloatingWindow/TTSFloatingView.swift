@@ -1120,12 +1120,12 @@ struct TTSAudioOutputSelector: View {
 
     private var currentName: String {
         if appState.selectedAudioOutputDeviceUID.isEmpty {
-            return "System Default"
+            return NSLocalizedString("System Default", comment: "Audio output device")
         }
         if let device = availableDevices.first(where: { $0.uid == appState.selectedAudioOutputDeviceUID }) {
             return device.name
         }
-        return "System Default"
+        return NSLocalizedString("System Default", comment: "Audio output device")
     }
 
     var body: some View {

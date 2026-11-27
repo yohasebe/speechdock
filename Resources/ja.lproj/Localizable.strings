@@ -233,6 +233,16 @@
 "Gemini uses prompt-based pacing (approximate adjustment)" = "Geminiはプロンプトベースのペース制御を使用（近似調整）";
 "Adjust playback speed (actual range: 0.7x–1.2x)" = "再生速度を調整（実際の範囲: 0.7x–1.2x）";
 "Adjust playback speed" = "再生速度を調整";
+"macOS built-in speech recognition" = "macOS内蔵の音声認識";
+"macOS built-in TTS" = "macOS内蔵の読み上げ";
+"Use the playback controls to change speed. Saved audio retains the original pace." = "速度は再生中の操作で変えられます。保存する音声は元の速さのままです。";
+"Speed changes playback only. Saved audio retains the original pace." = "速度は再生にだけ反映されます。保存する音声は元の速さのままです。";
+"Speed control not available. Wrap text with <slow> or <fast> for pacing effects." = "速度は変えられません。速さを変えたい部分は <slow> か <fast> で囲んでください。";
+"Change speed using the playback controls" = "速度は再生中の操作で変えられます";
+"Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x" = "再生速度を調整（0.5x–2.0x）。保存する音声は1.0xのままです";
+"Grok TTS does not support speed control" = "Grok TTS は速度を変えられません";
+"Drag to select OCR region" = "ドラッグしてOCRの範囲を選択";
+"Press ESC to cancel" = "ESCキーでキャンセル";
 "GPT-4o Mini TTS does not support speed control. Select TTS-1 or TTS-1 HD." = "GPT-4o Mini TTSは速度制御に非対応です。TTS-1またはTTS-1 HDを選択してください。";
 "Speed control not available for GPT-4o Mini TTS. Use TTS-1 or TTS-1 HD for speed control." = "GPT-4o Mini TTSでは速度制御は利用できません。速度制御にはTTS-1またはTTS-1 HDを使用してください。";
 "Gemini uses natural language pace control (approximate)." = "Geminiは自然言語によるペース制御を使用します（近似的）。";
@@ -476,6 +486,7 @@
 
 /* ===== Misc ===== */
 "Auto" = "自動";
+"Auto (detect language)" = "自動（言語を判別）";
 "── Premium ──" = "── プレミアム ──";
 "── Enhanced ──" = "── エンハンスド ──";
 "── Standard ──" = "── スタンダード ──";

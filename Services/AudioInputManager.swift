@@ -7,7 +7,7 @@ struct AudioInputDevice: Identifiable, Equatable, Hashable {
     let name: String
     let uid: String
 
-    static let systemDefault = AudioInputDevice(id: 0, name: "System Default", uid: "")
+    static let systemDefault = AudioInputDevice(id: 0, name: NSLocalizedString("System Default", comment: "Audio input device"), uid: "")
 }
 
 /// Manages audio input device selection

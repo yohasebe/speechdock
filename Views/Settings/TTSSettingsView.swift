@@ -209,11 +209,11 @@ struct TTSVoicePicker: View {
                 let title: String
                 switch voice.quality {
                 case .premium:
-                    title = "── Premium ──"
+                    title = NSLocalizedString("── Premium ──", comment: "Voice quality section")
                 case .enhanced:
-                    title = "── Enhanced ──"
+                    title = NSLocalizedString("── Enhanced ──", comment: "Voice quality section")
                 case .standard:
-                    title = "── Standard ──"
+                    title = NSLocalizedString("── Standard ──", comment: "Voice quality section")
                 }
                 items.append(.section(title))
             }
@@ -295,13 +295,13 @@ struct TTSSpeedSlider: View {
     private var speedHelpText: String? {
         switch appState.selectedTTSProvider {
         case .openAI:
-            return "Use the playback controls to change speed. Saved audio retains the original pace."
+            return NSLocalizedString("Use the playback controls to change speed. Saved audio retains the original pace.", comment: "TTS speed")
         case .gemini:
-            return "Speed changes playback only. Saved audio retains the original pace."
+            return NSLocalizedString("Speed changes playback only. Saved audio retains the original pace.", comment: "TTS speed")
         case .elevenLabs:
-            return "ElevenLabs has limited speed range (0.7x-1.2x mapped)."
+            return NSLocalizedString("ElevenLabs has limited speed range (0.7x-1.2x mapped).", comment: "TTS speed")
         case .grok:
-            return "Speed control not available. Wrap text with <slow> or <fast> for pacing effects."
+            return NSLocalizedString("Speed control not available. Wrap text with <slow> or <fast> for pacing effects.", comment: "TTS speed")
         case .macOS:
             return nil
         }
@@ -354,21 +354,21 @@ struct TTSSpeedSlider: View {
     private var speedTooltip: String {
         switch appState.selectedTTSProvider {
         case .openAI:
-            return "Change speed using the playback controls"
+            return NSLocalizedString("Change speed using the playback controls", comment: "TTS speed")
         case .gemini:
-            return "Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x"
+            return NSLocalizedString("Adjust local playback speed (0.5x–2.0x); saved audio stays at 1.0x", comment: "TTS speed")
         case .elevenLabs:
-            return "Adjust playback speed (actual range: 0.7x–1.2x)"
+            return NSLocalizedString("Adjust playback speed (actual range: 0.7x–1.2x)", comment: "TTS speed")
         case .macOS:
-            return "Adjust playback speed"
+            return NSLocalizedString("Adjust playback speed", comment: "TTS speed")
         case .grok:
-            return "Grok TTS does not support speed control"
+            return NSLocalizedString("Grok TTS does not support speed control", comment: "TTS speed")
         }
     }
 
     private var speedDisplayText: String {
         if !supportsSpeed {
-            return "N/A"
+            return NSLocalizedString("N/A", comment: "TTS speed not available")
         }
         return String(format: "%.1fx", appState.selectedTTSSpeed)
     }
