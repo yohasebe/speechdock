@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The menu's microphone warning asks for microphone access when SpeechDock has not asked yet, and the menu's permission warnings appear in the selected language.
 - While an API key is being checked, its field and Remove are locked, and a check that finishes after a newer save or remove (for example in a reopened Settings window) no longer overwrites it.
 - An invalid API key is reported in the selected language.
+- Subtitle translation keeps translating new lines after a recording is restarted while a translation is still in progress.
+- Streamed speech (OpenAI and ElevenLabs) stops with a message when a change of audio output stops playback, instead of staying in the speaking state.
 
 ## [0.1.40] - 2026-10-24
 

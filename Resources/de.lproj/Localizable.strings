@@ -580,3 +580,4 @@
 "Show Key" = "Schlüssel anzeigen";
 "Hide Key" = "Schlüssel ausblenden";
 "Invalid API key" = "Ungültiger API-Schlüssel";
+"Speech stopped because the audio output changed." = "Die Sprachausgabe wurde beendet, weil sich die Audioausgabe geändert hat.";

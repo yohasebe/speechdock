@@ -1358,7 +1358,9 @@ final class AppState {
         guard let service = ttsService else { return }
         if service.isPaused {
             service.resume()
-            ttsState = .speaking
+            // Resuming can fail at once (the audio output changed while paused) and
+            // report an error; keep that rather than showing "speaking".
+            if ttsState == .paused { ttsState = .speaking }
         } else if service.isSpeaking {
             service.pause()
             ttsState = .paused

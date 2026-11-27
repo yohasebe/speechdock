@@ -595,3 +595,4 @@
 "Show Key" = "Show Key";
 "Hide Key" = "Hide Key";
 "Invalid API key" = "Invalid API key";
+"Speech stopped because the audio output changed." = "Speech stopped because the audio output changed.";

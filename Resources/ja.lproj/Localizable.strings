@@ -595,3 +595,4 @@
 "Show Key" = "キーを表示";
 "Hide Key" = "キーを隠す";
 "Invalid API key" = "API キーが無効です";
+"Speech stopped because the audio output changed." = "音声の出力先が変わったため、読み上げを止めました。";

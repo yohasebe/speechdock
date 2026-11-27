@@ -580,3 +580,4 @@
 "Show Key" = "Afficher la clé";
 "Hide Key" = "Masquer la clé";
 "Invalid API key" = "Clé API non valide";
+"Speech stopped because the audio output changed." = "La lecture s'est arrêtée car la sortie audio a changé.";

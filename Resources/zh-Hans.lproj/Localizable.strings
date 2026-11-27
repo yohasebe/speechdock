@@ -579,3 +579,4 @@
 "Show Key" = "显示密钥";
 "Hide Key" = "隐藏密钥";
 "Invalid API key" = "API 密钥无效";
+"Speech stopped because the audio output changed." = "音频输出已更改，朗读已停止。";

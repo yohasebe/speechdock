@@ -580,3 +580,4 @@
 "Show Key" = "키 표시";
 "Hide Key" = "키 숨기기";
 "Invalid API key" = "API 키가 올바르지 않습니다";
+"Speech stopped because the audio output changed." = "오디오 출력이 바뀌어 읽기를 멈췄습니다.";

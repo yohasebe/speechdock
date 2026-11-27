@@ -157,6 +157,136 @@ final class RegressionTests: XCTestCase {
         await task.value
         XCTAssertEqual(app.subtitleTranslationState, .idle)
     }
+
+    @MainActor
+    func testSubtitleResetDoesNotLeaveLaterLinesWaiting() async {
+        let app = AppState(startServices: false)
+        app.selectedSTTLanguage = "en"
+        app.translationProvider = .openAI
+        app.translationTargetLanguage = .japanese
+        app.subtitleTranslationEnabled = true
+        let translator = DelayedTranslator()
+        let service = SubtitleTranslationService(makeTranslator: { _, _ in translator })
+
+        let firstStarted = expectation(description: "first translation started")
+        translator.started = { firstStarted.fulfill() }
+        let first = Task { await service.processTextUpdate("hello", isFinal: true, appState: app) }
+        await fulfillment(of: [firstStarted], timeout: 1)
+        service.reset()  // e.g. a new recording starts; the old result is now out of date
+        translator.complete("古い結果")
+        await first.value
+        XCTAssertEqual(app.subtitleTranslationState, .idle)
+        XCTAssertEqual(app.subtitleTranslatedText, "")
+
+        let secondStarted = expectation(description: "next line is translated")
+        translator.started = { secondStarted.fulfill() }
+        let second = Task { await service.processTextUpdate("world", isFinal: true, appState: app) }
+        await fulfillment(of: [secondStarted], timeout: 1)
+        translator.complete("世界")
+        await second.value
+        XCTAssertEqual(app.subtitleTranslatedText, "世界")
+    }
+
+    @MainActor
+    func testResumeThatFailsAtOnceKeepsTheError() async {
+        let app = AppState(startServices: false)
+        let service = DelayedTTS()
+        let started = expectation(description: "request started")
+        service.started = { started.fulfill() }
+        app.ttsServiceFactory = { _ in service }
+        app.ttsText = "hello world"
+        app.speakCurrentText()
+        await fulfillment(of: [started], timeout: 1)
+        service.complete()
+        await Task.yield()
+
+        service.isPaused = true
+        app.ttsState = .paused
+        service.onResume = { service.delegate?.tts(service, didFailWithError: TTSError.audioError("output changed")) }
+        app.pauseResumeTTS()
+
+        if case .error = app.ttsState {} else { XCTFail("expected the error to stay, got \(app.ttsState)") }
+    }
+
+    @MainActor
+    func testLineQueuedDuringASuccessfulRequestIsTranslatedNext() async {
+        let app = AppState(startServices: false)
+        app.selectedSTTLanguage = "en"
+        app.translationProvider = .openAI
+        app.translationTargetLanguage = .japanese
+        app.subtitleTranslationEnabled = true
+        let translator = DelayedTranslator()
+        let service = SubtitleTranslationService(makeTranslator: { _, _ in translator })
+
+        let firstStarted = expectation(description: "first translation started")
+        translator.started = { firstStarted.fulfill() }
+        let first = Task { await service.processTextUpdate("hello", isFinal: true, appState: app) }
+        await fulfillment(of: [firstStarted], timeout: 1)
+        await service.processTextUpdate("hello world", isFinal: true, appState: app)  // queued
+
+        let nextStarted = expectation(description: "queued line follows")
+        translator.started = { nextStarted.fulfill() }
+        translator.complete("こんにちは")
+        await first.value
+        await fulfillment(of: [nextStarted], timeout: 1)
+        translator.complete("こんにちは世界")
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(app.subtitleTranslatedText, "こんにちは世界")
+    }
+
+    @MainActor
+    func testResetDropsALineQueuedBeforeIt() async {
+        let app = AppState(startServices: false)
+        app.selectedSTTLanguage = "en"
+        app.translationProvider = .openAI
+        app.translationTargetLanguage = .japanese
+        app.subtitleTranslationEnabled = true
+        let translator = DelayedTranslator()
+        let service = SubtitleTranslationService(makeTranslator: { _, _ in translator })
+
+        let firstStarted = expectation(description: "first translation started")
+        translator.started = { firstStarted.fulfill() }
+        let first = Task { await service.processTextUpdate("hello", isFinal: true, appState: app) }
+        await fulfillment(of: [firstStarted], timeout: 1)
+        await service.processTextUpdate("old line", isFinal: true, appState: app)  // queued
+        service.reset()  // the queued line belongs to the session that ended
+
+        var startedAgain = false
+        translator.started = { startedAgain = true }
+        translator.complete("古い結果")
+        await first.value
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertFalse(startedAgain)
+        XCTAssertEqual(app.subtitleTranslationState, .idle)
+    }
+
+    @MainActor
+    func testLineQueuedBehindADiscardedRequestIsTranslated() async {
+        let app = AppState(startServices: false)
+        app.selectedSTTLanguage = "en"
+        app.translationProvider = .openAI
+        app.translationTargetLanguage = .japanese
+        app.subtitleTranslationEnabled = true
+        let translator = DelayedTranslator()
+        let service = SubtitleTranslationService(makeTranslator: { _, _ in translator })
+
+        let firstStarted = expectation(description: "first translation started")
+        translator.started = { firstStarted.fulfill() }
+        let first = Task { await service.processTextUpdate("hello", isFinal: true, appState: app) }
+        await fulfillment(of: [firstStarted], timeout: 1)
+        service.reset()
+
+        // The last line of the new session arrives while the old request is still out.
+        await service.processTextUpdate("world", isFinal: true, appState: app)
+        let queuedStarted = expectation(description: "queued line is translated without another update")
+        translator.started = { queuedStarted.fulfill() }
+        translator.complete("古い結果")
+        await first.value
+        await fulfillment(of: [queuedStarted], timeout: 1)
+        translator.complete("世界")
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(app.subtitleTranslatedText, "世界")
+    }
 }
 
 @MainActor
@@ -207,7 +337,8 @@ private final class DelayedTTS: TTSService {
     func complete() { continuation?.resume(); continuation = nil }
     func stop() {}
     func pause() {}
-    func resume() {}
+    var onResume: (() -> Void)?
+    func resume() { onResume?() }
     func setPlaybackRate(_ rate: Float) {}
     func clearAudioCache() { lastAudioData = nil }
     func availableVoices() -> [TTSVoice] { [] }

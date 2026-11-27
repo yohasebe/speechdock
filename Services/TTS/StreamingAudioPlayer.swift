@@ -29,11 +29,16 @@ final class StreamingAudioPlayer {
 
     var onPlaybackStarted: (() -> Void)?
     var onPlaybackFinished: ((Bool) -> Void)?
+
+    /// Notices that the engine was reconfigured (output device change, Bluetooth
+    /// profile switch). If that stopped the engine, queued buffers may never report
+    /// back, so playback is ended instead of waiting forever.
+    private var configurationObserver: AudioEngineConfigurationObserver?
     var onError: ((Error) -> Void)?
 
     // MARK: - Audio Engine Components
 
-    private var audioEngine: AVAudioEngine?
+    private(set) var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
     private var converterMixerNode: AVAudioMixerNode?
     private var timePitchNode: AVAudioUnitTimePitch?
@@ -136,6 +141,11 @@ final class StreamingAudioPlayer {
         timePitchNode = timePitch
         state = .playing
 
+        let token = generation
+        configurationObserver = AudioEngineConfigurationObserver(engine: engine) { [weak self] in
+            self?.engineWasReconfigured(token)
+        }
+
         // Note: onPlaybackStarted is now called after pre-roll buffering completes
         // to ensure the "Generating Audio..." message stays visible until actual audio plays
     }
@@ -221,6 +231,11 @@ final class StreamingAudioPlayer {
     /// Resume playback
     func resume() {
         guard state == .paused else { return }
+        // The output may have changed while paused and stopped the engine.
+        guard audioEngine?.isRunning == true else {
+            endAfterInterruption()
+            return
+        }
         playerNode?.play()
         state = .playing
     }
@@ -228,6 +243,7 @@ final class StreamingAudioPlayer {
     /// Stop playback and cleanup
     func stop() {
         generation = UUID()
+        configurationObserver = nil
         playerNode?.stop()
         audioEngine?.stop()
 
@@ -310,8 +326,15 @@ final class StreamingAudioPlayer {
     /// Called when all playback is complete
     private func handlePlaybackComplete() {
         guard state != .idle && state != .finished else { return }
+        // Stopping the engine can also call the buffers' completion handlers; that is
+        // an interruption, not the end of the speech.
+        if audioEngine?.isRunning == false {
+            endAfterInterruption()
+            return
+        }
 
         state = .finished
+        configurationObserver = nil
 
         // Stop engine
         playerNode?.stop()
@@ -326,6 +349,27 @@ final class StreamingAudioPlayer {
         // Reset to idle for potential reuse
         state = .idle
     }
+
+    /// Selecting an output device also posts a reconfiguration while the engine
+    /// keeps running, so look again after a moment and act only if it stopped.
+    private func engineWasReconfigured(_ token: UUID) {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let self, self.generation == token, self.state == .playing || self.state == .paused,
+                  self.audioEngine?.isRunning == false else { return }
+            self.endAfterInterruption()
+        }
+    }
+
+    /// Ends playback once because the engine stopped underneath it, and says so.
+    private func endAfterInterruption() {
+        guard state == .playing || state == .paused else { return }
+        dprint("StreamingAudioPlayer: Engine stopped (audio output changed); ending playback")
+        stop()
+        onError?(TTSError.audioError(NSLocalizedString(
+            "Speech stopped because the audio output changed.", comment: "Streaming TTS interrupted")))
+    }
+
 
     /// Set the output device for an AVAudioEngine
     private func setOutputDevice(uid: String, for engine: AVAudioEngine) throws {

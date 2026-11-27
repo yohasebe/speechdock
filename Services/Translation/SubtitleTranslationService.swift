@@ -83,6 +83,10 @@ final class SubtitleTranslationService {
     /// for the entire 1–2 s an API call took.
     private var pendingTranslationText: String?
 
+    /// The request started last. Whichever way it ends, it clears the in-flight
+    /// state it set, even when its result is discarded as out of date.
+    private var latestRequest: UUID?
+
     /// Current translator instance
     private var translator: ContextualTranslator?
 
@@ -267,6 +271,10 @@ final class SubtitleTranslationService {
             return
         }
 
+        // This text is newer than anything still queued, whether it is translated
+        // below or shown from the cache.
+        pendingTranslationText = nil
+
         // Check cache first
         let token = generation
         let provider = appState.effectiveTranslationProvider
@@ -279,7 +287,30 @@ final class SubtitleTranslationService {
             return
         }
 
+        let request = UUID()
+        latestRequest = request
         appState.subtitleTranslationState = .translating
+        defer {
+            // Also when the result is discarded (after a reset, a settings change or a
+            // cancelled debounce) or empty; otherwise later lines would wait behind it.
+            if latestRequest == request {
+                latestRequest = nil
+                if appState.subtitleTranslationState == .translating {
+                    appState.subtitleTranslationState = .idle
+                }
+                if appState.subtitleTranslationState == .idle, pendingTranslationText != nil {
+                    // Take the queued line only when this runs: a reset clears it, and a
+                    // newer line that starts first replaces it.
+                    Task { [weak self, weak appState] in
+                        guard let self, let appState, appState.subtitleTranslationEnabled,
+                              appState.subtitleTranslationState != .translating,
+                              let pending = self.pendingTranslationText else { return }
+                        self.pendingTranslationText = nil
+                        await self.translateFullText(pending, appState: appState)
+                    }
+                }
+            }
+        }
 
         do {
             guard let translator = translator else {
@@ -318,18 +349,9 @@ final class SubtitleTranslationService {
             appState.subtitleTranslationState = .idle
             dprint("SubtitleTranslation: Success → '\(translated.prefix(40))...'")
 
-            // Drain queued pending translation if newer text arrived while this
-            // call was in flight. Fire-and-forget — the recursive call will
-            // re-enter the same in-flight check and either run or re-queue.
-            if let pending = pendingTranslationText, pending != text {
-                pendingTranslationText = nil
-                dprint("SubtitleTranslation: Draining queued pending translation")
-                Task { [weak self, weak appState] in
-                    guard let self = self, let appState = appState else { return }
-                    guard self.isCurrent(token, provider: provider, language: language, appState: appState) else { return }
-                    await self.translateFullText(pending, appState: appState)
-                }
-            } else {
+            // Newer text queued while this call was in flight is taken by the
+            // hand-over when this request ends; the same text needs no second call.
+            if pendingTranslationText == text {
                 pendingTranslationText = nil
             }
         } catch {
