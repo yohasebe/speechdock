@@ -940,7 +940,8 @@ struct TTSFloatingView: View {
                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             }
             .buttonStyle(.plain)
-            .help("Capture text with OCR (⌃⌥⇧O)")
+            .help(String(format: NSLocalizedString("Capture text with OCR (%@)", comment: "OCR button help"),
+                         appState.hotKeyService?.ocrKeyCombo.displayString ?? "⌃⌥⇧O"))
             .disabled(appState.ttsState == .speaking || appState.ttsState == .loading)
 
             // Character/word count

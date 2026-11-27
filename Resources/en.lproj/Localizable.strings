@@ -110,7 +110,6 @@
 "Select..." = "Select...";
 "Download Languages..." = "Download Languages...";
 "Refresh Status" = "Refresh Status";
-"Enter text to enable translation" = "Enter text to enable translation";
 "Select a target language" = "Select a target language";
 "Translate to %@" = "Translate to %@";
 "Revert to original text" = "Revert to original text";
@@ -417,7 +416,7 @@
 "Close (⌘W)" = "Close (⌘W)";
 "Subtitle Mode: On (⌃⌥S)" = "Subtitle Mode: On (⌃⌥S)";
 "Subtitle Mode: Off (⌃⌥S)" = "Subtitle Mode: Off (⌃⌥S)";
-"Capture text with OCR (⌃⌥⇧O)" = "Capture text with OCR (⌃⌥⇧O)";
+"Capture text with OCR (%@)" = "Capture text with OCR (%@)";
 "Refresh voice list" = "Refresh voice list";
 "Refresh voice list from API" = "Refresh voice list from API";
 "Hide controls" = "Hide controls";
@@ -571,3 +570,27 @@
 "Use the form op://vault/item/field" = "Use the form op://vault/item/field";
 "1Password CLI (op) could not be verified" = "1Password CLI (op) could not be verified";
 "The audio input changed, so recording stopped. Start recording again." = "The audio input changed, so recording stopped. Start recording again.";
+
+"Could Not Save Audio" = "Could Not Save Audio";
+"SpeechDock Help" = "SpeechDock Help";
+"Top" = "Top";
+"Bottom" = "Bottom";
+"On-device, ~18 languages" = "On-device, ~18 languages";
+"100+ languages, high quality" = "100+ languages, high quality";
+"Apple Speech (offline, max 100MB)" = "Apple Speech (offline, max 100MB)";
+"Shows HUD while recording" = "Shows HUD while recording";
+"Pastes text when done" = "Pastes text when done";
+"Hide Mic Button" = "Hide Mic Button";
+"Transcription failed" = "Transcription failed";
+"Reference" = "Reference";
+"Unsupported file format: .%@\n\nSupported formats: %@" = "Unsupported file format: .%@\n\nSupported formats: %@";
+"Save Failed" = "Save Failed";
+"Screen Recording permission required" = "Screen Recording permission required";
+"SpeechDock Permissions" = "SpeechDock Permissions";
+"Recommended" = "Recommended";
+"Optional" = "Optional";
+"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation.";
+"Enter at least %d characters to translate" = "Enter at least %d characters to translate";
+"STT language is the same as translation target" = "STT language is the same as translation target";
+"Show Key" = "Show Key";
+"Hide Key" = "Hide Key";

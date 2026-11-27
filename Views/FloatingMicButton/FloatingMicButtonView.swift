@@ -200,7 +200,7 @@ struct FloatingMicButtonView: View {
 
         Divider()
 
-        Button("Hide Button") {
+        Button("Hide Mic Button") {
             appState.showFloatingMicButton = false
             manager.hide()
         }

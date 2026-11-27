@@ -33,14 +33,14 @@ struct ShortcutHUDView: View {
             HStack(alignment: .top, spacing: 32) {
                 // Left column: Global + STT Panel
                 VStack(alignment: .leading, spacing: 16) {
-                    ShortcutSection(title: "Global Hotkeys", items: globalShortcuts)
-                    ShortcutSection(title: "STT Panel", items: sttPanelShortcuts)
+                    ShortcutSection(title: NSLocalizedString("Global Hotkeys", comment: "Shortcut HUD section"), items: globalShortcuts)
+                    ShortcutSection(title: NSLocalizedString("STT Panel", comment: "Shortcut HUD section"), items: sttPanelShortcuts)
                 }
 
                 // Right column: TTS Panel + Common
                 VStack(alignment: .leading, spacing: 16) {
-                    ShortcutSection(title: "TTS Panel", items: ttsPanelShortcuts)
-                    ShortcutSection(title: "Common", items: commonShortcuts)
+                    ShortcutSection(title: NSLocalizedString("TTS Panel", comment: "Shortcut HUD section"), items: ttsPanelShortcuts)
+                    ShortcutSection(title: NSLocalizedString("Common", comment: "Shortcut HUD section"), items: commonShortcuts)
                 }
             }
 
@@ -62,12 +62,12 @@ struct ShortcutHUDView: View {
     private var globalShortcuts: [ShortcutItem] {
         guard let service = hotKeyService else { return [] }
         return [
-            ShortcutItem(name: "Toggle STT Panel", shortcut: service.sttKeyCombo.displayString, action: globalActions["toggleSTT"]),
-            ShortcutItem(name: "Toggle TTS Panel", shortcut: service.ttsKeyCombo.displayString, action: globalActions["toggleTTS"]),
-            ShortcutItem(name: "OCR Region to TTS", shortcut: service.ocrKeyCombo.displayString, action: globalActions["ocr"]),
-            ShortcutItem(name: "Toggle Subtitle Mode", shortcut: service.subtitleKeyCombo.displayString, action: globalActions["subtitle"]),
-            ShortcutItem(name: "Quick Transcription", shortcut: service.quickTranscriptionKeyCombo.displayString, action: globalActions["quickTranscription"]),
-            ShortcutItem(name: "Show Shortcuts", shortcut: service.shortcutHUDKeyCombo.displayString),
+            ShortcutItem(name: NSLocalizedString("Toggle STT Panel", comment: "Shortcut HUD action"), shortcut: service.sttKeyCombo.displayString, action: globalActions["toggleSTT"]),
+            ShortcutItem(name: NSLocalizedString("Toggle TTS Panel", comment: "Shortcut HUD action"), shortcut: service.ttsKeyCombo.displayString, action: globalActions["toggleTTS"]),
+            ShortcutItem(name: NSLocalizedString("OCR Region to TTS", comment: "Shortcut HUD action"), shortcut: service.ocrKeyCombo.displayString, action: globalActions["ocr"]),
+            ShortcutItem(name: NSLocalizedString("Toggle Subtitle Mode", comment: "Shortcut HUD action"), shortcut: service.subtitleKeyCombo.displayString, action: globalActions["subtitle"]),
+            ShortcutItem(name: NSLocalizedString("Quick Transcription", comment: "Shortcut HUD action"), shortcut: service.quickTranscriptionKeyCombo.displayString, action: globalActions["quickTranscription"]),
+            ShortcutItem(name: NSLocalizedString("Show Shortcuts", comment: "Shortcut HUD action"), shortcut: service.shortcutHUDKeyCombo.displayString),
         ]
     }
 

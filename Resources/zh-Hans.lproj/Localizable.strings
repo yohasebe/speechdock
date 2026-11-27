@@ -110,7 +110,6 @@
 "Select..." = "选择...";
 "Download Languages..." = "下载语言...";
 "Refresh Status" = "刷新状态";
-"Enter text to enable translation" = "输入文本以启用翻译";
 "Select a target language" = "请选择目标语言";
 "Translate to %@" = "翻译为%@";
 "Revert to original text" = "恢复为原文";
@@ -416,7 +415,7 @@
 "Close (⌘W)" = "关闭 (⌘W)";
 "Subtitle Mode: On (⌃⌥S)" = "字幕模式: 开 (⌃⌥S)";
 "Subtitle Mode: Off (⌃⌥S)" = "字幕模式: 关 (⌃⌥S)";
-"Capture text with OCR (⌃⌥⇧O)" = "使用 OCR 捕获文字 (⌃⌥⇧O)";
+"Capture text with OCR (%@)" = "使用 OCR 捕获文字 (%@)";
 "Refresh voice list" = "刷新语音列表";
 "Refresh voice list from API" = "从 API 刷新语音列表";
 "Hide controls" = "隐藏控件";
@@ -555,3 +554,27 @@
 "Use the form op://vault/item/field" = "请使用 op://保险库/项目/字段 的格式";
 "1Password CLI (op) could not be verified" = "无法验证 1Password CLI（op）的签名";
 "The audio input changed, so recording stopped. Start recording again." = "音频输入已更改，录音已停止。请重新开始录音。";
+
+"Could Not Save Audio" = "无法保存音频";
+"SpeechDock Help" = "SpeechDock 帮助";
+"Top" = "顶部";
+"Bottom" = "底部";
+"On-device, ~18 languages" = "设备端，约 18 种语言";
+"100+ languages, high quality" = "100 多种语言，高质量";
+"Apple Speech (offline, max 100MB)" = "Apple Speech（离线，最大 100MB）";
+"Shows HUD while recording" = "录音时显示 HUD";
+"Pastes text when done" = "结束后粘贴文本";
+"Hide Mic Button" = "隐藏麦克风按钮";
+"Transcription failed" = "转录失败";
+"Reference" = "参考";
+"Unsupported file format: .%@\n\nSupported formats: %@" = "不支持的文件格式：.%@\n\n支持的格式：%@";
+"Save Failed" = "保存失败";
+"Screen Recording permission required" = "需要屏幕录制权限";
+"SpeechDock Permissions" = "SpeechDock 权限";
+"Recommended" = "推荐";
+"Optional" = "可选";
+"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "面板“翻译”按钮和字幕实时翻译共用的翻译服务、模型和目标语言。";
+"Enter at least %d characters to translate" = "请至少输入 %d 个字符以进行翻译";
+"STT language is the same as translation target" = "语音识别语言与翻译目标语言相同";
+"Show Key" = "显示密钥";
+"Hide Key" = "隐藏密钥";

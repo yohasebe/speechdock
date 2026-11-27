@@ -110,7 +110,6 @@
 "Select..." = "選択...";
 "Download Languages..." = "言語をダウンロード...";
 "Refresh Status" = "ステータスを更新";
-"Enter text to enable translation" = "テキストを入力すると翻訳できます";
 "Select a target language" = "翻訳先の言語を選択してください";
 "Translate to %@" = "%@に翻訳";
 "Revert to original text" = "原文に戻す";
@@ -417,7 +416,7 @@
 "Close (⌘W)" = "閉じる (⌘W)";
 "Subtitle Mode: On (⌃⌥S)" = "字幕モード: オン (⌃⌥S)";
 "Subtitle Mode: Off (⌃⌥S)" = "字幕モード: オフ (⌃⌥S)";
-"Capture text with OCR (⌃⌥⇧O)" = "OCRでテキストを取り込む (⌃⌥⇧O)";
+"Capture text with OCR (%@)" = "OCRでテキストを取り込む (%@)";
 "Refresh voice list" = "音声リストを更新";
 "Refresh voice list from API" = "APIから音声リストを更新";
 "Hide controls" = "コントロールを隠す";
@@ -571,3 +570,27 @@
 "Use the form op://vault/item/field" = "op://保管庫/項目/フィールド の形で入力してください";
 "1Password CLI (op) could not be verified" = "1Password CLI（op）の署名を確認できません";
 "The audio input changed, so recording stopped. Start recording again." = "音声の入力が変わったため、録音を停止しました。もう一度録音を開始してください。";
+
+"Could Not Save Audio" = "オーディオを保存できませんでした";
+"SpeechDock Help" = "SpeechDock ヘルプ";
+"Top" = "上";
+"Bottom" = "下";
+"On-device, ~18 languages" = "端末内、約18言語";
+"100+ languages, high quality" = "100以上の言語、高品質";
+"Apple Speech (offline, max 100MB)" = "Apple Speech（オフライン、最大100MB）";
+"Shows HUD while recording" = "録音中は HUD を表示";
+"Pastes text when done" = "終了後にテキストを貼り付け";
+"Hide Mic Button" = "マイクボタンを隠す";
+"Transcription failed" = "文字起こしに失敗しました";
+"Reference" = "参考";
+"Unsupported file format: .%@\n\nSupported formats: %@" = "対応していないファイル形式です: .%@\n\n対応形式: %@";
+"Save Failed" = "保存できませんでした";
+"Screen Recording permission required" = "画面収録の許可が必要です";
+"SpeechDock Permissions" = "SpeechDock の権限";
+"Recommended" = "推奨";
+"Optional" = "任意";
+"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "パネルの「翻訳する」ボタンと、字幕のリアルタイム翻訳の両方で使う、翻訳のプロバイダ、モデル、翻訳先の言語です。";
+"Enter at least %d characters to translate" = "翻訳するには%d文字以上入力してください";
+"STT language is the same as translation target" = "音声認識の言語が翻訳先と同じです";
+"Show Key" = "キーを表示";
+"Hide Key" = "キーを隠す";

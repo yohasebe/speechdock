@@ -24,8 +24,11 @@ struct TranslationControls: View {
     }
 
     /// Whether we have enough text to translate
+    /// Fewer characters than this are not worth a translation request.
+    static let minimumTextLength = 3
+
     private var hasEnoughText: Bool {
-        text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3
+        text.trimmingCharacters(in: .whitespacesAndNewlines).count >= Self.minimumTextLength
     }
 
     /// Whether translation is in progress
@@ -141,15 +144,17 @@ struct TranslationControls: View {
     /// Help text for translate button based on current state
     private var translateButtonHelpText: String {
         if !hasEnoughText {
-            return "Enter text to enable translation"
+            return String(format: NSLocalizedString("Enter at least %d characters to translate", comment: "Translate button help"),
+                          Self.minimumTextLength)
         }
         if applySameLanguageGuard && appState.isSTTLanguageSameAsTranslationTarget {
-            return "STT language is the same as translation target"
+            return NSLocalizedString("STT language is the same as translation target", comment: "Translate button help")
         }
         if !isTargetLanguageAvailable {
-            return "Select a target language"
+            return NSLocalizedString("Select a target language", comment: "Translate button help")
         }
-        return "Translate to \(appState.translationTargetLanguage.displayName)"
+        return String(format: NSLocalizedString("Translate to %@", comment: "Translate button help"),
+                      appState.translationTargetLanguage.displayName)
     }
 
     // MARK: - Original Button

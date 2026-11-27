@@ -110,7 +110,6 @@
 "Select..." = "선택...";
 "Download Languages..." = "언어 다운로드...";
 "Refresh Status" = "상태 새로고침";
-"Enter text to enable translation" = "텍스트를 입력하면 번역할 수 있습니다";
 "Select a target language" = "번역 대상 언어를 선택하세요";
 "Translate to %@" = "%@(으)로 번역";
 "Revert to original text" = "원문으로 되돌리기";
@@ -417,7 +416,7 @@
 "Close (⌘W)" = "닫기 (⌘W)";
 "Subtitle Mode: On (⌃⌥S)" = "자막 모드: 켜짐 (⌃⌥S)";
 "Subtitle Mode: Off (⌃⌥S)" = "자막 모드: 꺼짐 (⌃⌥S)";
-"Capture text with OCR (⌃⌥⇧O)" = "OCR로 텍스트 캡처 (⌃⌥⇧O)";
+"Capture text with OCR (%@)" = "OCR로 텍스트 캡처 (%@)";
 "Refresh voice list" = "음성 목록 새로고침";
 "Refresh voice list from API" = "API에서 음성 목록 새로고침";
 "Hide controls" = "컨트롤 숨기기";
@@ -556,3 +555,27 @@
 "Use the form op://vault/item/field" = "op://보관함/항목/필드 형식으로 입력하세요";
 "1Password CLI (op) could not be verified" = "1Password CLI(op)의 서명을 확인할 수 없습니다";
 "The audio input changed, so recording stopped. Start recording again." = "오디오 입력이 바뀌어 녹음을 중지했습니다. 녹음을 다시 시작하세요.";
+
+"Could Not Save Audio" = "오디오를 저장할 수 없음";
+"SpeechDock Help" = "SpeechDock 도움말";
+"Top" = "위";
+"Bottom" = "아래";
+"On-device, ~18 languages" = "기기 내, 약 18개 언어";
+"100+ languages, high quality" = "100개 이상 언어, 고품질";
+"Apple Speech (offline, max 100MB)" = "Apple Speech(오프라인, 최대 100MB)";
+"Shows HUD while recording" = "녹음 중 HUD 표시";
+"Pastes text when done" = "끝나면 텍스트 붙여넣기";
+"Hide Mic Button" = "마이크 버튼 숨기기";
+"Transcription failed" = "받아쓰기 실패";
+"Reference" = "참고";
+"Unsupported file format: .%@\n\nSupported formats: %@" = "지원하지 않는 파일 형식: .%@\n\n지원 형식: %@";
+"Save Failed" = "저장 실패";
+"Screen Recording permission required" = "화면 기록 권한이 필요합니다";
+"SpeechDock Permissions" = "SpeechDock 권한";
+"Recommended" = "권장";
+"Optional" = "선택";
+"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "패널의 번역 버튼과 자막 실시간 번역에 함께 쓰이는 번역 제공자, 모델, 대상 언어입니다.";
+"Enter at least %d characters to translate" = "번역하려면 %d자 이상 입력하세요";
+"STT language is the same as translation target" = "음성 인식 언어가 번역 대상 언어와 같습니다";
+"Show Key" = "키 표시";
+"Hide Key" = "키 숨기기";

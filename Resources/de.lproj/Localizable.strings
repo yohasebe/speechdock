@@ -110,7 +110,6 @@
 "Select..." = "Auswählen ...";
 "Download Languages..." = "Sprachen laden ...";
 "Refresh Status" = "Status aktualisieren";
-"Enter text to enable translation" = "Text eingeben, um Übersetzung zu aktivieren";
 "Select a target language" = "Zielsprache auswählen";
 "Translate to %@" = "Übersetzen nach %@";
 "Revert to original text" = "Zum Originaltext zurückkehren";
@@ -417,7 +416,7 @@
 "Close (⌘W)" = "Schließen (⌘W)";
 "Subtitle Mode: On (⌃⌥S)" = "Untertitelmodus: Ein (⌃⌥S)";
 "Subtitle Mode: Off (⌃⌥S)" = "Untertitelmodus: Aus (⌃⌥S)";
-"Capture text with OCR (⌃⌥⇧O)" = "Text mit OCR erfassen (⌃⌥⇧O)";
+"Capture text with OCR (%@)" = "Text mit OCR erfassen (%@)";
 "Refresh voice list" = "Stimmenliste aktualisieren";
 "Refresh voice list from API" = "Stimmenliste über API aktualisieren";
 "Hide controls" = "Steuerelemente ausblenden";
@@ -556,3 +555,27 @@
 "Use the form op://vault/item/field" = "Verwenden Sie die Form op://Tresor/Objekt/Feld";
 "1Password CLI (op) could not be verified" = "1Password CLI (op) konnte nicht verifiziert werden";
 "The audio input changed, so recording stopped. Start recording again." = "Der Audioeingang hat sich geändert, daher wurde die Aufnahme beendet. Bitte die Aufnahme erneut starten.";
+
+"Could Not Save Audio" = "Audio konnte nicht gesichert werden";
+"SpeechDock Help" = "SpeechDock-Hilfe";
+"Top" = "Oben";
+"Bottom" = "Unten";
+"On-device, ~18 languages" = "Auf dem Gerät, ca. 18 Sprachen";
+"100+ languages, high quality" = "Über 100 Sprachen, hohe Qualität";
+"Apple Speech (offline, max 100MB)" = "Apple Speech (offline, max. 100 MB)";
+"Shows HUD while recording" = "Zeigt während der Aufnahme ein HUD";
+"Pastes text when done" = "Fügt den Text am Ende ein";
+"Hide Mic Button" = "Mikrofontaste ausblenden";
+"Transcription failed" = "Transkription fehlgeschlagen";
+"Reference" = "Referenz";
+"Unsupported file format: .%@\n\nSupported formats: %@" = "Nicht unterstütztes Dateiformat: .%@\n\nUnterstützte Formate: %@";
+"Save Failed" = "Speichern fehlgeschlagen";
+"Screen Recording permission required" = "Bildschirmaufnahme-Berechtigung erforderlich";
+"SpeechDock Permissions" = "SpeechDock-Berechtigungen";
+"Recommended" = "Empfohlen";
+"Optional" = "Optional";
+"Translation provider, model, and target language used by both the panel Translate button and subtitle real-time translation." = "Übersetzungsanbieter, Modell und Zielsprache für die Übersetzen-Taste im Fenster und die Echtzeit-Übersetzung der Untertitel.";
+"Enter at least %d characters to translate" = "Geben Sie mindestens %d Zeichen ein, um zu übersetzen";
+"STT language is the same as translation target" = "Die Spracherkennungssprache entspricht der Zielsprache";
+"Show Key" = "Schlüssel anzeigen";
+"Hide Key" = "Schlüssel ausblenden";

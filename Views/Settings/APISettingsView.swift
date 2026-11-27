@@ -63,6 +63,8 @@ struct APIKeySection: View {
                         Image(systemName: showKey ? "eye.slash" : "eye")
                     }
                     .buttonStyle(.borderless)
+                    .help(showKey ? "Hide Key" : "Show Key")
+                    .accessibilityLabel(showKey ? "Hide Key" : "Show Key")
                 }
 
                 // Status on its own rows, so long variable names and reasons
