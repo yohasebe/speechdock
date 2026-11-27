@@ -40,7 +40,7 @@ SpeechDock stays in the Dock while an STT/TTS panel, Settings, or permission set
 ## Speech-to-Text (STT)
 
 <figure>
-  <img src="images/stt-panel.png" alt="STT Panel" style="max-width: 600px;">
+  <img src="images/stt-panel.svg" alt="STT Panel" style="max-width: 720px;">
   <figcaption>STT Panel — Real-time speech recognition with multiple audio sources</figcaption>
 </figure>
 
@@ -69,7 +69,7 @@ Open the STT panel with the global hotkey (default: `Cmd + Shift + Space`), or f
 | Cancel | `Cmd + .` |
 
 <figure>
-  <img src="images/select-paste-target.png" alt="Select Paste Target" style="max-width: 500px;">
+  <img src="images/select-paste-target.svg" alt="Select Paste Target" style="max-width: 720px;">
   <figcaption>Select Paste Target — Choose which application receives the transcribed text</figcaption>
 </figure>
 
@@ -87,7 +87,7 @@ Configure in **Settings** > **Speech-to-Text**.
 ## Text-to-Speech (TTS)
 
 <figure>
-  <img src="images/tts-panel.png" alt="TTS Panel" style="max-width: 600px;">
+  <img src="images/tts-panel.svg" alt="TTS Panel" style="max-width: 720px;">
   <figcaption>TTS Panel — Text-to-speech with speed control and audio saving</figcaption>
 </figure>
 
@@ -122,7 +122,7 @@ Save synthesized audio to a file by pressing `Cmd + S` or clicking the Save butt
 ## OCR to Speech
 
 <figure>
-  <img src="images/ocr-selection.png" alt="OCR Selection" style="max-width: 400px;">
+  <img src="images/ocr-selection.svg" alt="OCR Selection" style="max-width: 720px;">
   <figcaption>OCR Selection — Drag to select a screen region for text recognition</figcaption>
 </figure>
 
@@ -138,7 +138,7 @@ Uses the macOS Vision Framework for text recognition.
 ## Subtitle Mode
 
 <figure>
-  <img src="images/subtitle-overlay.png" alt="Subtitle Overlay" style="max-width: 100%;">
+  <img src="images/subtitle-overlay.svg" alt="Subtitle Overlay" style="max-width: 100%;">
   <figcaption>Subtitle Overlay — Real-time transcription displayed as floating subtitles</figcaption>
 </figure>
 
@@ -166,7 +166,7 @@ Translation settings are synced from the STT panel when subtitle mode starts. Yo
 ## Quick Transcription
 
 <figure>
-  <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
+  <img src="images/quick-transcription.svg" alt="Quick Transcription" style="max-width: 720px;">
   <figcaption>Quick Transcription — Clicking the button stops recording and pastes the transcribed text at the cursor</figcaption>
 </figure>
 
@@ -201,7 +201,7 @@ The button tooltip shows the current shortcut and recording duration.
 ## Translation
 
 <figure>
-  <img src="images/translation-controls.png" alt="Translation Controls" style="max-width: 600px;">
+  <img src="images/translation-controls.svg" alt="Translation Controls" style="max-width: 720px;">
   <figcaption>Translation Controls — Translate text with one click</figcaption>
 </figure>
 
@@ -257,7 +257,7 @@ Customize in **Settings** > **Shortcuts**.
 Press `?` in any panel to display the keyboard shortcuts cheat sheet:
 
 <figure>
-  <img src="images/shortcuts.png" alt="Keyboard Shortcuts" style="max-width: 500px;">
+  <img src="images/shortcuts.svg" alt="Keyboard Shortcuts" style="max-width: 720px;">
   <figcaption>Keyboard Shortcuts Cheat Sheet</figcaption>
 </figure>
 
@@ -277,7 +277,7 @@ Only one panel (STT or TTS) can be open at a time. Opening one closes the other.
 ## Menu Bar
 
 <figure>
-  <img src="images/menu-bar.png" alt="Menu Bar" style="max-width: 350px;">
+  <img src="images/menu-bar.svg" alt="Menu Bar" style="max-width: 350px;">
   <figcaption>Menu Bar — Quick access to all features</figcaption>
 </figure>
 
@@ -296,37 +296,37 @@ Click the SpeechDock icon in the menu bar for quick access to:
 Open Settings with `Cmd + ,` or from the menu bar. The unified settings window uses a sidebar with the following categories:
 
 <figure>
-  <img src="images/settings-stt.png" alt="Speech-to-Text Settings" style="max-width: 600px;">
+  <img src="images/settings-stt.svg" alt="Speech-to-Text Settings" style="max-width: 720px;">
   <figcaption>Speech-to-Text — Provider, model, language, audio input, auto-stop, panel behavior</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-tts.png" alt="Text-to-Speech Settings" style="max-width: 600px;">
+  <img src="images/settings-tts.svg" alt="Text-to-Speech Settings" style="max-width: 720px;">
   <figcaption>Text-to-Speech — Provider, model, voice, speed, audio output, panel behavior</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-translation.png" alt="Translation Settings" style="max-width: 600px;">
+  <img src="images/settings-translation.svg" alt="Translation Settings" style="max-width: 720px;">
   <figcaption>Translation — Panel translation provider/model, subtitle translation settings</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-subtitle.png" alt="Subtitle Settings" style="max-width: 600px;">
+  <img src="images/settings-subtitle.svg" alt="Subtitle Settings" style="max-width: 720px;">
   <figcaption>Subtitle — On/off, position, font size, text/background opacity, max lines</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-shortcuts.png" alt="Shortcuts Settings" style="max-width: 600px;">
+  <img src="images/settings-shortcuts.svg" alt="Shortcuts Settings" style="max-width: 720px;">
   <figcaption>Shortcuts — Global hotkeys and panel shortcuts</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-text-replacement.png" alt="Text Replacement Settings" style="max-width: 600px;">
+  <img src="images/settings-text-replacement.svg" alt="Text Replacement Settings" style="max-width: 720px;">
   <figcaption>Text Replacement — Built-in patterns and custom rules</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-appearance.png" alt="Appearance Settings" style="max-width: 600px;">
+  <img src="images/settings-appearance.svg" alt="Appearance Settings" style="max-width: 720px;">
   <figcaption>Appearance — Text font size, panel style, launch at login</figcaption>
 </figure>
 

@@ -42,7 +42,7 @@ STT/TTS パネル、設定、権限セットアップのいずれかが開いて
 ## 音声認識 (STT)
 
 <figure>
-  <img src="images/stt-panel.png" alt="STT Panel" style="max-width: 600px;">
+  <img src="images/ja/stt-panel.svg" alt="STT Panel" style="max-width: 720px;">
   <figcaption>STTパネル — 複数の音声ソースに対応したリアルタイム音声認識</figcaption>
 </figure>
 
@@ -71,7 +71,7 @@ STT/TTS パネル、設定、権限セットアップのいずれかが開いて
 | キャンセル | `Cmd + .` |
 
 <figure>
-  <img src="images/select-paste-target.png" alt="Select Paste Target" style="max-width: 500px;">
+  <img src="images/ja/select-paste-target.svg" alt="Select Paste Target" style="max-width: 720px;">
   <figcaption>ペースト先の選択 — 文字起こしテキストを受け取るアプリケーションを選択</figcaption>
 </figure>
 
@@ -89,7 +89,7 @@ STT/TTS パネル、設定、権限セットアップのいずれかが開いて
 ## 音声合成 (TTS)
 
 <figure>
-  <img src="images/tts-panel.png" alt="TTS Panel" style="max-width: 600px;">
+  <img src="images/ja/tts-panel.svg" alt="TTS Panel" style="max-width: 720px;">
   <figcaption>TTSパネル — 速度調整と音声保存機能付きのテキスト読み上げ</figcaption>
 </figure>
 
@@ -124,7 +124,7 @@ TTSパネルのスライダーで再生速度を0.5倍から2.0倍に調整で�
 ## OCR読み上げ
 
 <figure>
-  <img src="images/ocr-selection.png" alt="OCR Selection" style="max-width: 400px;">
+  <img src="images/ja/ocr-selection.svg" alt="OCR Selection" style="max-width: 720px;">
   <figcaption>OCR選択 — テキスト認識のための画面領域をドラッグで選択</figcaption>
 </figure>
 
@@ -140,7 +140,7 @@ TTSパネルのスライダーで再生速度を0.5倍から2.0倍に調整で�
 ## 字幕モード
 
 <figure>
-  <img src="images/subtitle-overlay.png" alt="Subtitle Overlay" style="max-width: 100%;">
+  <img src="images/ja/subtitle-overlay.svg" alt="Subtitle Overlay" style="max-width: 100%;">
   <figcaption>字幕オーバーレイ — フローティング字幕として表示されるリアルタイム文字起こし</figcaption>
 </figure>
 
@@ -168,7 +168,7 @@ TTSパネルのスライダーで再生速度を0.5倍から2.0倍に調整で�
 ## クイック入力
 
 <figure>
-  <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
+  <img src="images/ja/quick-transcription.svg" alt="Quick Transcription" style="max-width: 720px;">
   <figcaption>クイック入力 — ボタンをクリックすると録音が停止し、文字起こしテキストがカーソル位置にペーストされます</figcaption>
 </figure>
 
@@ -203,7 +203,7 @@ STTパネルを開かずに音声入力を行うフローティングマイク�
 ## 翻訳
 
 <figure>
-  <img src="images/translation-controls.png" alt="Translation Controls" style="max-width: 600px;">
+  <img src="images/ja/translation-controls.svg" alt="Translation Controls" style="max-width: 720px;">
   <figcaption>翻訳コントロール — ワンクリックでテキストを翻訳</figcaption>
 </figure>
 
@@ -259,7 +259,7 @@ TTSパネルでは、マッチしたテキストがオレンジ色の下線と�
 パネル内で `?` を押すとキーボードショートカットのチートシートが表示されます：
 
 <figure>
-  <img src="images/shortcuts.png" alt="Keyboard Shortcuts" style="max-width: 500px;">
+  <img src="images/ja/shortcuts.svg" alt="Keyboard Shortcuts" style="max-width: 720px;">
   <figcaption>キーボードショートカット チートシート</figcaption>
 </figure>
 
@@ -279,7 +279,7 @@ TTSパネルでは、マッチしたテキストがオレンジ色の下線と�
 ## メニューバー
 
 <figure>
-  <img src="images/menu-bar.png" alt="Menu Bar" style="max-width: 350px;">
+  <img src="images/ja/menu-bar.svg" alt="Menu Bar" style="max-width: 350px;">
   <figcaption>メニューバー — すべての機能へのクイックアクセス</figcaption>
 </figure>
 
@@ -298,37 +298,37 @@ TTSパネルでは、マッチしたテキストがオレンジ色の下線と�
 `Cmd + ,` またはメニューバーから設定を開きます。統合設定ウィンドウはサイドバーで以下のカテゴリに分かれています：
 
 <figure>
-  <img src="images/settings-stt.png" alt="Speech-to-Text Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-stt.svg" alt="Speech-to-Text Settings" style="max-width: 720px;">
   <figcaption>音声認識 — プロバイダ、モデル、言語、音声入力、自動停止、パネル動作</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-tts.png" alt="Text-to-Speech Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-tts.svg" alt="Text-to-Speech Settings" style="max-width: 720px;">
   <figcaption>音声合成 — プロバイダ、モデル、音声、速度、音声出力、パネル動作</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-translation.png" alt="Translation Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-translation.svg" alt="Translation Settings" style="max-width: 720px;">
   <figcaption>翻訳 — パネル翻訳プロバイダ/モデル、字幕翻訳設定</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-subtitle.png" alt="Subtitle Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-subtitle.svg" alt="Subtitle Settings" style="max-width: 720px;">
   <figcaption>字幕 — オン/オフ、位置、フォントサイズ、テキスト/背景の不透明度、最大行数</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-shortcuts.png" alt="Shortcuts Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-shortcuts.svg" alt="Shortcuts Settings" style="max-width: 720px;">
   <figcaption>ショートカット — グローバルホットキーとパネルショートカット</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-text-replacement.png" alt="Text Replacement Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-text-replacement.svg" alt="Text Replacement Settings" style="max-width: 720px;">
   <figcaption>テキスト置換 — 組み込みパターンとカスタムルール</figcaption>
 </figure>
 
 <figure>
-  <img src="images/settings-appearance.png" alt="Appearance Settings" style="max-width: 600px;">
+  <img src="images/ja/settings-appearance.svg" alt="Appearance Settings" style="max-width: 720px;">
   <figcaption>外観 — テキストフォントサイズ、パネルスタイル、ログイン時に起動</figcaption>
 </figure>
 

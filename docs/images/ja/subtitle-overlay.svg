@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="1000" height="307" viewBox="0 0 1000 307" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif">
+  <title>字幕モード</title>
+  <defs>
+    <filter id="window-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/></filter>
+    <filter id="control-shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/></filter>
+    <linearGradient id="desktop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3a5c"/><stop offset="0.6" stop-color="#6a5a72"/><stop offset="1" stop-color="#b98d72"/></linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1000" height="307" rx="0" fill="url(#desktop)"/>
+  <path d="M0 221 C 300 184.2, 650 202.6, 1000 245.6 V 307 H 0 Z" fill="#26332b"/>
+  <rect x="80" y="130" width="840" height="137" rx="12" fill="#000" fill-opacity="0.5"/>
+  <rect x="482" y="136" width="36" height="4" rx="2" fill="#fff" fill-opacity="0.6"/>
+  <g transform="translate(104 150) scale(1.0)" color="#1f1f1f"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5.5 5.5l5 5m0-5l-5 5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></g>
+  <circle cx="137" cy="158" r="5" fill="#ff3b30"/>
+  <text x="148" y="163.7" font-size="15" font-weight="400" fill="#fff" fill-opacity="0.6">録音中</text>
+  <rect x="199" y="147" width="58" height="22" rx="4" fill="#fff" fill-opacity="0.15"/>
+  <g transform="translate(207 152) scale(0.75)" color="#fff" opacity="0.7"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor"/></g>
+  <text x="223" y="162.9" font-size="13" font-weight="500" fill="#fff" fill-opacity="0.7">停止</text>
+  <g transform="translate(882 151) scale(0.875)" color="#fff" opacity="0.5"><path d="M1.5 3.5h13M1.5 8h13M1.5 12.5h13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="10.5" cy="3.5" r="1.7" fill="#2b2b2b" stroke="currentColor" stroke-width="1.2"/><circle cx="5" cy="8" r="1.7" fill="#2b2b2b" stroke="currentColor" stroke-width="1.2"/><circle cx="9" cy="12.5" r="1.7" fill="#2b2b2b" stroke="currentColor" stroke-width="1.2"/></g>
+  <g transform="translate(861 153.5) scale(0.5625)" color="#fff" opacity="0.4"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="814" y="162.5" font-size="12" font-weight="500" fill="#fff" fill-opacity="0.6">English</text>
+  <text x="797" y="162.5" font-size="12" font-weight="400" fill="#fff" fill-opacity="0.3">→</text>
+  <g transform="translate(782 153.5) scale(0.5625)" color="#fff" opacity="0.4"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="737" y="162.5" font-size="12" font-weight="400" fill="#fff" fill-opacity="0.6">macOS</text>
+  <g transform="translate(717 151) scale(0.875)" color="#007aff"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="8" cy="8" rx="3" ry="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M1.5 8h13" stroke="currentColor" stroke-width="1.2"/></g>
+  <text x="104" y="199.4" font-size="19.6" font-weight="400" fill="#fff" fill-opacity="0.51">プロバイダと言語を選んで録音を押し、話してください。</text>
+  <text x="104" y="243.1" font-size="28" font-weight="500" fill="#fff" fill-opacity="0.85">Pick a provider and a language, press Record, and speak.</text>
+</svg>

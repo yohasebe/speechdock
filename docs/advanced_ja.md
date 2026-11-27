@@ -15,7 +15,7 @@ lang: ja
 ## APIキーの設定
 
 <figure>
-  <img src="images/settings-apikeys.png" alt="API Keys Settings" style="max-width: 500px;">
+  <img src="images/ja/settings-apikeys.svg" alt="API Keys Settings" style="max-width: 720px;">
   <figcaption>設定 — クラウドプロバイダ認証情報のAPIキータブ</figcaption>
 </figure>
 
@@ -100,7 +100,7 @@ TTS再生を任意の音声出力デバイス（スピーカー、ヘッドフ�
 ## 音声ファイルの文字起こし
 
 <figure>
-  <img src="images/file-transcription.png" alt="File Transcription" style="max-width: 600px;">
+  <img src="images/ja/file-transcription.svg" alt="File Transcription" style="max-width: 720px;">
   <figcaption>ファイル文字起こし — 音声ファイルをドラッグ＆ドロップして文字起こし</figcaption>
 </figure>
 

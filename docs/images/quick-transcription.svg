@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="880" height="360" viewBox="0 0 880 360" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif">
+  <title>Quick Transcription</title>
+  <defs>
+    <filter id="window-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/></filter>
+    <filter id="control-shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/></filter>
+    <linearGradient id="tool-desktop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5d7fb4"/><stop offset="1" stop-color="#8aa3cc"/></linearGradient>
+  </defs>
+  <rect x="0" y="0" width="880" height="360" rx="0" fill="url(#tool-desktop)"/>
+  <rect x="32" y="32" width="440" height="296" rx="10" fill="#ffffff" filter="url(#window-shadow)"/>
+  <path d="M32 60h440" stroke="#000" stroke-opacity="0.08"/>
+  <circle cx="48" cy="46" r="5.5" fill="#d9d9dc"/>
+  <circle cx="66" cy="46" r="5.5" fill="#d9d9dc"/>
+  <circle cx="84" cy="46" r="5.5" fill="#d9d9dc"/>
+  <path d="M56 80v20" stroke="#1d1d1f" stroke-width="1.5"/>
+  <rect x="512" y="40" width="320" height="120" rx="12" fill="#000" fill-opacity="0.85" filter="url(#window-shadow)"/>
+  <circle cx="532" cy="59.5" r="4" fill="#ff3b30"/>
+  <text x="542" y="64" font-size="12" font-weight="400" fill="#fff" fill-opacity="0.8">Recording...</text>
+  <text x="617" y="64" font-size="12" font-weight="400" fill="#fff" fill-opacity="0.8">⌃⌥M to stop</text>
+  <text x="528" y="90.3" font-size="14" font-weight="500" fill="#fff" fill-opacity="0.9">Let's meet on Friday at three and go over </text>
+  <text x="528" y="110.3" font-size="14" font-weight="500" fill="#fff" fill-opacity="0.9">the draft together.</text>
+  <circle cx="672" cy="194" r="27.5" fill="none" stroke="#ff3b30" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="672" cy="194" r="24" fill="#f4f4f6" fill-opacity="0.85" filter="url(#control-shadow)"/>
+  <circle cx="672" cy="194" r="22" fill="#ff3b30" fill-opacity="0.9" stroke="#ff3b30" stroke-width="1.5"/>
+  <g transform="translate(663 185) scale(1.125)" color="#ffffff"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor"/></g>
+</svg>

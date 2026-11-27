@@ -61,4 +61,6 @@ docs/_includes/head_custom.html
 docs/_sass/custom/custom.scss
 docs/{index,basics,advanced,applescript}{,_ja}.md
 docs/images/*.png
-docs/images/architecture.{drawio,svg}
+docs/images/architecture.drawio
+docs/images/*.svg
+docs/images/ja/*.svg

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="948" height="416" viewBox="0 0 948 416" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif">
+  <title>Text-to-Speech</title>
+  <defs>
+    <filter id="window-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/></filter>
+    <filter id="control-shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/></filter>
+  </defs>
+  <rect x="24" y="24" width="900" height="368" rx="12" fill="#ececec" stroke="#000" stroke-opacity="0.12" filter="url(#window-shadow)"/>
+  <g transform="translate(44 44) scale(1.0)" color="#a1a1a6"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5.5 5.5l5 5m0-5l-5 5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></g>
+  <g transform="translate(75 43) scale(1.125)" color="#007aff"><path d="M1.8 6h2.6L8 3v10L4.4 10H1.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M10.5 5.6a3.4 3.4 0 0 1 0 4.8M12.6 3.6a6.2 6.2 0 0 1 0 8.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
+  <text x="104" y="56.9" font-size="13" font-weight="700" fill="#1d1d1f">Text-to-Speech</text>
+  <g transform="translate(899 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="777" y="43" width="118" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <g transform="translate(784 45) scale(0.875)" color="#1d1d1f"><path d="M1.8 6h2.6L8 3v10L4.4 10H1.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M10.5 5.6a3.4 3.4 0 0 1 0 4.8M12.6 3.6a6.2 6.2 0 0 1 0 8.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
+  <text x="803" y="56.5" font-size="12" font-weight="400" fill="#1d1d1f">System Default</text>
+  <text x="730" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Output:</text>
+  <rect x="679" y="43" width="43" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <text x="685" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">1.00x</text>
+  <text x="635" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Speed:</text>
+  <g transform="translate(618 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="468" y="43" width="146" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <text x="474" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">Auto (detect language)</text>
+  <text x="429" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Voice:</text>
+  <g transform="translate(412 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="354" y="43" width="54" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <text x="360" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">macOS</text>
+  <text x="299" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Provider:</text>
+  <rect x="40" y="76" width="868" height="210" rx="8" fill="#fffcf5" stroke="#8e8e93" stroke-opacity="0.3"/>
+  <text x="54" y="106.8" font-size="18" font-weight="400" fill="#1d1d1f">Select text in any app and press the shortcut, and SpeechDock reads it aloud. You can also type or </text>
+  <text x="54" y="130.8" font-size="18" font-weight="400" fill="#1d1d1f">paste text here, capture text on the screen with OCR, or save the speech as an audio file.</text>
+  <rect x="763" y="250" width="137" height="28" rx="8" fill="#ececec" filter="url(#control-shadow)"/>
+  <g transform="translate(773.5 256.5) scale(0.9375)" color="#7a7a7e"><path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>
+  <text x="797" y="268.5" font-size="12" font-weight="500" fill="#7a7a7e">18</text>
+  <g transform="translate(819.5 256.5) scale(0.9375)" color="#7a7a7e"><path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>
+  <path d="M841.5 257v14" stroke="black" stroke-opacity="0.15"/>
+  <g transform="translate(848.5 256.5) scale(0.9375)" color="#7a7a7e"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5.2 8.2l2 2 3.6-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <g transform="translate(874.5 256.5) scale(0.9375)" color="#7a7a7e"><g transform="rotate(-45 8 8)"><rect x="1.5" y="5" width="13" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M6.5 5v6" stroke="currentColor" stroke-width="1.3"/></g></g>
+  <text x="44" y="318.5" font-size="12" font-weight="400" fill="#7a7a7e">Translation:</text>
+  <text x="116" y="318.5" font-size="12" font-weight="500" fill="#1d1d1f">→ 日本語</text>
+  <g transform="translate(171 309.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="186" y="318.5" font-size="12" font-weight="500" fill="#1d1d1f">macOS</text>
+  <g transform="translate(232 309.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="247" y="304" width="82" height="20" rx="4" fill="#007aff" fill-opacity="0.12"/>
+  <g transform="translate(253 308) scale(0.75)" color="#007aff"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="8" cy="8" rx="3" ry="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M1.5 8h13" stroke="currentColor" stroke-width="1.2"/></g>
+  <text x="269" y="318.5" font-size="12" font-weight="500" fill="#007aff">Translate</text>
+  <g transform="translate(48 352) scale(0.875)" color="#7a7a7e"><path d="M1.5 5V2.8A1.3 1.3 0 0 1 2.8 1.5H5M11 1.5h2.2a1.3 1.3 0 0 1 1.3 1.3V5M14.5 11v2.2a1.3 1.3 0 0 1-1.3 1.3H11M5 14.5H2.8a1.3 1.3 0 0 1-1.3-1.3V11M4.5 5.5h7M4.5 8h7M4.5 10.5h4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
+  <text x="66" y="363.5" font-size="12" font-weight="400" fill="#7a7a7e">OCR</text>
+  <text x="112" y="363.5" font-size="12" font-weight="400" fill="#7a7a7e">189 chars / 37 words</text>
+  <rect x="795" y="343" width="113" height="32" rx="6" fill="#ffffff" stroke="#000" stroke-opacity="0.1" filter="url(#control-shadow)"/>
+  <g transform="translate(809 352) scale(0.875)" color="#1d1d1f"><path d="M5 5.5H3.5v9h9v-9H11M8 1.5V10M5.5 7.5L8 10l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="826" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Save Audio</text>
+  <rect x="704" y="343" width="83" height="32" rx="6" fill="#007aff"/>
+  <g transform="translate(718 352) scale(0.875)" color="#ffffff"><path d="M1.8 6h2.6L8 3v10L4.4 10H1.8z" fill="currentColor"/><path d="M10.5 5.6a3.4 3.4 0 0 1 0 4.8M12.6 3.6a6.2 6.2 0 0 1 0 8.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></g>
+  <text x="735" y="363.9" font-size="13" font-weight="400" fill="#ffffff">Speak</text>
+</svg>

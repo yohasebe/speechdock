@@ -13,7 +13,7 @@ This page covers features that require API keys from cloud providers. These are 
 ## API Key Setup
 
 <figure>
-  <img src="images/settings-apikeys.png" alt="API Keys Settings" style="max-width: 500px;">
+  <img src="images/settings-apikeys.svg" alt="API Keys Settings" style="max-width: 720px;">
   <figcaption>Settings — API Keys tab for configuring cloud provider credentials</figcaption>
 </figure>
 
@@ -98,7 +98,7 @@ Route TTS playback to any audio output device (speakers, headphones, virtual dev
 ## Audio File Transcription
 
 <figure>
-  <img src="images/file-transcription.png" alt="File Transcription" style="max-width: 600px;">
+  <img src="images/file-transcription.svg" alt="File Transcription" style="max-width: 720px;">
   <figcaption>File Transcription — Drag and drop audio files to transcribe</figcaption>
 </figure>
 

@@ -87,22 +87,22 @@ A menu bar app that makes STT and TTS accessible from anywhere on your Mac with 
 ## Screenshots
 
 <figure>
-  <img src="images/stt-panel.png" alt="STT Panel" style="max-width: 600px;">
+  <img src="images/stt-panel.svg" alt="STT Panel" style="max-width: 720px;">
   <figcaption>Speech-to-Text Panel</figcaption>
 </figure>
 
 <figure>
-  <img src="images/tts-panel.png" alt="TTS Panel" style="max-width: 600px;">
+  <img src="images/tts-panel.svg" alt="TTS Panel" style="max-width: 720px;">
   <figcaption>Text-to-Speech Panel</figcaption>
 </figure>
 
 <figure>
-  <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
+  <img src="images/quick-transcription.svg" alt="Quick Transcription" style="max-width: 720px;">
   <figcaption>Quick Transcription — Clicking the button stops recording and pastes the transcribed text at the cursor</figcaption>
 </figure>
 
 <figure>
-  <img src="images/subtitle-overlay.png" alt="Subtitle Mode" style="max-width: 100%;">
+  <img src="images/subtitle-overlay.svg" alt="Subtitle Mode" style="max-width: 100%;">
   <figcaption>Subtitle Mode — Real-time transcription as floating subtitles</figcaption>
 </figure>
 

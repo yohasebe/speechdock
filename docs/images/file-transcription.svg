@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="948" height="416" viewBox="0 0 948 416" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif">
+  <title>Drop audio file to transcribe</title>
+  <defs>
+    <filter id="window-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/></filter>
+    <filter id="control-shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/></filter>
+  </defs>
+  <rect x="24" y="24" width="900" height="368" rx="12" fill="#ececec" stroke="#000" stroke-opacity="0.12" filter="url(#window-shadow)"/>
+  <g transform="translate(44 44) scale(1.0)" color="#a1a1a6"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5.5 5.5l5 5m0-5l-5 5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></g>
+  <g transform="translate(75 43) scale(1.125)" color="#007aff"><path d="M2 6v4M5 3.5v9M8 1.5v13M11 3.5v9M14 6v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
+  <text x="104" y="56.9" font-size="13" font-weight="700" fill="#1d1d1f">Speech-to-Text</text>
+  <rect x="213" y="42" width="111" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <rect x="213" y="42" width="49" height="20" rx="5" fill="#007aff"/>
+  <text x="222" y="56.5" font-size="12" font-weight="400" fill="#ffffff">Panel</text>
+  <text x="271" y="56.5" font-size="12" font-weight="400" fill="#1d1d1f">Subtitle</text>
+  <g transform="translate(899 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="796" y="43" width="99" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <g transform="translate(803 45) scale(0.875)" color="#1d1d1f"><rect x="5.5" y="1" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></g>
+  <text x="822" y="56.5" font-size="12" font-weight="400" fill="#1d1d1f">Microphone</text>
+  <text x="759" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Input:</text>
+  <g transform="translate(742 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="683" y="43" width="55" height="18" rx="4" fill="#af52de" fill-opacity="0.2"/>
+  <text x="689" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">English</text>
+  <text x="619" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Language:</text>
+  <g transform="translate(602 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="544" y="43" width="54" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <text x="550" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">macOS</text>
+  <text x="489" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Provider:</text>
+  <rect x="40" y="76" width="868" height="210" rx="8" fill="#fffcf5" stroke="#8e8e93" stroke-opacity="0.3"/>
+  <rect x="40" y="76" width="868" height="210" rx="8" fill="#007aff" fill-opacity="0.1"/>
+  <rect x="41.5" y="77.5" width="865" height="207" rx="8" fill="none" stroke="#007aff" stroke-width="3"/>
+  <g transform="translate(456 151.5) scale(2.25)" color="#007aff"><path d="M1.5 6.5v3M4 4v8M6.5 2v12M9 5v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="11" r="2.3" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M13.7 12.7l1.6 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></g>
+  <text x="393" y="207.5" font-size="12" font-weight="500" fill="#007aff">Drop audio file to transcribe</text>
+  <path d="M624 147h34l14 14v50h-48z" fill="#fbfbfb" stroke="#b8b8bd" stroke-width="1"/><path d="M658 147v14h14" fill="#e6e6ea" stroke="#b8b8bd" stroke-width="1"/>
+  <g transform="translate(636 173) scale(1.5)" color="#7a7a7e"><path d="M2 6v4M5 3.5v9M8 1.5v13M11 3.5v9M14 6v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
+  <text x="608.5" y="227" font-size="12" font-weight="400" fill="#1d1d1f">interview.m4a</text>
+  <g transform="translate(662 184) scale(1.125)" color="#000"><path d="M3 1.5v11.5l3-2.8 2 4.3 2-.9-2-4.2h4.2z" fill="black" stroke="white" stroke-width="0.9" stroke-linejoin="round"/></g>
+  <text x="44" y="318.5" font-size="12" font-weight="400" fill="#7a7a7e">Translation:</text>
+  <text x="116" y="318.5" font-size="12" font-weight="500" fill="#1d1d1f">→ 日本語</text>
+  <g transform="translate(171 309.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="186" y="318.5" font-size="12" font-weight="500" fill="#1d1d1f">macOS</text>
+  <g transform="translate(232 309.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="247" y="304" width="82" height="20" rx="4" fill="#000" fill-opacity="0.05"/>
+  <g transform="translate(253 308) scale(0.75)" color="#7a7a7e"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="8" cy="8" rx="3" ry="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M1.5 8h13" stroke="currentColor" stroke-width="1.2"/></g>
+  <text x="269" y="318.5" font-size="12" font-weight="500" fill="#7a7a7e">Translate</text>
+  <rect x="40" y="342" width="193" height="34" rx="8" fill="#000" fill-opacity="0.04"/>
+  <rect x="44" y="346" width="120" height="26" rx="4" fill="#000" fill-opacity="0.05"/>
+  <g transform="translate(49 352.5) scale(0.8125)" color="#1d1d1f"><rect x="1.5" y="2.5" width="13" height="11" rx="2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M1.5 5.5h13" stroke="currentColor" stroke-width="1.3"/></g>
+  <text x="66" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Target:</text>
+  <text x="113" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">None</text>
+  <g transform="translate(150 354.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <g opacity="0.4">
+  <rect x="168" y="346" width="61" height="26" rx="4" fill="#000" fill-opacity="0.05"/>
+  <g transform="translate(173 352.5) scale(0.8125)" color="#1d1d1f"><rect x="3" y="2.5" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><rect x="5.5" y="1" width="5" height="3" rx="1" fill="currentColor"/></g>
+  <text x="190" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Paste</text>
+  </g>
+  <g opacity="0.4">
+  <rect x="831" y="343" width="77" height="32" rx="6" fill="#ffffff" stroke="#000" stroke-opacity="0.1" filter="url(#control-shadow)"/>
+  <g transform="translate(845 352) scale(0.875)" color="#1d1d1f"><rect x="5" y="4" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M3 12V2.8A1.3 1.3 0 0 1 4.3 1.5H10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
+  <text x="862" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Copy</text>
+  <rect x="719" y="343" width="104" height="32" rx="6" fill="#ffffff" stroke="#000" stroke-opacity="0.1" filter="url(#control-shadow)"/>
+  <g transform="translate(733 352) scale(0.875)" color="#1d1d1f"><path d="M5 5.5H3.5v9h9v-9H11M8 1.5V10M5.5 7.5L8 10l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="750" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Save Text</text>
+  </g>
+  <rect x="623" y="343" width="88" height="32" rx="6" fill="#007aff"/>
+  <g transform="translate(637 352) scale(0.875)" color="#ffffff"><rect x="5.5" y="1" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></g>
+  <text x="654" y="363.9" font-size="13" font-weight="400" fill="#ffffff">Record</text>
+</svg>

@@ -1,6 +1,7 @@
 # SpeechDock Development Rakefile
 
 require 'fileutils'
+require 'tmpdir'
 
 # Configuration
 APP_NAME = "SpeechDock"
@@ -344,6 +345,16 @@ namespace :docs do
       sh "bundle exec jekyll build"
     end
     puts "Documentation built to #{DOCS_DIR}/_site/"
+  end
+
+  desc "Draw the documentation's schematic figures (docs/images/*.svg)"
+  task :figures, [:output] do |t, args|
+    Dir.mktmpdir do |dir|
+      sh "xcrun", "swiftc", "-parse-as-library", "-o", "#{dir}/generate-doc-figures",
+         "scripts/generate-doc-figures.swift", "scripts/doc-figures-settings.swift",
+         "scripts/doc-figures-tools.swift", "Utilities/TextStatistics.swift"
+      sh "#{dir}/generate-doc-figures", *[args[:output]].compact
+    end
   end
 
   desc "Install Jekyll dependencies"

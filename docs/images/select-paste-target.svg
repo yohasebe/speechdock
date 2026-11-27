@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="948" height="840" viewBox="0 0 948 840" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif">
+  <title>Select Target</title>
+  <defs>
+    <filter id="window-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/></filter>
+    <filter id="control-shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/></filter>
+  </defs>
+  <rect x="24" y="24" width="900" height="368" rx="12" fill="#ececec" stroke="#000" stroke-opacity="0.12" filter="url(#window-shadow)"/>
+  <g transform="translate(44 44) scale(1.0)" color="#a1a1a6"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5.5 5.5l5 5m0-5l-5 5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></g>
+  <g transform="translate(75 43) scale(1.125)" color="#007aff"><path d="M2 6v4M5 3.5v9M8 1.5v13M11 3.5v9M14 6v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
+  <text x="104" y="56.9" font-size="13" font-weight="700" fill="#1d1d1f">Speech-to-Text</text>
+  <rect x="213" y="42" width="111" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <rect x="213" y="42" width="49" height="20" rx="5" fill="#007aff"/>
+  <text x="222" y="56.5" font-size="12" font-weight="400" fill="#ffffff">Panel</text>
+  <text x="271" y="56.5" font-size="12" font-weight="400" fill="#1d1d1f">Subtitle</text>
+  <g transform="translate(899 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="796" y="43" width="99" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <g transform="translate(803 45) scale(0.875)" color="#1d1d1f"><rect x="5.5" y="1" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></g>
+  <text x="822" y="56.5" font-size="12" font-weight="400" fill="#1d1d1f">Microphone</text>
+  <text x="759" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Input:</text>
+  <g transform="translate(742 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="683" y="43" width="55" height="18" rx="4" fill="#af52de" fill-opacity="0.2"/>
+  <text x="689" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">English</text>
+  <text x="619" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Language:</text>
+  <g transform="translate(602 47.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="544" y="43" width="54" height="18" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <text x="550" y="56.5" font-size="12" font-weight="500" fill="#1d1d1f">macOS</text>
+  <text x="489" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">Provider:</text>
+  <rect x="40" y="76" width="868" height="210" rx="8" fill="#fffcf5" stroke="#8e8e93" stroke-opacity="0.3"/>
+  <text x="54" y="106.8" font-size="18" font-weight="400" fill="#1d1d1f">Thanks for the update. I'll review the draft this afternoon and send my comments by tomorrow.</text>
+  <rect x="763" y="250" width="137" height="28" rx="8" fill="#ececec" filter="url(#control-shadow)"/>
+  <g transform="translate(773.5 256.5) scale(0.9375)" color="#7a7a7e"><path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>
+  <text x="797" y="268.5" font-size="12" font-weight="500" fill="#7a7a7e">18</text>
+  <g transform="translate(819.5 256.5) scale(0.9375)" color="#7a7a7e"><path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>
+  <path d="M841.5 257v14" stroke="black" stroke-opacity="0.15"/>
+  <g transform="translate(848.5 256.5) scale(0.9375)" color="#7a7a7e"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5.2 8.2l2 2 3.6-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <g transform="translate(874.5 256.5) scale(0.9375)" color="#7a7a7e"><g transform="rotate(-45 8 8)"><rect x="1.5" y="5" width="13" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M6.5 5v6" stroke="currentColor" stroke-width="1.3"/></g></g>
+  <text x="44" y="318.5" font-size="12" font-weight="400" fill="#7a7a7e">Translation:</text>
+  <text x="116" y="318.5" font-size="12" font-weight="500" fill="#1d1d1f">→ 日本語</text>
+  <g transform="translate(171 309.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="186" y="318.5" font-size="12" font-weight="500" fill="#1d1d1f">macOS</text>
+  <g transform="translate(232 309.5) scale(0.5625)" color="#7a7a7e"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="247" y="304" width="82" height="20" rx="4" fill="#007aff" fill-opacity="0.12"/>
+  <g transform="translate(253 308) scale(0.75)" color="#007aff"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="8" cy="8" rx="3" ry="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M1.5 8h13" stroke="currentColor" stroke-width="1.2"/></g>
+  <text x="269" y="318.5" font-size="12" font-weight="500" fill="#007aff">Translate</text>
+  <rect x="40" y="342" width="176" height="34" rx="8" fill="#000" fill-opacity="0.04"/>
+  <rect x="44" y="346" width="103" height="26" rx="4" fill="#000" fill-opacity="0.05"/>
+  <g transform="translate(49 352.5) scale(0.8125)" color="#1d1d1f"><rect x="1.5" y="2.5" width="13" height="11" rx="2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M1.5 5.5h13" stroke="currentColor" stroke-width="1.3"/></g>
+  <text x="66" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Target:</text>
+  <rect x="113" y="351" width="16" height="16" rx="3.5" fill="#8e9aaf"/>
+  <g transform="translate(115.4 353.4) scale(0.7)" color="#ffffff"><path d="M4 1.5h5.5L13 5v9.5H4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M6 7.5h5M6 9.8h5M6 12h3.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g>
+  <g transform="translate(133 354.5) scale(0.5625)" color="#7a7a7e"><path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <g opacity="1.0">
+  <rect x="151" y="346" width="61" height="26" rx="4" fill="#000" fill-opacity="0.05"/>
+  <g transform="translate(156 352.5) scale(0.8125)" color="#1d1d1f"><rect x="3" y="2.5" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><rect x="5.5" y="1" width="5" height="3" rx="1" fill="currentColor"/></g>
+  <text x="173" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Paste</text>
+  </g>
+  <text x="224" y="363.5" font-size="12" font-weight="400" fill="#7a7a7e">93 chars / 16 words</text>
+  <rect x="831" y="343" width="77" height="32" rx="6" fill="#ffffff" stroke="#000" stroke-opacity="0.1" filter="url(#control-shadow)"/>
+  <g transform="translate(845 352) scale(0.875)" color="#1d1d1f"><rect x="5" y="4" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M3 12V2.8A1.3 1.3 0 0 1 4.3 1.5H10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
+  <text x="862" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Copy</text>
+  <rect x="719" y="343" width="104" height="32" rx="6" fill="#ffffff" stroke="#000" stroke-opacity="0.1" filter="url(#control-shadow)"/>
+  <g transform="translate(733 352) scale(0.875)" color="#1d1d1f"><path d="M5 5.5H3.5v9h9v-9H11M8 1.5V10M5.5 7.5L8 10l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="750" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">Save Text</text>
+  <rect x="623" y="343" width="88" height="32" rx="6" fill="#007aff"/>
+  <g transform="translate(637 352) scale(0.875)" color="#ffffff"><rect x="5.5" y="1" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></g>
+  <text x="654" y="363.9" font-size="13" font-weight="400" fill="#ffffff">Record</text>
+  <path d="M28 384H84.5L95.5 373L106.5 384H536a12 12 0 0 1 12 12V804a12 12 0 0 1-12 12H28a12 12 0 0 1-12-12V396a12 12 0 0 1 12-12z" fill="#f6f6f6" stroke="#000" stroke-opacity="0.12" filter="url(#window-shadow)"/>
+  <rect x="32" y="438.5" width="246" height="185" rx="12" fill="#ececec" filter="url(#control-shadow)"/>
+  <rect x="40" y="446.5" width="230" height="150" rx="8" fill="#ffffff" stroke="#000" stroke-opacity="0.1"/>
+  <path d="M40 464.5h230" stroke="#000" stroke-opacity="0.08"/>
+  <rect x="54" y="478.5" width="90.9" height="7" rx="2" fill="#000" fill-opacity="0.35"/>
+  <rect x="54" y="498.5" width="181.8" height="5" rx="2" fill="#000" fill-opacity="0.15"/>
+  <rect x="54" y="512.5" width="165.6" height="5" rx="2" fill="#000" fill-opacity="0.15"/>
+  <rect x="54" y="526.5" width="177.8" height="5" rx="2" fill="#000" fill-opacity="0.15"/>
+  <rect x="54" y="540.5" width="121.2" height="5" rx="2" fill="#000" fill-opacity="0.15"/>
+  <rect x="54" y="554.5" width="171.7" height="5" rx="2" fill="#000" fill-opacity="0.15"/>
+  <rect x="54" y="568.5" width="141.4" height="5" rx="2" fill="#000" fill-opacity="0.15"/>
+  <text x="132" y="612.5" font-size="12" font-weight="400" fill="#7a7a7e">TextEdit</text>
+  <rect x="286" y="438.5" width="246" height="300" rx="8" fill="#ececec" filter="url(#window-shadow)"/>
+  <rect x="294" y="450.5" width="230" height="42" rx="4" fill="#007aff" fill-opacity="0.2"/>
+  <rect x="302" y="457.5" width="28" height="28" rx="6.2" fill="#8e9aaf"/>
+  <g transform="translate(306.2 461.7) scale(1.2249999999999999)" color="#ffffff"><path d="M4 1.5h5.5L13 5v9.5H4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M6 7.5h5M6 9.8h5M6 12h3.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g>
+  <text x="338" y="468" font-size="12" font-weight="500" fill="#1d1d1f">TextEdit</text>
+  <text x="338" y="484" font-size="12" font-weight="400" fill="#7a7a7e">Weekly Update</text>
+  <g transform="translate(502 464.5) scale(0.875)" color="#007aff"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <rect x="302" y="501.5" width="28" height="28" rx="6.2" fill="#c9a227"/>
+  <g transform="translate(306.2 505.7) scale(1.2249999999999999)" color="#ffffff"><path d="M4 1.5h5.5L13 5v9.5H4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M6 7.5h5M6 9.8h5M6 12h3.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g>
+  <text x="338" y="512" font-size="12" font-weight="500" fill="#1d1d1f">Notes</text>
+  <text x="338" y="528" font-size="12" font-weight="400" fill="#7a7a7e">Ideas</text>
+  <rect x="302" y="545.5" width="28" height="28" rx="6.2" fill="#3d8bfd"/>
+  <g transform="translate(306.2 549.7) scale(1.2249999999999999)" color="#ffffff"><path d="M4 1.5h5.5L13 5v9.5H4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M6 7.5h5M6 9.8h5M6 12h3.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g>
+  <text x="338" y="556" font-size="12" font-weight="500" fill="#1d1d1f">Mail</text>
+  <text x="338" y="572" font-size="12" font-weight="400" fill="#7a7a7e">New Message</text>
+  <g transform="translate(199.5 748) scale(0.75)" color="#7a7a7e"><path d="M5 13V3M2.5 5.5L5 3l2.5 2.5M11 3v10M8.5 10.5L11 13l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="215.5" y="758.5" font-size="12" font-weight="400" fill="#7a7a7e">Use arrow keys to preview</text>
+</svg>

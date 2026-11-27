@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="868" height="688" viewBox="0 0 868 688" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif">
+  <title>Speech-to-Text</title>
+  <defs>
+    <filter id="window-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/></filter>
+    <filter id="control-shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/></filter>
+    <clipPath id="settings-window"><rect x="24" y="24" width="820" height="640" rx="12"/></clipPath>
+  </defs>
+  <rect x="24" y="24" width="820" height="640" rx="12" fill="#fbfbfb" stroke="#000" stroke-opacity="0.12" filter="url(#window-shadow)"/>
+  <g clip-path="url(#settings-window)">
+  <rect x="24" y="24" width="210" height="640" rx="0" fill="#ebebed"/>
+  <path d="M234.5 24V664" stroke="black" stroke-opacity="0.08"/>
+  <circle cx="44" cy="44" r="6" fill="#ff5f57" stroke="black" stroke-opacity="0.1"/>
+  <circle cx="64" cy="44" r="6" fill="#febc2e" stroke="black" stroke-opacity="0.1"/>
+  <circle cx="84" cy="44" r="6" fill="#28c840" stroke="black" stroke-opacity="0.1"/>
+  <rect x="34" y="76" width="190" height="30" rx="6" fill="#000" fill-opacity="0.08"/>
+  <g transform="translate(46 83) scale(1.0)" color="#007aff"><rect x="5.5" y="1" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></g>
+  <text x="72" y="95.9" font-size="13" font-weight="400" fill="#1d1d1f">Speech-to-Text</text>
+  <g transform="translate(46 115) scale(1.0)" color="#007aff"><path d="M1.8 6h2.6L8 3v10L4.4 10H1.8z" fill="currentColor"/><path d="M10.5 5.6a3.4 3.4 0 0 1 0 4.8M12.6 3.6a6.2 6.2 0 0 1 0 8.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></g>
+  <text x="72" y="127.9" font-size="13" font-weight="400" fill="#1d1d1f">Text-to-Speech</text>
+  <g transform="translate(46 147) scale(1.0)" color="#007aff"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="8" cy="8" rx="3" ry="6.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M1.5 8h13" stroke="currentColor" stroke-width="1.2"/></g>
+  <text x="72" y="159.9" font-size="13" font-weight="400" fill="#1d1d1f">Translation</text>
+  <g transform="translate(46 179) scale(1.0)" color="#007aff"><path d="M3 2h10a1.5 1.5 0 0 1 1.5 1.5v6.5A1.5 1.5 0 0 1 13 11.5H7l-3 3v-3H3A1.5 1.5 0 0 1 1.5 10V3.5A1.5 1.5 0 0 1 3 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M4.5 6h3M9 6h2.5M4.5 8.5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></g>
+  <text x="72" y="191.9" font-size="13" font-weight="400" fill="#1d1d1f">Subtitle</text>
+  <g transform="translate(46 211) scale(1.0)" color="#007aff"><rect x="1" y="3.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M3.5 6h1M6 6h1M8.5 6h1M11 6h1.5M3.5 8.2h1M6 8.2h1M8.5 8.2h1M11 8.2h1.5M5 10.4h6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g>
+  <text x="72" y="223.9" font-size="13" font-weight="400" fill="#1d1d1f">Shortcuts</text>
+  <g transform="translate(46 243) scale(1.0)" color="#007aff"><circle cx="4" cy="4" r="3" fill="currentColor"/><path d="M4 2.5v3M2.5 4h3" stroke="white" stroke-width="1" stroke-linecap="round"/><path d="M8.5 4h6M1.5 8.5h13M1.5 12.5h13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></g>
+  <text x="72" y="255.9" font-size="13" font-weight="400" fill="#1d1d1f">Text Replacement</text>
+  <g transform="translate(46 275) scale(1.0)" color="#007aff"><path d="M14 2l-6.5 7.2 1.3 1.3L15 4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M6.6 10.1c-1.6-.4-3 .6-3.2 2.2-.1 1-.7 1.6-1.9 1.9 2.6.9 5.6.2 5.9-2.3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/></g>
+  <text x="72" y="287.9" font-size="13" font-weight="400" fill="#1d1d1f">Appearance</text>
+  <g transform="translate(46 307) scale(1.0)" color="#007aff"><circle cx="8" cy="4.6" r="3.1" stroke="currentColor" stroke-width="1.3" fill="none"/><circle cx="8" cy="3.9" r=".9" fill="currentColor"/><path d="M8 7.7v6.8M8 11h2M8 13h1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></g>
+  <text x="72" y="319.9" font-size="13" font-weight="400" fill="#1d1d1f">API Keys</text>
+  <g transform="translate(46 339) scale(1.0)" color="#007aff"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" fill="none"/><circle cx="8" cy="5" r=".9" fill="currentColor"/><path d="M7 7.3h1.1v4.2M6.8 11.5h2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/></g>
+  <text x="72" y="351.9" font-size="13" font-weight="400" fill="#1d1d1f">About</text>
+  <text x="266" y="68.9" font-size="13" font-weight="700" fill="#1d1d1f">Provider &amp; Model</text>
+  <rect x="254" y="80" width="570" height="208" rx="10" fill="#000" fill-opacity="0.035"/>
+  <text x="266" y="102.9" font-size="13" font-weight="400" fill="#1d1d1f">Provider</text>
+  <rect x="792" y="88" width="20" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <g transform="translate(796 92) scale(0.75)" color="#1d1d1f"><path d="M5 6.2L8 3.4l3 2.8M5 9.8L8 12.6l3-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="740" y="102.9" font-size="13" font-weight="400" fill="#1d1d1f">macOS</text>
+  <path d="M266 116.5H812" stroke="black" stroke-opacity="0.08"/>
+  <text x="266" y="136" font-size="12" font-weight="400" fill="#7a7a7e">Apple Speech (offline, realtime, no time limit)</text>
+  <path d="M266 147.5H812" stroke="black" stroke-opacity="0.08"/>
+  <text x="266" y="167" font-size="12" font-weight="400" fill="#e07800">Set API keys in the API Keys section to enable more providers</text>
+  <path d="M266 178.5H812" stroke="black" stroke-opacity="0.08"/>
+  <text x="266" y="200.9" font-size="13" font-weight="400" fill="#1d1d1f">Model</text>
+  <rect x="792" y="186" width="20" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <g transform="translate(796 190) scale(0.75)" color="#1d1d1f"><path d="M5 6.2L8 3.4l3 2.8M5 9.8L8 12.6l3-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="699" y="200.9" font-size="13" font-weight="400" fill="#1d1d1f">Apple Speech</text>
+  <text x="266" y="222" font-size="12" font-weight="400" fill="#7a7a7e">On-device speech recognition (macOS 26+)</text>
+  <path d="M266 233.5H812" stroke="black" stroke-opacity="0.08"/>
+  <text x="266" y="255.9" font-size="13" font-weight="400" fill="#1d1d1f">Language</text>
+  <rect x="792" y="241" width="20" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <g transform="translate(796 245) scale(0.75)" color="#1d1d1f"><path d="M5 6.2L8 3.4l3 2.8M5 9.8L8 12.6l3-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="740" y="255.9" font-size="13" font-weight="400" fill="#1d1d1f">English</text>
+  <text x="266" y="277" font-size="12" font-weight="400" fill="#7a7a7e">Select the language you will speak. macOS recognition uses this language.</text>
+  <text x="266" y="322.9" font-size="13" font-weight="700" fill="#1d1d1f">Audio Input</text>
+  <rect x="254" y="334" width="570" height="129" rx="10" fill="#000" fill-opacity="0.035"/>
+  <text x="266" y="356.9" font-size="13" font-weight="400" fill="#1d1d1f">Audio Source</text>
+  <rect x="792" y="342" width="20" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <g transform="translate(796 346) scale(0.75)" color="#1d1d1f"><path d="M5 6.2L8 3.4l3 2.8M5 9.8L8 12.6l3-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="712" y="356.9" font-size="13" font-weight="400" fill="#1d1d1f">Microphone</text>
+  <g transform="translate(692 345) scale(0.875)" color="#1d1d1f"><rect x="5.5" y="1" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></g>
+  <text x="266" y="378" font-size="12" font-weight="400" fill="#7a7a7e">Record from microphone</text>
+  <text x="266" y="397" font-size="12" font-weight="400" fill="#7a7a7e">App-specific audio capture is available in the menu bar and STT panel.</text>
+  <path d="M266 408.5H812" stroke="black" stroke-opacity="0.08"/>
+  <text x="266" y="430.9" font-size="13" font-weight="400" fill="#1d1d1f">Microphone</text>
+  <rect x="792" y="416" width="20" height="20" rx="5" fill="#000" fill-opacity="0.06"/>
+  <g transform="translate(796 420) scale(0.75)" color="#1d1d1f"><path d="M5 6.2L8 3.4l3 2.8M5 9.8L8 12.6l3-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="691" y="430.9" font-size="13" font-weight="400" fill="#1d1d1f">System Default</text>
+  <text x="266" y="452" font-size="12" font-weight="400" fill="#7a7a7e">Select the microphone device for speech recognition.</text>
+  <text x="266" y="497.9" font-size="13" font-weight="700" fill="#1d1d1f">Recording &amp; Panel</text>
+  <rect x="254" y="509" width="570" height="106" rx="10" fill="#000" fill-opacity="0.035"/>
+  <text x="266" y="529.9" font-size="13" font-weight="700" fill="#1d1d1f">Panel Behavior</text>
+  <text x="266" y="545.9" font-size="13" font-weight="400" fill="#1d1d1f">Auto-start recording</text>
+  <text x="266" y="563" font-size="12" font-weight="400" fill="#7a7a7e">When enabled, recording starts automatically when the STT panel opens.</text>
+  <rect x="778" y="539.5" width="34" height="20" rx="10" fill="#000" fill-opacity="0.1"/>
+  <circle cx="788" cy="549.5" r="8.5" fill="white" filter="url(#control-shadow)"/>
+  <text x="266" y="586.9" font-size="13" font-weight="400" fill="#1d1d1f">Close panel after paste</text>
+  <text x="266" y="604" font-size="12" font-weight="400" fill="#7a7a7e">When enabled, the STT panel closes automatically after pasting text.</text>
+  <rect x="778" y="580.5" width="34" height="20" rx="10" fill="#000" fill-opacity="0.1"/>
+  <circle cx="788" cy="590.5" r="8.5" fill="white" filter="url(#control-shadow)"/>
+  </g>
+</svg>

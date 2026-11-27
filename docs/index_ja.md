@@ -89,22 +89,22 @@ lang: ja
 ## スクリーンショット
 
 <figure>
-  <img src="images/stt-panel.png" alt="STT Panel" style="max-width: 600px;">
+  <img src="images/ja/stt-panel.svg" alt="STT Panel" style="max-width: 720px;">
   <figcaption>音声認識パネル</figcaption>
 </figure>
 
 <figure>
-  <img src="images/tts-panel.png" alt="TTS Panel" style="max-width: 600px;">
+  <img src="images/ja/tts-panel.svg" alt="TTS Panel" style="max-width: 720px;">
   <figcaption>音声合成パネル</figcaption>
 </figure>
 
 <figure>
-  <img src="images/quick-transcription.png" alt="Quick Transcription" style="max-width: 600px;">
+  <img src="images/ja/quick-transcription.svg" alt="Quick Transcription" style="max-width: 720px;">
   <figcaption>クイック入力 — ボタンをクリックすると録音が停止し、文字起こしテキストがカーソル位置にペーストされます</figcaption>
 </figure>
 
 <figure>
-  <img src="images/subtitle-overlay.png" alt="Subtitle Mode" style="max-width: 100%;">
+  <img src="images/ja/subtitle-overlay.svg" alt="Subtitle Mode" style="max-width: 100%;">
   <figcaption>字幕モード — リアルタイム文字起こしをフローティング字幕として表示</figcaption>
 </figure>
 
