@@ -20,6 +20,11 @@
 
 **Always accessible from your menu bar** — Global hotkeys let you use STT and TTS from anywhere, without switching apps. Works immediately after installation with no API keys required. Cloud providers are optional enhancements.
 
+<p align="center">
+  <img src="docs/images/stt-panel.svg" alt="Speech-to-Text panel" width="720">
+  <img src="docs/images/tts-panel.svg" alt="Text-to-Speech panel" width="720">
+</p>
+
 English | [日本語](README_ja.md)
 
 ## Architecture

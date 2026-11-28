@@ -20,6 +20,11 @@
 
 **メニューバーからいつでもアクセス** — グローバルホットキーで、アプリを切り替えることなくどこからでも利用可能。インストール後すぐに使え、APIキーは不要です。クラウドプロバイダはオプションで追加できます。
 
+<p align="center">
+  <img src="docs/images/ja/stt-panel.svg" alt="音声認識パネル" width="720">
+  <img src="docs/images/ja/tts-panel.svg" alt="テキスト読み上げパネル" width="720">
+</p>
+
 [English](README.md) | 日本語
 
 ## アーキテクチャ

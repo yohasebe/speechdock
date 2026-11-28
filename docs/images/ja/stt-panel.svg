@@ -27,8 +27,7 @@
   <text x="553" y="56.5" font-size="12" font-weight="400" fill="#7a7a7e">プロバイダ:</text>
   <rect x="40" y="76" width="868" height="210" rx="8" fill="#fffcf5" stroke="#8e8e93" stroke-opacity="0.3"/>
   <text x="54" y="106.8" font-size="18" font-weight="400" fill="#1d1d1f">SpeechDock は、話した言葉をどのアプリでも文字にします。プロバイダと言語を選んで録音を押し、</text>
-  <text x="54" y="130.8" font-size="18" font-weight="400" fill="#1d1d1f">話してください。止めたら、選んだウィンドウに貼り付けるか、保存するか、翻訳することもできま</text>
-  <text x="54" y="154.8" font-size="18" font-weight="400" fill="#1d1d1f">す。</text>
+  <text x="54" y="130.8" font-size="18" font-weight="400" fill="#1d1d1f">話してください。止めたら、選んだウィンドウに貼り付けるか、保存するか、翻訳できます。</text>
   <rect x="763" y="250" width="137" height="28" rx="8" fill="#ececec" filter="url(#control-shadow)"/>
   <g transform="translate(773.5 256.5) scale(0.9375)" color="#7a7a7e"><path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>
   <text x="797" y="268.5" font-size="12" font-weight="500" fill="#7a7a7e">18</text>
@@ -55,7 +54,7 @@
   <g transform="translate(192 352.5) scale(0.8125)" color="#1d1d1f"><rect x="3" y="2.5" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><rect x="5.5" y="1" width="5" height="3" rx="1" fill="currentColor"/></g>
   <text x="209" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">ペースト</text>
   </g>
-  <text x="277" y="363.5" font-size="12" font-weight="400" fill="#7a7a7e">98 文字 / 43 単語</text>
+  <text x="277" y="363.5" font-size="12" font-weight="400" fill="#7a7a7e">93 文字 / 40 単語</text>
   <rect x="825" y="343" width="83" height="32" rx="6" fill="#ffffff" stroke="#000" stroke-opacity="0.1" filter="url(#control-shadow)"/>
   <g transform="translate(839 352) scale(0.875)" color="#1d1d1f"><rect x="5" y="4" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M3 12V2.8A1.3 1.3 0 0 1 4.3 1.5H10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
   <text x="856" y="363.9" font-size="13" font-weight="400" fill="#1d1d1f">コピー</text>

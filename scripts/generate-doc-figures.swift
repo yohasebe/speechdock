@@ -549,7 +549,7 @@ func sttPanel(_ strings: Strings) -> String {
     let view = "Views/FloatingWindow/TranscriptionFloatingView.swift"
     let text = sample(strings,
         en: "SpeechDock turns what you say into text in any app. Pick a provider and a language, press Record, and speak. When you stop, paste the text into the window you chose, save it, or translate it first.",
-        ja: "SpeechDock は、話した言葉をどのアプリでも文字にします。プロバイダと言語を選んで録音を押し、話してください。止めたら、選んだウィンドウに貼り付けるか、保存するか、翻訳することもできます。")
+        ja: "SpeechDock は、話した言葉をどのアプリでも文字にします。プロバイダと言語を選んで録音を押し、話してください。止めたら、選んだウィンドウに貼り付けるか、保存するか、翻訳できます。")
     let svg = SVG()
     panelSurface(svg, height: panelHeight)
     sttHeader(svg, strings)
